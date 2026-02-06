@@ -1,0 +1,208 @@
+generator client {
+  provider = "prisma-client-js"
+  output   = "../generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+// ============================================================================
+// TABELA DE ROLES
+// ============================================================================
+model roles {
+  id          Int         @id @default(autoincrement())
+  role        UserRoles   @unique 
+  description String
+  user_role   user_roles[]
+  
+}
+
+// ============================================================================
+// TABELA DE USUÁRIOS
+// ============================================================================
+model userDocs {
+  id Int @id @default(autoincrement())
+  user_id Int 
+  doc_type DocType
+  url String
+  create_At DateTime
+
+  user users @relation(fields: [user_id], references: [id], onDelete: Cascade, onUpdate: Cascade)
+}
+
+// ============================================================================
+// TABELA DE USUÁRIOS
+// ============================================================================
+model users {
+  id             Int       @id @default(autoincrement())
+  name           String
+  email          String    @unique
+  phone          String    @unique
+  password       String
+  status      UserStatus   @default(ACTIVE)
+  email_verified Boolean   @default(false) 
+  last_access    DateTime?
+  date_register  DateTime  @default(now())
+
+  user_role user_roles[]
+  refreshTokens refresh_tokens[]
+  userDocs userDocs[]
+  emailVerified emailVerification[]
+
+  @@index([email])
+  @@index([phone])
+}
+
+// ============================================================================
+// TABELA PIVOT: USER <-> ROLE (com Soft Delete)
+// ============================================================================
+model user_roles {
+  id           Int              @id @default(autoincrement())
+  user_id      Int
+  role_id      Int
+  status       UserRoleStatus   @default(PENDING)
+  is_active Boolean @default(false)
+  approved_by  Int?
+  approved_at  DateTime?
+  created_at   DateTime         @default(now())
+
+  role      roles  @relation(fields: [role_id], references: [id])
+  user      users   @relation(fields: [user_id], references: [id], onDelete: Cascade) 
+  approver  admins? @relation(name: "ApprovedBy", fields: [approved_by], references: [id])
+
+  admin   admins?  @relation(name: "AdminProfile")
+  client  clients? @relation(name: "ClientProfile")
+  owner   owners?  @relation(name: "OwnerProfile")
+
+  @@unique([user_id, role_id],  name: "user_id_role_id")
+}
+
+
+
+// ============================================================================
+// ENUMS
+// ============================================================================
+enum AccessLevel {
+  NORMAL
+  SUPER_ADMIN
+}
+
+enum UserRoles {
+  CLIENT
+  OWNER
+  NORMAL
+  ADMIN
+}
+
+enum TypeOfOwner {
+  PF
+  PJ
+}
+
+enum UserRoleStatus {
+  PENDING
+  APPROVED
+  REJECTED
+}
+
+enum UserStatus {
+  ACTIVE
+  SUSPENDED
+}
+
+enum DocType {
+  BI_FRENTE
+  BI_VERSO
+  SELFIE_WITH_BI           
+  COMPROVANTE_RESIDENCIA
+  CERTIDAO_ESTADO_CIVIL
+  CERTIDAO_PREDIAL         
+  CADERNETA_PREDIAL
+  LICENCA_UTILIZACAO       
+  CERTIDAO_NEGATIVA_ONUS   
+  CONTRATO_PROMESSA        
+  ESCRITURA_PUBLICA 
+  COMPROVANTE_PAGAMENTO_TAXAS 
+  CONTRATO_ARRIAMENTO  
+}
+// ============================================================================
+// TABELA DE ADMINS
+// ============================================================================
+model admins {
+  id            Int         @id @default(autoincrement())
+  user_role_id  Int         @unique
+  access_level  AccessLevel @default(NORMAL)
+  date_register DateTime    @default(now())
+   
+  user_role user_roles @relation(name: "AdminProfile",fields: [user_role_id],references: [id],onDelete: Cascade)
+
+  approved_roles user_roles[] @relation(name: "ApprovedBy")
+}
+
+
+// ============================================================================
+// TABELA DE CLIENTES
+// ============================================================================
+model clients {
+  id            Int       @id @default(autoincrement())
+  user_role_id  Int       @unique
+  date_register DateTime  @default(now())
+  bi_number     String    @unique
+  bi_url        String
+
+  user_role user_roles @relation(name: "ClientProfile",fields: [user_role_id],references: [id],onDelete: Cascade)
+}
+
+
+// ============================================================================
+// TABELA DE PROPRIETÁRIOS
+// ============================================================================
+model owners {
+  id            Int         @id @default(autoincrement())
+  user_role_id  Int         @unique
+  nif           String      @unique
+  owner_type    TypeOfOwner
+  company_name  String?
+  bi_number     String?     @unique
+  bi_url        String?
+  bank_acount   String
+  data_cadastro DateTime    @default(now())
+
+  user_role user_roles @relation(name: "OwnerProfile",fields: [user_role_id],references: [id],onDelete: Cascade)
+}
+
+
+
+// ============================================================================
+// TABELA DE REFRESH TOKENS
+// ============================================================================
+model refresh_tokens {
+  id           Int       @id @default(autoincrement())
+  token        String    @unique
+  user_id      Int
+  expiresAt    DateTime
+  isActive     Boolean   @default(true)
+  createdAt    DateTime  @default(now())
+  revokedAt    DateTime?
+  
+  user users @relation(fields: [user_id], references: [id], onDelete: Cascade, onUpdate: Cascade)
+  
+  @@index([user_id])
+  @@index([token])
+  @@index([expiresAt])
+}
+
+
+// ============================================================================
+// TABELA DE CODIGO DE VERIFICAÇÃO DE EMAIL
+// ============================================================================
+model emailVerification {
+  id Int @id @default(autoincrement())
+  user_id Int 
+  code String
+  expires_at DateTime
+  used Boolean @default(false)
+
+  user users @relation(fields: [user_id], references: [id])
+}
