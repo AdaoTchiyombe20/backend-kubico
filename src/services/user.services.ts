@@ -1,4 +1,4 @@
-import { type UserUpdateDTO, type VerifyClientDTO, type VerifyOwnerDTO } from "../dto/user.dto.js";
+import { type UserUpdateDTO, type createClientDTO, type createOwnerDTO } from "../dto/user.dto.js";
 import { AppError } from "../errors/App.Errors.js";
 import { refreshTokenUser } from "../repositories/refreshToken.repositories.js";
 import {userRole} from '../repositories/userRole.repositories.js'
@@ -88,7 +88,7 @@ export const userService = {
 
     return existingId;
   },
-  verifyClient: async(id: number, data: VerifyClientDTO) => {
+  createClient: async(id: number, data: createClientDTO) => {
     const user = await userRepository.findById(id)
 
     if(!user)
@@ -108,7 +108,7 @@ export const userService = {
 
     const getAllMidiaUserId = await userMidiaRepository.findAllUserMidiaById(user.id)
 
-    
+
     await userMidiaRepository.insertMidia(user.id, 'BI', data.bi, data.biUrl)
 
     await userMidiaRepository.insertMidia(user.id, 'SELFIE_WITH_BI', null, data.userPhotoUrl)
@@ -117,7 +117,7 @@ export const userService = {
 
 
   },
-  verifyOwner: async(id: number, data: VerifyOwnerDTO) => {
+  createOwner: async(id: number, data: createOwnerDTO) => {
     const user = await userRepository.findById(id)
 
     if(!user)

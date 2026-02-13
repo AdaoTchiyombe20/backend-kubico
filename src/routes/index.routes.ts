@@ -9,4 +9,5 @@ const router = Router();
 router.use("/users",authorizeNormalAccessTokenMiddleware, userRouter);//user route 
 router.use("/auth", authRouter );//auth route
 
+
 export { router };

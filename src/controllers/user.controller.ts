@@ -1,4 +1,4 @@
-import { updateUser,type UserUpdateDTO,getUserId,type GetUserIdDTO,type UserUpdateEmailDTO,updateEmail,verifyclient, type VerifyOwnerDTO, type VerifyClientDTO, verifyOwner,
+import { updateUser,type UserUpdateDTO,getUserId,type GetUserIdDTO,type UserUpdateEmailDTO,updateEmail,createClient, type createOwnerDTO, type createClientDTO, createOwner,
 } from "../dto/user.dto.js";
 import { AppError } from "../errors/App.Errors.js";
 import { userService } from "../services/user.services.js";
@@ -73,11 +73,11 @@ const userController = {
     next(err)
   }
   },
-  verifyClient: async(req: Request,res: Response, next : NextFunction) => {
+  createClient: async(req: Request,res: Response, next : NextFunction) => {
     try{
       const id= req.user!.sub
-      const data: VerifyClientDTO = verifyclient.parse(req.body);
-      const client = await userService.verifyClient(Number(id), data);
+      const data: createClientDTO = createClient.parse(req.body);
+      const client = await userService.createClient(Number(id), data);
 
       res.status(201).json({
         message: 'Cliente cadastrado! Aguarde a verificação dos dados.',
@@ -88,11 +88,11 @@ const userController = {
       next(error)
     }
   },
-  verifyOwner: async(req: Request,res: Response, next : NextFunction) => {
+  createOwner: async(req: Request,res: Response, next : NextFunction) => {
     try{
       const id= req.user!.sub
-      const data: VerifyOwnerDTO = verifyOwner.parse(req.body);
-      const owner = await userService.verifyOwner(Number(id), data);
+      const data: createOwnerDTO = createOwner.parse(req.body);
+      const owner = await userService.createOwner(Number(id), data);
 
       res.status(201).json({
         message: 'Proprietario cadastrado! Aguarde a verificação dos dados.',

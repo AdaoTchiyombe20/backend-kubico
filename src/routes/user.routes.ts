@@ -2,6 +2,7 @@ import { Router } from "express";
 import { userController } from "../controllers/user.controller.js";
 import {authorizeRoleAcessTokenMiddleware} from '../middlewares/auth.middleware.js'
 import {verifyUser} from './verifyUser.routes.js'
+import { assumeRole } from "./assumeRole.routes.js";
 const userRouter = Router();
 
 //user routes
@@ -15,5 +16,10 @@ userRouter.use('/verify', verifyUser)
 //only admin can access
 userRouter.get("/get-all",authorizeRoleAcessTokenMiddleware(['ADMIN']), userController.findAll);
 userRouter.get("/find-user",authorizeRoleAcessTokenMiddleware(['ADMIN']), userController.findById);
+
+//assume roles 
+userRouter.use('/assume-roles', authorizeRoleAcessTokenMiddleware(['NORMAL','CLIENT','OWNER']), assumeRole)
+
+
 
 export { userRouter };

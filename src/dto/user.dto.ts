@@ -7,7 +7,7 @@ export const updateEmail = z.object({
         .trim()
 })
 
-export const verifyclient = z.object({
+export const createClient = z.object({
     bi: z.string()
         .trim()
         .length(14, "O BI deve conter exatamente 14 caracteres"),
@@ -19,7 +19,7 @@ export const verifyclient = z.object({
         .trim()
 })
 
-export const verifyOwner = z.object({
+export const createOwner = z.object({
     nif: z.string()
         .trim()
         .length(14, "O NIF deve conter exatamente 14 caracteres"),
@@ -55,5 +55,5 @@ export const getUserId = z.object({
 export type UserUpdateEmailDTO = z.infer<typeof updateEmail>
 export type UserUpdateDTO = z.infer<typeof updateUser>
 export type GetUserIdDTO = z.infer<typeof getUserId>
-export type VerifyClientDTO = z.infer<typeof verifyclient>
-export type VerifyOwnerDTO = z.infer<typeof verifyOwner>
+export type createClientDTO = z.infer<typeof createClient>
+export type createOwnerDTO = z.infer<typeof createOwner>

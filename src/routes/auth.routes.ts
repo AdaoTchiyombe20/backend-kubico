@@ -8,8 +8,6 @@ authRouter.post('/signup', UnauthorizeRefreshTokenMiddleware, authController.sig
 authRouter.post('/login', UnauthorizeRefreshTokenMiddleware, authController.login)
 authRouter.post('/logout', authorizeRefreshTokenMiddleware, authController.logout)
 authRouter.post('/refresh',authorizeRefreshTokenMiddleware, authController.refresh)
-/* authRouter.post('/assume-client', authController.assumeClient)
-authRouter.post('/assume-owner', authController.assumeOwner) */
 
 authRouter.get("/auth/verify-email/:token", authController.verifyEmailController);
 
