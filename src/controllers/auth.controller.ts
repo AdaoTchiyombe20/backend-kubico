@@ -81,5 +81,5 @@ export const authController = {
       await authServices.verifyEmail(token);
 
       return res.send("Email verificado com sucesso");
-    }
+    },
 }

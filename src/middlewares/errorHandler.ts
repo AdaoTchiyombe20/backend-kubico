@@ -15,7 +15,6 @@ export const errorHandler = ( error: Error, req: Request, res: Response, next: N
             success: false,
             error: 'Dados inválidos',
             details: error.issues
-
         })
     }
 

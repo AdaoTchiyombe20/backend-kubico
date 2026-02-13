@@ -10,7 +10,7 @@ userRouter.put("/update-email",authorizeRoleAcessTokenMiddleware(['NORMAL','CLIE
 userRouter.delete("/delete",authorizeRoleAcessTokenMiddleware(['ADMIN','NORMAL','CLIENT','OWNER']), userController.delete);
 
 //Routes to verify client and owner
-userRouter.post('/verify', verifyUser)
+userRouter.use('/verify', verifyUser)
 
 //only admin can access
 userRouter.get("/get-all",authorizeRoleAcessTokenMiddleware(['ADMIN']), userController.findAll);

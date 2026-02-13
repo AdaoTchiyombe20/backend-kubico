@@ -21,19 +21,6 @@ model roles {
 // ============================================================================
 // TABELA DE USUÁRIOS
 // ============================================================================
-model userDocs {
-  id Int @id @default(autoincrement())
-  user_id Int 
-  doc_type DocType
-  url String
-  create_At DateTime
-
-  user users @relation(fields: [user_id], references: [id], onDelete: Cascade, onUpdate: Cascade)
-}
-
-// ============================================================================
-// TABELA DE USUÁRIOS
-// ============================================================================
 model users {
   id             Int       @id @default(autoincrement())
   name           String
@@ -47,15 +34,15 @@ model users {
 
   user_role user_roles[]
   refreshTokens refresh_tokens[]
-  userDocs userDocs[]
   emailVerified emailVerification[]
+  userMidia userMidias[]
 
   @@index([email])
   @@index([phone])
 }
 
 // ============================================================================
-// TABELA PIVOT: USER <-> ROLE (com Soft Delete)
+// TABELA PIVOT: USER <-> ROLE 
 // ============================================================================
 model user_roles {
   id           Int              @id @default(autoincrement())
@@ -112,19 +99,19 @@ enum UserStatus {
 }
 
 enum DocType {
-  BI_FRENTE
-  BI_VERSO
+  BI
+  NIF
   SELFIE_WITH_BI           
   COMPROVANTE_RESIDENCIA
-  CERTIDAO_ESTADO_CIVIL
+  /* CERTIDAO_ESTADO_CIVIL */
   CERTIDAO_PREDIAL         
   CADERNETA_PREDIAL
   LICENCA_UTILIZACAO       
   CERTIDAO_NEGATIVA_ONUS   
   CONTRATO_PROMESSA        
-  ESCRITURA_PUBLICA 
-  COMPROVANTE_PAGAMENTO_TAXAS 
-  CONTRATO_ARRIAMENTO  
+  /* ESCRITURA_PUBLICA  */
+  /* COMPROVANTE_PAGAMENTO_TAXAS  */
+  CONTRATO_ARRENDAMENTO  
 }
 // ============================================================================
 // TABELA DE ADMINS
@@ -140,7 +127,6 @@ model admins {
   approved_roles user_roles[] @relation(name: "ApprovedBy")
 }
 
-
 // ============================================================================
 // TABELA DE CLIENTES
 // ============================================================================
@@ -148,12 +134,9 @@ model clients {
   id            Int       @id @default(autoincrement())
   user_role_id  Int       @unique
   date_register DateTime  @default(now())
-  bi_number     String    @unique
-  bi_url        String
 
-  user_role user_roles @relation(name: "ClientProfile",fields: [user_role_id],references: [id],onDelete: Cascade)
+  user_role user_roles @relation(name: "ClientProfile", fields: [user_role_id], references: [id], onDelete: Cascade)
 }
-
 
 // ============================================================================
 // TABELA DE PROPRIETÁRIOS
@@ -161,20 +144,15 @@ model clients {
 model owners {
   id            Int         @id @default(autoincrement())
   user_role_id  Int         @unique
-  nif           String      @unique
   owner_type    TypeOfOwner
-  company_name  String?
-  bi_number     String?     @unique
-  bi_url        String?
+  company_name  String?     // Obrigatório se owner_type == EMPRESA
   bank_acount   String
   data_cadastro DateTime    @default(now())
 
-  user_role user_roles @relation(name: "OwnerProfile",fields: [user_role_id],references: [id],onDelete: Cascade)
+  user_role user_roles @relation(name: "OwnerProfile", fields: [user_role_id], references: [id], onDelete: Cascade)
 }
 
-
-
-// ============================================================================
+//============================================================================
 // TABELA DE REFRESH TOKENS
 // ============================================================================
 model refresh_tokens {
@@ -193,7 +171,6 @@ model refresh_tokens {
   @@index([expiresAt])
 }
 
-
 // ============================================================================
 // TABELA DE CODIGO DE VERIFICAÇÃO DE EMAIL
 // ============================================================================
@@ -206,3 +183,18 @@ model emailVerification {
 
   user users @relation(fields: [user_id], references: [id])
 }
+// ============================================================================
+// TABELA User <-> Midia
+// ============================================================================
+model userMidias {
+  id Int @id @default(autoincrement())
+  user_id Int 
+  type_midia DocType
+  document_number String? //bi, nif, etc...
+  url String
+  uploaded_at DateTime
+
+  userId users @relation(fields: [user_id], references: [id], onDelete: Cascade)
+}
+
+

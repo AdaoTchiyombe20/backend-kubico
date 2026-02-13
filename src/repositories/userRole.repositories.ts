@@ -1,4 +1,4 @@
-import { type user_roles } from "../../generated/prisma/client.js";
+import { UserRoleStatus, type user_roles } from "../../generated/prisma/client.js";
 import { prisma } from "../../lib/prisma.js";
 
 export const userRole = {
@@ -18,13 +18,13 @@ export const userRole = {
         data: {is_active}
       })
   },
-  insertValues: async(data: {userId:number, roleid: number }): Promise<user_roles> => {
+  insertValues: async(user_id:number, role_id: number, status: UserRoleStatus): Promise<user_roles> => {
   
     return prisma.user_roles.create({
       data : {
-        user_id: data.userId,
-        role_id: data.roleid,
-        status: 'PENDING',
+        user_id,
+        role_id,
+        status,
         created_at: new Date()
       }})
 

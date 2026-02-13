@@ -13,6 +13,7 @@ import { sendVerificationEmail } from "./mail.services.js";
 export const authServices = {
   signUp: async (data: AuthSignUpDTO) => {
     const { name, email, phone, password } = data;
+
     const existingEmail = await authRepositories.findByEmail(email);
     const existingPhone = await authRepositories.findByPhone(phone);
 
@@ -32,10 +33,11 @@ export const authServices = {
       password: passwordHash, 
     });
 
-    const user_role = await userRole.insertValues({
-      userId: user.id,
-      roleid: 4 // Normal
-    })
+    const user_role = await userRole.insertValues(
+      user.id,
+      4, // Normal
+      'APPROVED'
+    )
     const refreshToken = jwt.sign(
       {
         sub: user.id,
@@ -86,7 +88,7 @@ export const authServices = {
     if (!verfiryUserPassword) 
       throw new AppError("senha incorreta!!", 401);
 
-    if(user.email_verified) 
+    if(!user.email_verified) 
       throw new AppError('Valide o seu email', 400)
 
     const refreshToken = jwt.sign(

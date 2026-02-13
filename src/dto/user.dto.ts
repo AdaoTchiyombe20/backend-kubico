@@ -1,35 +1,59 @@
 import z from 'zod'
 
-
 export const updateEmail = z.object({
-    email: z.string("Email precisa ser do tipo string!").email()
+    email: z.string()
+        .email("Formato de email inválido")
+        .toLowerCase()
+        .trim()
 })
 
 export const verifyclient = z.object({
-    bi: z.string('BI precisa ser do tipo string').min(14,"Muito Bi Curto, deve conter 14 caracteres!").max(14,"Muito grande deve conter 14 caracteres!"),
-    biUrl: z.string('a url do BI deve ser string'),
-    userPhotoUrl: z.string('A url da Foto deve ser string') 
+    bi: z.string()
+        .trim()
+        .length(14, "O BI deve conter exatamente 14 caracteres"),
+    biUrl: z.string()
+        .url("Formato de URL do BI inválido")
+        .trim(),
+    userPhotoUrl: z.string()
+        .url("Formato de URL da foto inválido")
+        .trim()
+})
+
+export const verifyOwner = z.object({
+    nif: z.string()
+        .trim()
+        .length(14, "O NIF deve conter exatamente 14 caracteres"),
+    ownerType: z.enum(['PF', 'PJ'], {
+        message: "Tipo de proprietário deve ser 'PF' ou 'PJ'"
+    }),
+    companyName: z.string().trim().optional(),
+    bankAcount: z.string()
+        .trim()
+        .length(21, "A conta bancaria deve conter exatamente 21 caracteres")
 })
 
 export const updateUser = z.object({
-    name: z.string("name precisa ser do tipo string").min(3,"Deve conter no minio 3 caracteres o nome!"),
-    phone: z.string("Phone precisa ser do tipo string").min(9,"Muito curto, um numero de telefone angolano deve conter 9 caracteres").max(9,"Muito grande, um numero de telefone angolano deve conter 9 caracteres"),
-    password: z.string("Password precisa ser do tipo string").min(6,"Password muito curta, deve conter no minimo 6 caracteres!")
+    name: z.string()
+        .trim()
+        .min(3, "O nome deve conter no mínimo 3 caracteres"),
+    phone: z.string()
+        .trim()
+        .length(9, "O número de telefone angolano deve conter exatamente 9 caracteres")
+        .regex(/^[0-9]+$/, "O telefone deve conter apenas números"),
+    password: z.string()
+        .min(6, "A password deve conter no mínimo 6 caracteres")
 }).partial()
-
 
 export const getUserId = z.object({
     id: z.coerce
         .number()
-        .refine(Number.isInteger, {
-        message: "ID deve ser um número inteiro",
-        })
-        .refine((n) => n > 0, {
-        message: "ID deve ser positivo",
-        }),
-});
+        .int("ID deve ser um número inteiro")
+        .positive("ID deve ser positivo")
+})
 
+// Types
 export type UserUpdateEmailDTO = z.infer<typeof updateEmail>
 export type UserUpdateDTO = z.infer<typeof updateUser>
-export type GetUserIdDTO = z.infer<typeof getUserId>;
-export type VerifyClient = z.infer<typeof verifyclient>
+export type GetUserIdDTO = z.infer<typeof getUserId>
+export type VerifyClientDTO = z.infer<typeof verifyclient>
+export type VerifyOwnerDTO = z.infer<typeof verifyOwner>
