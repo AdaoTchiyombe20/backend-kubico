@@ -11,10 +11,10 @@ export const userRole = {
       where: { user_id: id },
     });
   },
-  updateAllUserRolesStatus: async(id: number, is_active:boolean): Promise<void> => {
+  updateAllUserRolesStatus: async(user_id: number, is_active:boolean): Promise<void> => {
 
       await prisma.user_roles.updateMany({
-        where: {id},
+        where: {user_id},
         data: {is_active}
       })
   },

@@ -158,7 +158,74 @@ export const authServices = {
 
   await userRepository.update(getUser.id,{email_verified: true});
   },
-  refresh: async() => {
+  refresh: async(id: number, refreshTkn: string) => {
+    const userRoles = await userRole.findAllRolesByUserId(id)
+
+    if (!refreshTkn) 
+      throw new AppError("Refresh token nao fornecido!", 400);
+  
+    await refreshTokenUser.revokeRefreshToken(refreshTkn);
     
+    if(!userRoles)
+      throw new AppError('Id nao cadastrado!!', 401)
+
+    const user = await userRepository.findById(id)
+
+    if(!user)
+      throw new AppError('Usuario nao encotrado!', 404)
+
+    const verifyActiveRole = userRoles.find(
+      user => user.is_active == true
+    )
+
+    if(!verifyActiveRole)
+      throw new AppError('Nenhuma Role activa!',404)
+
+    const refreshToken = jwt.sign(
+      {
+        sub: user.id,
+      },
+      env("JWT_REFRESH_SECRET"),
+      { expiresIn: "7d" },
+    );
+
+    const roleMap: { [key: number]: string } = {
+      1: "CLIENT",
+      2: "OWNER",
+      3: "ADMIN",
+      4: "NORMAL"
+    };
+
+    const roleName = roleMap[verifyActiveRole.role_id];
+
+    if(!roleName) {
+      throw new AppError('Role Id invalida!', 400);
+    }
+
+    const accessToken = jwt.sign(
+      {
+        sub: user.id,
+        email: user.email,
+        role: roleName,
+        iat: Math.floor(Date.now() / 1000),
+      },
+      env("JWT_SECRET"),
+      { expiresIn: "15m" },
+    );
+
+    const expiresAt = new Date();
+    expiresAt.setDate(expiresAt.getDate() + 7);
+
+    await refreshTokenUser.saveRefreshToken({
+      refreshToken,
+      userId: user.id,
+      expiresAt: expiresAt,
+    });
+
+    return {
+      refreshToken,
+      accessToken,
+    };
+
   },
 };

@@ -9,7 +9,7 @@ export async function sendVerificationEmail(to: string, token: string) {
   const link = `${env('APP_URL')}/auth/verify-email?token=${token}`;
 
   return transporter.sendMail({
-    from: `"MyApp" <${env('EMAIL_USER')}>`,
+    from: `"Kubiko" <${env('EMAIL_USER')}>`,
     to,
     subject: "Confirma o teu email",
     html: `

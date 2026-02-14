@@ -2,7 +2,8 @@ import { type Request, type Response, type NextFunction } from "express";
 import { login, signup, type AuthSignUpDTO } from "../dto/auth.dto.js";
 import { AppError } from "../errors/App.Errors.js";
 import { authServices } from "../services/auth.services.js";
-import { access } from "node:fs";
+import { getUserId, type GetUserIdDTO } from "../dto/user.dto.js";
+import { success } from "zod";
 
 
 export const authController = {
@@ -70,7 +71,19 @@ export const authController = {
       }
     },
     refresh: async(req: Request, res: Response, next: NextFunction) => {
-      console.log('resfresh')
+     try{
+        const {id}: GetUserIdDTO = getUserId.parse({id: req.user!.sub})
+        const refreshToken = req.cookies.refreshToken
+        const refreshAcess = await authServices.refresh(id, refreshToken)
+
+        res.status(200).json({
+          success: true,
+          message: 'Acesso Actualizado',
+          refreshAcess
+        })
+     }catch(error){
+        next(error)
+     }
     }, 
     verifyEmailController: async(req: Request, res: Response, next: NextFunction) => {
      const token = req.query.token as string;
