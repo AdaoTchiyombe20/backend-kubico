@@ -1,0 +1,604 @@
+openapi: 3.0.0
+info:
+  title: Kubico API
+  version: 1.0.0
+  description: API documentation for Kubico backend - Complete user and role management system
+  contact:
+    name: Kubico Support
+    email: support@kubico.com
+
+servers:
+  - url: http://localhost:3000
+    description: Development server
+  - url: https://api.kubico.com
+    description: Production server
+
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+      description: JWT access token for authenticated endpoints
+
+  schemas:
+    SignUpRequest:
+      type: object
+      required:
+        - name
+        - email
+        - phone
+        - password
+      properties:
+        name:
+          type: string
+          minLength: 3
+          description: User full name
+          example: João Silva
+        email:
+          type: string
+          format: email
+          description: User email address
+          example: joao@example.com
+        phone:
+          type: string
+          minLength: 9
+          maxLength: 9
+          description: Phone number (9 digits)
+          example: "923456789"
+        password:
+          type: string
+          minLength: 6
+          description: User password
+          example: password123
+
+    LoginRequest:
+      type: object
+      required:
+        - email
+        - password
+      properties:
+        email:
+          type: string
+          format: email
+          description: User email
+          example: joao@example.com
+        password:
+          type: string
+          description: User password
+          example: password123
+
+    AuthResponse:
+      type: object
+      properties:
+        accessToken:
+          type: string
+          description: JWT access token
+          example: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
+        refreshToken:
+          type: string
+          description: JWT refresh token
+          example: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
+        user:
+          type: object
+          properties:
+            id:
+              type: integer
+              example: 1
+            email:
+              type: string
+              example: joao@example.com
+            name:
+              type: string
+              example: João Silva
+            role:
+              type: string
+              enum: [ADMIN, NORMAL, CLIENT, OWNER]
+              example: NORMAL
+
+    RefreshTokenRequest:
+      type: object
+      required:
+        - refreshToken
+        - userId
+        - expiresAt
+      properties:
+        refreshToken:
+          type: string
+          description: Refresh token
+          example: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
+        userId:
+          type: integer
+          description: User ID
+          example: 1
+        expiresAt:
+          type: string
+          format: date-time
+          description: Token expiration date
+          example: 2026-03-16T12:00:00Z
+
+    UpdateUserRequest:
+      type: object
+      properties:
+        name:
+          type: string
+          minLength: 3
+          description: User full name
+          example: João Silva Updated
+        phone:
+          type: string
+          length: 9
+          pattern: ^[0-9]+$
+          description: Phone number (9 digits, only numbers)
+          example: "923456789"
+        password:
+          type: string
+          minLength: 6
+          description: User password
+          example: newpassword123
+
+    UpdateEmailRequest:
+      type: object
+      required:
+        - email
+      properties:
+        email:
+          type: string
+          format: email
+          description: New email address
+          example: newemail@example.com
+
+    CreateClientRequest:
+      type: object
+      required:
+        - bi
+        - biUrl
+        - userPhotoUrl
+      properties:
+        bi:
+          type: string
+          length: 14
+          description: BI (Bilhete de Identidade) number - exactly 14 characters
+          example: "12345678901234"
+        biUrl:
+          type: string
+          format: uri
+          description: URL of BI document image
+          example: "https://example.com/bi-image.jpg"
+        userPhotoUrl:
+          type: string
+          format: uri
+          description: URL of user photo
+          example: "https://example.com/user-photo.jpg"
+
+    CreateOwnerRequest:
+      type: object
+      required:
+        - nif
+        - ownerType
+        - bankAcount
+      properties:
+        nif:
+          type: string
+          length: 14
+          description: NIF (Número de Identificação Fiscal) - exactly 14 characters
+          example: "12345678901234"
+        ownerType:
+          type: string
+          enum: [PF, PJ]
+          description: Owner type - PF (Pessoa Física) or PJ (Pessoa Jurídica)
+          example: PF
+        companyName:
+          type: string
+          description: Company name (optional, required if ownerType is PJ)
+          example: Empresa XYZ Ltda
+        bankAcount:
+          type: string
+          length: 21
+          description: Bank account number - exactly 21 characters
+          example: "123456789012345678901"
+
+    User:
+      type: object
+      properties:
+        id:
+          type: integer
+          example: 1
+        name:
+          type: string
+          example: João Silva
+        email:
+          type: string
+          format: email
+          example: joao@example.com
+        phone:
+          type: string
+          example: "923456789"
+        role:
+          type: string
+          enum: [ADMIN, NORMAL, CLIENT, OWNER]
+          example: NORMAL
+        createdAt:
+          type: string
+          format: date-time
+          example: 2026-02-14T12:00:00Z
+
+    ErrorResponse:
+      type: object
+      properties:
+        status:
+          type: integer
+          example: 400
+        message:
+          type: string
+          example: Invalid request parameters
+        error:
+          type: string
+          example: Validation error
+
+security:
+  - bearerAuth: []
+
+paths:
+  /auth/signup:
+    post:
+      tags:
+        - Authentication
+      summary: Register a new user
+      description: Creates a new user account with the provided credentials
+      operationId: signup
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/SignUpRequest'
+      responses:
+        '201':
+          description: User successfully registered
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AuthResponse'
+        '400':
+          description: Invalid input or validation error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '409':
+          description: Email already exists
+
+  /auth/login:
+    post:
+      tags:
+        - Authentication
+      summary: User login
+      description: Authenticates a user and returns access and refresh tokens
+      operationId: login
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/LoginRequest'
+      responses:
+        '200':
+          description: Login successful
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AuthResponse'
+        '400':
+          description: Invalid credentials
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          description: Unauthorized - invalid email or password
+
+  /auth/logout:
+    post:
+      tags:
+        - Authentication
+      summary: User logout
+      description: Invalidates the user's refresh token
+      operationId: logout
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RefreshTokenRequest'
+      responses:
+        '200':
+          description: Logout successful
+        '401':
+          description: Unauthorized - invalid or expired token
+
+  /auth/refresh:
+    post:
+      tags:
+        - Authentication
+      summary: Refresh access token
+      description: Generates a new access token using a valid refresh token
+      operationId: refresh
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RefreshTokenRequest'
+      responses:
+        '200':
+          description: Token refreshed successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AuthResponse'
+        '401':
+          description: Unauthorized - invalid or expired refresh token
+        '400':
+          description: Invalid refresh token data
+
+  /auth/auth/verify-email/{token}:
+    get:
+      tags:
+        - Authentication
+      summary: Verify email address
+      description: Verifies the user's email address using the verification token sent via email
+      operationId: verifyEmail
+      security: []
+      parameters:
+        - name: token
+          in: path
+          required: true
+          description: Email verification token
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Email verified successfully
+        '400':
+          description: Invalid or expired token
+        '404':
+          description: Token not found
+
+  /users/update-user:
+    put:
+      tags:
+        - User Management
+      summary: Update user profile
+      description: Updates the authenticated user's profile information (name, phone, password)
+      operationId: updateUser
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateUserRequest'
+      responses:
+        '200':
+          description: User profile updated successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/User'
+        '400':
+          description: Invalid input data
+        '401':
+          description: Unauthorized - no valid token provided
+        '404':
+          description: User not found
+
+  /users/update-email:
+    put:
+      tags:
+        - User Management
+      summary: Update user email
+      description: Updates the authenticated user's email address. Requires NORMAL, CLIENT, or OWNER role.
+      operationId: updateEmail
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateEmailRequest'
+      responses:
+        '200':
+          description: Email updated successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/User'
+        '400':
+          description: Invalid email format
+        '401':
+          description: Unauthorized - no valid token provided
+        '403':
+          description: Forbidden - insufficient permissions
+        '409':
+          description: Email already in use
+
+  /users:
+    delete:
+      tags:
+        - User Management
+      summary: Delete user account
+      description: Deletes the authenticated user's account permanently
+      operationId: deleteUser
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: User account deleted successfully
+        '401':
+          description: Unauthorized - no valid token provided
+        '404':
+          description: User not found
+
+  /users/get-all:
+    get:
+      tags:
+        - User Management (Admin Only)
+      summary: Get all users
+      description: Retrieves a list of all users in the system. Requires ADMIN role.
+      operationId: getAllUsers
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: List of all users
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/User'
+        '401':
+          description: Unauthorized - no valid token provided
+        '403':
+          description: Forbidden - admin access required
+
+  /users/find-user:
+    get:
+      tags:
+        - User Management (Admin Only)
+      summary: Find user by ID
+      description: Retrieves a specific user's information by their ID. Requires ADMIN role.
+      operationId: findUserById
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: query
+          required: true
+          description: User ID to search for
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: User found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/User'
+        '400':
+          description: Invalid user ID
+        '401':
+          description: Unauthorized - no valid token provided
+        '403':
+          description: Forbidden - admin access required
+        '404':
+          description: User not found
+
+  /users/verify/client:
+    post:
+      tags:
+        - User Verification
+      summary: Complete client verification
+      description: Completes the client verification process by providing required documents and information
+      operationId: createClient
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateClientRequest'
+      responses:
+        '201':
+          description: Client verification completed successfully
+        '400':
+          description: Invalid input data - check BI format and URLs
+        '401':
+          description: Unauthorized - no valid token provided
+        '409':
+          description: User is already a client
+
+  /users/verify/owner:
+    post:
+      tags:
+        - User Verification
+      summary: Complete owner verification
+      description: Completes the owner verification process (can be PF - Pessoa Física or PJ - Pessoa Jurídica)
+      operationId: createOwner
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateOwnerRequest'
+      responses:
+        '201':
+          description: Owner verification completed successfully
+        '400':
+          description: Invalid input data - check NIF, ownerType, and bank account format
+        '401':
+          description: Unauthorized - no valid token provided
+        '409':
+          description: User is already an owner
+
+  /users/assume-roles/client:
+    get:
+      tags:
+        - Role Management
+      summary: Assume client role
+      description: Allows a user with NORMAL, CLIENT, or OWNER role to assume the CLIENT role
+      operationId: assumeClient
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: Successfully assumed client role
+        '401':
+          description: Unauthorized - no valid token provided
+        '403':
+          description: Forbidden - user doesn't have permission to assume this role
+        '400':
+          description: Invalid role transition
+
+  /users/assume-roles/owner:
+    get:
+      tags:
+        - Role Management
+      summary: Assume owner role
+      description: Allows a user with NORMAL, CLIENT, or OWNER role to assume the OWNER role
+      operationId: assumeOwner
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: Successfully assumed owner role
+        '401':
+          description: Unauthorized - no valid token provided
+        '403':
+          description: Forbidden - user doesn't have permission to assume this role
+        '400':
+          description: Invalid role transition
+
+tags:
+  - name: Authentication
+    description: User authentication endpoints (signup, login, logout, token refresh, email verification)
+  - name: User Management
+    description: User profile management endpoints (available to all authenticated users)
+  - name: User Management (Admin Only)
+    description: Administrative user management endpoints (admin access required)
+  - name: User Verification
+    description: User role verification and completion endpoints (client and owner verification)
+  - name: Role Management
+    description: Role assumption and management endpoints

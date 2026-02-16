@@ -24,6 +24,7 @@ model roles {
 model users {
   id             Int       @id @default(autoincrement())
   name           String
+/*   profile_name   String    @unique */
   email          String    @unique
   phone          String    @unique
   password       String

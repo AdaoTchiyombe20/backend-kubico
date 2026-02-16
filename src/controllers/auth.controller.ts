@@ -3,7 +3,6 @@ import { login, signup, type AuthSignUpDTO } from "../dto/auth.dto.js";
 import { AppError } from "../errors/App.Errors.js";
 import { authServices } from "../services/auth.services.js";
 import { getUserId, type GetUserIdDTO } from "../dto/user.dto.js";
-import { success } from "zod";
 
 
 export const authController = {
