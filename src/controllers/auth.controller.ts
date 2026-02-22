@@ -12,6 +12,7 @@ export const authController = {
               const user = await authServices.signUp(data);
 
               //res.set('Authorization', `Bearer ${user.accessToken}`)
+              
               res.cookie('refreshToken',user.refreshToken , {
                 httpOnly: true,
                 secure: false,

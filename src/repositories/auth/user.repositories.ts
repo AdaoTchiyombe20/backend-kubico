@@ -1,5 +1,5 @@
-import type { users, UserStatus } from "../../generated/prisma/client.js";
-import { prisma } from "../../lib/prisma.js";
+import type { users, UserStatus } from "../../../generated/prisma/client.js";
+import { prisma } from "../../../lib/prisma.js";
 
 export const userRepository = {
   findAll: async (): Promise<users[]> => {
@@ -10,11 +10,15 @@ export const userRepository = {
       where: { email },
     });
   },
-  findByPhone: async (phone: string): Promise<users | null> => {
-    return prisma.users.findUnique({
-      where: { phone },
-    });
+  update: async(id:number, data: {email_verified: true}): Promise<users> => {
+    return prisma.users.update({
+      where: {id},
+      data: {
+        email_verified: data.email_verified
+      }
+    })
   },
+
   findById: async (id: number): Promise<users | null> => {
     return prisma.users.findUnique({
       where: { id },
@@ -25,10 +29,10 @@ export const userRepository = {
       where: { id },
     });
   },
-  update: async (id: number,novosDados: Partial<{name: string,phone: string,password: string,status: UserStatus, email_verified: boolean, last_access: Date}>): Promise<users> => {
+  updatePassword: async (id: number, password: string): Promise<users> => {
     return prisma.users.update({
       where: { id },
-      data: novosDados,
+      data: password,
     });
   },
 updateStatus: async(id:number, status:boolean): Promise<void> => {

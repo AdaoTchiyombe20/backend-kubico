@@ -1,6 +1,5 @@
-import { updateUser,type UserUpdateDTO,getUserId,type GetUserIdDTO,type UserUpdateEmailDTO,updateEmail,createClient, type createOwnerDTO, type createClientDTO, createOwner,
+import {updateUserPassword, type UpdateUserPassworsDTO, getUserId,type GetUserIdDTO,type UserUpdateEmailDTO,updateEmail, 
 } from "../dto/user.dto.js";
-import { AppError } from "../errors/App.Errors.js";
 import { userService } from "../services/user.services.js";
 import { type NextFunction, type Request, type Response } from "express";
 
@@ -30,16 +29,16 @@ const userController = {
       next(err);
     }
   }, 
-  update: async(req: Request, res: Response, next : NextFunction) => {
+  updatePassword: async(req: Request, res: Response, next : NextFunction) => {
     try{
         const data: GetUserIdDTO = getUserId.parse(req.user!.sub)
-        const dataToUpdate : UserUpdateDTO = updateUser.parse(req.body)
+        const dataToUpdate : UpdateUserPassworsDTO= updateUserPassword.parse(req.body)
 
-        const user = await userService.updateUser(data.id ,dataToUpdate)
+        const password = await userService.updateUserPassword(data.id ,dataToUpdate)
         res.json({
             success : true, 
-            message: 'Usuario Actualizado',
-            user
+            message: 'Password Actualizada',
+            password
         })
     }catch (err) {
       next(err);
@@ -49,12 +48,12 @@ const userController = {
     try{
       const data: GetUserIdDTO = getUserId.parse(req.user!.sub)
       const email: UserUpdateEmailDTO = updateEmail.parse({email: req.body.email})
-      const user = await userService.updateEmail(data.id, email)
+      /* const user = await userService.updateEmail(data.id, email)
       res.json({
         success: true,
         message: 'email actualizado!',
         user
-      }) 
+      })  */
     }catch(err){
       next(err)
     }
@@ -72,36 +71,6 @@ const userController = {
   }catch(err){
     next(err)
   }
-  },
-  createClient: async(req: Request,res: Response, next : NextFunction) => {
-    try{
-      const id= req.user!.sub
-      const data: createClientDTO = createClient.parse(req.body);
-      const client = await userService.createClient(Number(id), data);
-
-      res.status(201).json({
-        message: 'Cliente cadastrado! Aguarde a verificação dos dados.',
-        client
-      })
-      
-    }catch(error){
-      next(error)
-    }
-  },
-  createOwner: async(req: Request,res: Response, next : NextFunction) => {
-    try{
-      const id= req.user!.sub
-      const data: createOwnerDTO = createOwner.parse(req.body);
-      const owner = await userService.createOwner(Number(id), data);
-
-      res.status(201).json({
-        message: 'Proprietario cadastrado! Aguarde a verificação dos dados.',
-        owner
-      })
-      
-    }catch(error){
-      next(error)
-    }
   },
 };
 

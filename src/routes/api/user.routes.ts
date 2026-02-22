@@ -1,16 +1,16 @@
 import { Router } from "express";
 import { userController } from "../../controllers/user.controller.js";
 import { authorizeRoleAcessTokenMiddleware } from "../../middlewares/auth.middleware.js";
-import { verifyUser } from "./verifyUser.routes.js";
+import { verifyProfile } from "./verifyProfile.routes.js";
 import { assumeRole } from "./assumeRole.routes.js";
 const userRouter = Router();
 
 //user routes
-userRouter.put(
+/* userRouter.put(
   "/update-user",
   authorizeRoleAcessTokenMiddleware(["ADMIN", "NORMAL", "CLIENT", "OWNER"]),
   userController.update,
-);
+); */
 userRouter.put(
   "/update-email",
   authorizeRoleAcessTokenMiddleware(["NORMAL", "CLIENT", "OWNER"]),
@@ -22,17 +22,17 @@ userRouter.delete(
   userController.delete,
 );
 
-//Routes to verify client and owner
-userRouter.use("/verify", verifyUser);
+//Routes to authenticate client and owner
+userRouter.use("/verify", verifyProfile);
 
 //only admin can access
 userRouter.get(
-  "/get-all",
+  "/",
   authorizeRoleAcessTokenMiddleware(["ADMIN"]),
   userController.findAll,
 );
 userRouter.get(
-  "/find-user",
+  "/:id",
   authorizeRoleAcessTokenMiddleware(["ADMIN"]),
   userController.findById,
 );
