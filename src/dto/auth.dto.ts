@@ -7,7 +7,7 @@ export const signup = z.object({
 })
 
 export const login = z.object({
-    email: string().email(),
+    email: string().email("Email Invalido"),
     password: string()
 })
 

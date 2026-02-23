@@ -1,8 +1,9 @@
 import { type Request, type Response, type NextFunction } from "express";
-import { login, signup, type AuthSignUpDTO } from "../dto/auth.dto.js";
+import { login, signup, type AuthLoginDTO, type AuthSignUpDTO } from "../dto/auth.dto.js";
 import { AppError } from "../errors/App.Errors.js";
 import { authServices } from "../services/auth.services.js";
 import { getUserId, type GetUserIdDTO } from "../dto/user.dto.js";
+import { setCookie } from "../utils/cookies.js";
 
 
 export const authController = {
@@ -11,19 +12,13 @@ export const authController = {
               const data: AuthSignUpDTO = signup.parse(req.body);
               const user = await authServices.signUp(data);
 
-              //res.set('Authorization', `Bearer ${user.accessToken}`)
+              res.set('Access-Control-Expose-Headers', 'Authorization');
               
-              res.cookie('refreshToken',user.refreshToken , {
-                httpOnly: true,
-                secure: false,
-                sameSite: 'strict',
-                maxAge: 7 * 24 * 60 * 60 * 1000 
-              })
+              setCookie(res, "refreshToken", user.refreshToken)
 
               res.status(201).json({
                 success: true,
-                user: user.user,
-                accessToken: user.accessToken
+                user: user.user
               });
             } catch (err) {
               next(err);
@@ -31,21 +26,19 @@ export const authController = {
     }, //registra com email_Verified: false
     login : async(req: Request, res: Response, next: NextFunction) => {
       try{
-        const {email, password} = req.body
+        const data: AuthLoginDTO = login.parse(req.body) 
+        const {email, password} = data
         const user = await authServices.login({email, password})
 
-        //res.set('Authorization', `Bearer ${user.accessToken}`)
-        res.cookie('refreshToken',user.refreshToken , {
-                httpOnly: true,
-                secure: false,
-                sameSite: 'strict',
-                maxAge: 7 * 24 * 60 * 60 * 1000 
-              })
+        
+        res.set('Access-Control-Expose-Headers', 'Authorization');
+        res.set('Authorization', `Bearer ${user.accessToken}`);
+        
+        setCookie(res, "refreshToken", user.refreshToken)
 
         res.status(200).json({
           message: "usuario com sessao inicia!",
-          user: user.user,
-          accessToken: user.accessToken
+          user: user.user
         })
 
       }catch(err){

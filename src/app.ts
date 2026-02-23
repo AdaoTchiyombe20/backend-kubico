@@ -3,8 +3,11 @@ import { router } from "./routes/api/index.routes.js";
 import { errorHandler } from "./middlewares/errorHandler.js";
 import cookieParser from "cookie-parser";
 import { swaggerRoutes } from "./routes/infra/swagger.routes.js";
+import { globalRateLimiting } from "../lib/ratelimiting.js";
 
 const app = express();
+
+app.use(globalRateLimiting)
 
 app.use("/docs", swaggerRoutes);
 app.use(cookieParser());
