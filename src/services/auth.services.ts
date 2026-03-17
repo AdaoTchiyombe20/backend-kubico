@@ -4,38 +4,37 @@ import type { AuthLoginDTO, AuthSignUpDTO } from "../dto/auth.dto.js";
 import jwt from "jsonwebtoken";
 import { AppError } from "../errors/App.Errors.js";
 import { hashPassword, comparePassword } from "../utils/hash.js";
-import { authRepositories } from "../repositories/auth.repositories.js";
-import { refreshTokenUser } from "../repositories/refreshToken.repositories.js";
-import { userRole } from "../repositories/userRole.repositories.js";
-import { userRepository } from "../repositories/user.repositories.js";
+import { authRepositories } from "../repositories/auth/auth.repositories.js";
+import { refreshTokenUser } from "../repositories/auth/refreshToken.repositories.js";
+import { profileRole } from "../repositories/userProfile/profileRole.repositories.js";
+import { userRepository } from "../repositories/auth/user.repositories.js";
 import { sendVerificationEmail } from "./mail.services.js";
+import { profileRepository } from "../repositories/userProfile/profile.repositories.js";
+import type { ProfileType } from "../../generated/prisma/index.js";
+
 
 export const authServices = {
-  signUp: async (data: AuthSignUpDTO) => {
-    const { name, email, phone, password } = data;
-    const existingEmail = await authRepositories.findByEmail(email);
-    const existingPhone = await authRepositories.findByPhone(phone);
+  signUp: async (email: string, password:string, typeOfUser:ProfileType ) => {
 
-    const userName = name.trim();
     const userEmail = email.trim();
-    const userPhone = phone.trim();
+    const existingEmail = await authRepositories.findByEmail(userEmail);
+    
+    if (existingEmail) throw new AppError("Email já cadastrado!!", 400);
+
     const passwordHash = await hashPassword(password);
-
-    if (existingEmail) throw new AppError("Email já cadastrado!!", 409);
-
-    if (existingPhone) throw new AppError("Número já cadastrado!!", 409);
-
+  
     const user = await authRepositories.signUp({
-      name: userName,
       email: userEmail,
-      phone: userPhone,
-      password: passwordHash, 
+      password: passwordHash,
     });
 
-    const user_role = await userRole.insertValues({
-      userId: user.id,
-      roleid: 4 // Normal
-    })
+    const profile = await profileRepository.createProfile(user.id, typeOfUser)
+
+    await profileRole.insertValues(
+      user.id,
+      4, // Normal
+      "APPROVED",
+    );
     const refreshToken = jwt.sign(
       {
         sub: user.id,
@@ -47,13 +46,26 @@ export const authServices = {
     const accessToken = jwt.sign(
       {
         sub: user.id,
-        email: user.email,
         role: "NORMAL",
-        iat: Math.floor(Date.now() / 1000)
+        iat: Math.floor(Date.now() / 1000),
+        type: profile.type
       },
       env("JWT_SECRET"),
       { expiresIn: "15m" },
     );
+
+    const verifyEmailToken = jwt.sign(
+      {
+        iss: 'kubico-api',
+        sub: user.id,
+        iat: Math.floor(Date.now() / 1000),
+        aud: user.email
+      },
+      env('JWT_SECRET'),
+      {
+       expiresIn: '15m' 
+      }
+    )
 
     const expiresAt = new Date();
     expiresAt.setDate(expiresAt.getDate() + 7);
@@ -64,8 +76,8 @@ export const authServices = {
       expiresAt: expiresAt,
     });
 
-    if(!user.email_verified)
-      await sendVerificationEmail(user.email, accessToken)
+    if (!user.email_verified)
+      await sendVerificationEmail(user.email, verifyEmailToken);
 
     return {
       user,
@@ -78,16 +90,18 @@ export const authServices = {
     const { email, password } = data;
     const user = await authRepositories.findByEmail(email);
 
-    if (!user) 
-      throw new AppError("Usuario nao encontrado!!", 404);
+    if (!user) throw new AppError("Usuario nao encontrado!!", 404);
 
     const verfiryUserPassword = await comparePassword(password, user.password);
 
-    if (!verfiryUserPassword) 
-      throw new AppError("senha incorreta!!", 401);
+    if (!verfiryUserPassword) throw new AppError("senha incorreta!!", 401);
 
-    if(user.email_verified) 
-      throw new AppError('Valide o seu email', 400)
+    if (!user.email_verified) throw new AppError("Valide o seu email", 400);
+
+    const profile = await profileRepository.findByUserId(user.id)
+
+    if(!profile) throw new AppError('Profile nao encontrado!', 400)
+
 
     const refreshToken = jwt.sign(
       {
@@ -100,9 +114,9 @@ export const authServices = {
     const accessToken = jwt.sign(
       {
         sub: user.id,
-        email: user.email,
         role: "NORMAL",
         iat: Math.floor(Date.now() / 1000),
+        type: profile.type
       },
       env("JWT_SECRET"),
       { expiresIn: "15m" },
@@ -117,46 +131,109 @@ export const authServices = {
       expiresAt: expiresAt,
     });
 
-    await userRepository.updateStatus(user.id,true)
-    await userRole.updateUserRoleStatus(user.id,4,true)
+    await userRepository.updateStatus(user.id, true);
+    await profileRole.updateProfileRoleStatus(user.id, 4, true);
 
     return {
       user: {
         id: user.id,
         email: user.email,
-        name: user.name,
       },
       refreshToken,
       accessToken,
     };
   },
   logout: async (refreshToken: string) => {
-
     if (!refreshToken) throw new AppError("Refresh token nao fornecido!", 400);
 
     const token = await refreshTokenUser.revokeRefreshToken(refreshToken);
-    const id = token!.user_id
+    const id = token!.user_id;
 
-    await userRepository.updateStatus(id, false)
-    await userRole.updateAllUserRolesStatus(id,false)
+    await userRepository.updateStatus(id, false);
+    await profileRole.updateAllProfileRolesStatus(id, false);
     return { message: "Logout Realizado com Sucesso!" };
   },
   verifyEmail: async (token: string) => {
-  const user = await refreshTokenUser.findRefreshToken(token);
+    const tokenVerification = await jwt.decode(token)
+
+    if(!tokenVerification) throw new AppError('Token Invalido ou expirado!', 401)
+    const userId = tokenVerification.sub
   
-  if (!user) {
-    throw new AppError("Token inválido ou expirado", 401);
-  }
-  const getUser = await userRepository.findById(user!.user_id)
+    const getUser = await userRepository.findById(Number(userId));
 
-  if(!getUser)
-    throw new AppError('Usuario usuario nao encontrado', 404)
+    if (!getUser) throw new AppError("Usuario usuario nao encontrado", 404);
 
-  getUser.email_verified = true;
+    getUser.email_verified = true;
 
-  await userRepository.update(getUser.id,{email_verified: true});
+    await userRepository.update(getUser.id, { email_verified: true });
   },
-  refresh: async() => {
-    
+  refresh: async (id: number, refreshTkn: string) => {
+    const profileRoles = await profileRole.findAllRolesByProfileId(id);
+
+    if (!refreshTkn) throw new AppError("Refresh token nao fornecido!", 400);
+
+    if (!profileRoles) throw new AppError("Id nao cadastrado!!", 401);
+
+    await refreshTokenUser.revokeRefreshToken(refreshTkn);
+
+    const user = await userRepository.findById(id);
+
+    if (!user) throw new AppError("Usuario nao encotrado!", 404);
+
+    const verifyActiveRole = profileRoles.find(
+      (profile) => profile.is_active == true,
+    );
+
+    if (!verifyActiveRole) throw new AppError("Nenhuma Role activa!", 404);
+
+    const profile = await profileRepository.findByUserId(user.id)
+
+    if(!profile) throw new AppError('Profile nao encontrado!', 400)
+
+    const refreshToken = jwt.sign(
+      {
+        sub: user.id,
+      },
+      env("JWT_REFRESH_SECRET"),
+      { expiresIn: "7d" },
+    );
+
+    const roleMap: { [key: number]: string } = {
+      1: "CLIENT",
+      2: "OWNER",
+      3: "ADMIN",
+      4: "NORMAL",
+    };
+
+    const roleName = roleMap[verifyActiveRole.role_id];
+
+    if (!roleName) {
+      throw new AppError("Role Id invalida!", 400);
+    }
+
+    const accessToken = jwt.sign(
+      {
+        sub: user.id,
+        role: roleName,
+        iat: Math.floor(Date.now() / 1000),
+        type: profile.type
+      },
+      env("JWT_SECRET"),
+      { expiresIn: "15m" },
+    );
+
+    const expiresAt = new Date();
+    expiresAt.setDate(expiresAt.getDate() + 7);
+
+    await refreshTokenUser.saveRefreshToken({
+      refreshToken,
+      userId: user.id,
+      expiresAt: expiresAt,
+    });
+
+    return {
+      refreshToken,
+      accessToken,
+    };
   },
 };

@@ -1,15 +1,13 @@
-import strict from 'node:assert/strict'
 import z, {string} from 'zod'
 
 export const signup = z.object({
-        name : z.string("Apenas String!!").min(3),
         email : z.string("Apenas String!!").email('Email Invalido!'),
-        phone : z.string("Apenas String!!").min(9,'minimo de caracteres exigido: 9, valor inserido insuficiente').max(9,'numero de caracteres exigidos: 9, passou do limite!'),
-        password : z.string("Apenas String!!").min(6)
+        password : z.string("Apenas String!!").min(6),
+        /* typeOfUser: z.enum(["INDIVIDUAL", "COMPANY"], 'Dado inválido! São apenas permitidos 2 tipos de dados para type of user: INDIVIDUAL e COMPANY!') */
 })
 
 export const login = z.object({
-    email: string().email(),
+    email: string().email("Email Invalido"),
     password: string()
 })
 

@@ -7,97 +7,162 @@ datasource db {
   provider = "postgresql"
 }
 
-// ============================================================================
-// TABELA DE ROLES
-// ============================================================================
-model roles {
-  id          Int         @id @default(autoincrement())
-  role        UserRoles   @unique 
-  description String
-  user_role   user_roles[]
-  
-}
-
-// ============================================================================
-// TABELA DE USUÁRIOS
-// ============================================================================
-model userDocs {
-  id Int @id @default(autoincrement())
-  user_id Int 
-  doc_type DocType
-  url String
-  create_At DateTime
-
-  user users @relation(fields: [user_id], references: [id], onDelete: Cascade, onUpdate: Cascade)
-}
-
-// ============================================================================
-// TABELA DE USUÁRIOS
-// ============================================================================
 model users {
-  id             Int       @id @default(autoincrement())
-  name           String
+  id             Int       @id @unique @default(autoincrement())
   email          String    @unique
-  phone          String    @unique
   password       String
-  status      UserStatus   @default(ACTIVE)
-  email_verified Boolean   @default(false) 
+  status         UserStatus @default(ACTIVE)
+  email_verified Boolean   @default(false)
   last_access    DateTime?
   date_register  DateTime  @default(now())
 
-  user_role user_roles[]
-  refreshTokens refresh_tokens[]
-  userDocs userDocs[]
-  emailVerified emailVerification[]
+  refreshTokens  refresh_tokens[]
+  emailVerified  emailVerification[]
+  profile        profiles?
+  admin          admins?
 
   @@index([email])
-  @@index([phone])
 }
 
-// ============================================================================
-// TABELA PIVOT: USER <-> ROLE (com Soft Delete)
-// ============================================================================
-model user_roles {
-  id           Int              @id @default(autoincrement())
-  user_id      Int
-  role_id      Int
-  status       UserRoleStatus   @default(PENDING)
-  is_active Boolean @default(false)
-  approved_by  Int?
-  approved_at  DateTime?
-  created_at   DateTime         @default(now())
-
-  role      roles  @relation(fields: [role_id], references: [id])
-  user      users   @relation(fields: [user_id], references: [id], onDelete: Cascade) 
-  approver  admins? @relation(name: "ApprovedBy", fields: [approved_by], references: [id])
-
-  admin   admins?  @relation(name: "AdminProfile")
-  client  clients? @relation(name: "ClientProfile")
-  owner   owners?  @relation(name: "OwnerProfile")
-
-  @@unique([user_id, role_id],  name: "user_id_role_id")
+model roles {
+  id          Int           @id @default(autoincrement())
+  role        ProfileRoles     @unique
+  description String
+  user_role   profile_roles[]
 }
 
+model profiles {
+  id              Int          @id @default(autoincrement())
+  user_id         Int          @unique
+  type            ProfileType
+  deleted_at      DateTime?
+
+  userMidia       profile_medias[]
+  user_role       profile_roles[]
+
+  person_profile  person_profiles?
+  company_profile company_profiles?
+
+  user users @relation(fields: [user_id], references: [id])
+}
+
+model person_profiles {
+  id         Int      @id @default(autoincrement())
+  profile_id Int      @unique
+  full_name  String
+  birth_date DateTime
+  phone      String
+
+  profile profiles @relation(fields: [profile_id], references: [id])
+}
+
+model company_profiles {
+  id               Int      @id @default(autoincrement())
+  profile_id       Int      @unique
+  legal_name       String
+  nameOfLegalRepresentative String
+  phone            String
+  nif              String   @unique
+  bank_account     String?
+
+  profile profiles @relation(fields: [profile_id], references: [id])
+}
+
+model profile_medias {
+  id              Int       @id @default(autoincrement())
+  profile_id      Int
+  type            DocType
+  document_number String?
+  public_id       String
+  url             String
+  is_current      Boolean   @default(true)
+  is_verified     Boolean   @default(false)
+  verified_at     DateTime?
+  uploaded_at     DateTime  @default(now())
+  deleted_at      DateTime?
+
+  profile profiles @relation(fields: [profile_id], references: [id], onDelete: Cascade)
+
+  @@index([profile_id, type])
+  @@index([profile_id, type, is_current])
+}
+
+model profile_roles {
+  id          Int            @id @default(autoincrement())
+  profile_id  Int
+  role_id     Int
+  status      UserRoleStatus @default(PENDING)
+  is_active   Boolean        @default(false)
+  approved_by Int?
+  approved_at DateTime?
+  created_at  DateTime       @default(now())
+
+  role     roles    @relation(fields: [role_id], references: [id])
+  profile  profiles @relation(fields: [profile_id], references: [id], onDelete: Cascade)
+  approver admins?  @relation(name: "ApprovedBy", fields: [approved_by], references: [id], onDelete: SetNull, onUpdate: Cascade)
+  admin    admins?  @relation(name: "AdminProfile")
+
+  @@unique([profile_id, role_id], name: "profile_id_role_id")
+}
+
+model admins {
+  id               Int         @id @default(autoincrement())
+  profile_role_id  Int         @unique
+  user_id          Int         @unique
+  access_level     AccessLevel @default(NORMAL)
+  date_register    DateTime    @default(now())
+  deleted_at       DateTime?
+
+  profile_role   profile_roles   @relation(name: "AdminProfile", fields: [profile_role_id], references: [id], onDelete: Cascade)
+  user           users           @relation(fields: [user_id], references: [id])
+  approved_roles profile_roles[] @relation(name: "ApprovedBy")
+}
+
+model refresh_tokens {
+  id        Int       @id @default(autoincrement())
+  token     String    @unique
+  user_id   Int
+  expiresAt DateTime
+  isActive  Boolean   @default(true)
+  createdAt DateTime  @default(now())
+  revokedAt DateTime?
+
+  user users @relation(fields: [user_id], references: [id], onDelete: Cascade, onUpdate: Cascade)
+
+  @@index([user_id])
+  @@index([token])
+  @@index([expiresAt])
+}
+
+model emailVerification {
+  id         Int      @id @default(autoincrement())
+  user_id    Int
+  code       String
+  expires_at DateTime
+  used       Boolean  @default(false)
+
+  user users @relation(fields: [user_id], references: [id], onDelete: Cascade)
+
+  @@index([user_id])
+  @@index([expires_at])
+  @@index([user_id, used, expires_at])
+}
 
 
 // ============================================================================
 // ENUMS
 // ============================================================================
+
 enum AccessLevel {
   NORMAL
   SUPER_ADMIN
 }
 
-enum UserRoles {
+enum ProfileRoles {
   CLIENT
   OWNER
   NORMAL
   ADMIN
-}
-
-enum TypeOfOwner {
-  PF
-  PJ
 }
 
 enum UserRoleStatus {
@@ -106,103 +171,30 @@ enum UserRoleStatus {
   REJECTED
 }
 
+enum ProfileType {
+  INDIVIDUAL
+  COMPANY
+}
+
 enum UserStatus {
   ACTIVE
   SUSPENDED
 }
 
 enum DocType {
-  BI_FRENTE
-  BI_VERSO
-  SELFIE_WITH_BI           
-  COMPROVANTE_RESIDENCIA
-  CERTIDAO_ESTADO_CIVIL
-  CERTIDAO_PREDIAL         
+  BI
+  BI_REPRESENTANTE
+  NIF
+  SELFIE_WITH_BI
+  CERTIDAO_COMERCIAL
+  PROFILE_PHOTO
+  CERTIDAO_PREDIAL
   CADERNETA_PREDIAL
-  LICENCA_UTILIZACAO       
-  CERTIDAO_NEGATIVA_ONUS   
-  CONTRATO_PROMESSA        
-  ESCRITURA_PUBLICA 
-  COMPROVANTE_PAGAMENTO_TAXAS 
-  CONTRATO_ARRIAMENTO  
-}
-// ============================================================================
-// TABELA DE ADMINS
-// ============================================================================
-model admins {
-  id            Int         @id @default(autoincrement())
-  user_role_id  Int         @unique
-  access_level  AccessLevel @default(NORMAL)
-  date_register DateTime    @default(now())
-   
-  user_role user_roles @relation(name: "AdminProfile",fields: [user_role_id],references: [id],onDelete: Cascade)
-
-  approved_roles user_roles[] @relation(name: "ApprovedBy")
-}
-
-
-// ============================================================================
-// TABELA DE CLIENTES
-// ============================================================================
-model clients {
-  id            Int       @id @default(autoincrement())
-  user_role_id  Int       @unique
-  date_register DateTime  @default(now())
-  bi_number     String    @unique
-  bi_url        String
-
-  user_role user_roles @relation(name: "ClientProfile",fields: [user_role_id],references: [id],onDelete: Cascade)
-}
-
-
-// ============================================================================
-// TABELA DE PROPRIETÁRIOS
-// ============================================================================
-model owners {
-  id            Int         @id @default(autoincrement())
-  user_role_id  Int         @unique
-  nif           String      @unique
-  owner_type    TypeOfOwner
-  company_name  String?
-  bi_number     String?     @unique
-  bi_url        String?
-  bank_acount   String
-  data_cadastro DateTime    @default(now())
-
-  user_role user_roles @relation(name: "OwnerProfile",fields: [user_role_id],references: [id],onDelete: Cascade)
-}
-
-
-
-// ============================================================================
-// TABELA DE REFRESH TOKENS
-// ============================================================================
-model refresh_tokens {
-  id           Int       @id @default(autoincrement())
-  token        String    @unique
-  user_id      Int
-  expiresAt    DateTime
-  isActive     Boolean   @default(true)
-  createdAt    DateTime  @default(now())
-  revokedAt    DateTime?
-  
-  user users @relation(fields: [user_id], references: [id], onDelete: Cascade, onUpdate: Cascade)
-  
-  @@index([user_id])
-  @@index([token])
-  @@index([expiresAt])
-}
-
-
-// ============================================================================
-// TABELA DE CODIGO DE VERIFICAÇÃO DE EMAIL
-// ============================================================================
-model emailVerification {
-  id Int @id @default(autoincrement())
-  user_id Int 
-  code String
-  expires_at DateTime
-  used Boolean @default(false)
-
-  user users @relation(fields: [user_id], references: [id])
+  LICENCA_UTILIZACAO
+  CERTIDAO_NEGATIVA_ONUS
+  CONTRATO_PROMESSA
+  CONTRATO_ARRENDAMENTO
+  COMPROVANTE_RESIDENCIA
+  COMPROVATIVO_TITULARIDADE_CONTA_BANCARIA
+  DOC_COMPROVANTE_REPRESENTANTE_LEGAL_EMPRESA
 }

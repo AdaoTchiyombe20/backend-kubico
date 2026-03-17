@@ -1,78 +1,35 @@
-import { type UserUpdateDTO } from "../dto/user.dto.js";
+import { updateEmail, type UpdateUserPassworsDTO 
+} from "../dto/user.dto.js";
 import { AppError } from "../errors/App.Errors.js";
-import { refreshTokenUser } from "../repositories/refreshToken.repositories.js";
-import { userRepository } from "../repositories/user.repositories.js";
+import { userRepository } from "../repositories/auth/user.repositories.js";
+import { profileRepository } from "../repositories/userProfile/profile.repositories.js";
 import { hashPassword } from "../utils/hash.js";
+import { sendVerificationEmail } from "./mail.services.js";
+
 
 export const userService = {
-  deleteUser: async (data: { id: number }) => {
-    const id = data.id;
+  deleteUser: async (id: number) => {
     const existingId = await userRepository.findById(id);
 
     if (!existingId) throw new AppError("Id não cadastrado!!", 404);
 
+    const deleteProfile= await profileRepository.deleteProfile(id)
+
+    if(!deleteProfile) throw new AppError('Erro ao Apapgar profile!', 400)
+      
     return await userRepository.delete(id);
-  },
-  updateUser: async (id: number, data: UserUpdateDTO) => {
+  },//pending...
+  updateUserPassword: async (id: number, password: string) => {
+
     const existingUser = await userRepository.findById(id);
-    const users = await userRepository.findAll();
 
     if (!existingUser) throw new AppError("Id não cadastrado!!", 404);
 
-    const cleanData: Partial<{
-      name: string;
-      phone: string;
-      password: string;
-    }> = {};
+    if (!password) throw new AppError("Password inválida!", 400);
 
-    if (data.name !== undefined) {
-      if (users && users.length > 0) {
-        const verifyName = users.find(
-          (user) => user.name === data.name && user.id !== id,
-        );
-
-        if (verifyName)
-          throw new AppError("Este nome ja esta a ser usado!", 409);
-
-        cleanData.name = data.name.trim();
-      }
-    }
-    if (data.phone !== undefined) {
-      if (users && users.length > 0) {
-        const verifyPhone = users.find(
-          (user) => user.phone === data.phone && user.id !== id,
-        );
-
-        if (verifyPhone)
-          throw new AppError("Este telefone ja esta cadastrado!", 409);
-
-        cleanData.phone = data.phone.trim().replace(/\s+/g, "");
-      }
-    }
-    if (data.password !== undefined) {
-      cleanData.password = await hashPassword(data.password);
-    }
-    if (Object.keys(cleanData).length === 0) {
-      console.log(Object.keys(cleanData));
-      throw new AppError("Nenhuma informação recebida!", 406);
-    }
-
-    return await userRepository.update(id, cleanData);
-  },
-  updateEmail: async (id: number, data: { email: string }) => {
-    const users = await userRepository.findAll();
-    const { email } = data;
-
-    if (users && users.length > 0) {
-      const verifingEmail = users.find(
-        (user) => user.email === email && user.id !== id,
-      );
-
-      if (verifingEmail) {
-        throw new AppError("O este email ja esta a ser usado!");
-      }
-      return await userRepository.updateEmail(id, { email });
-    }
+    const hashed = await hashPassword(password);
+    
+    return await userRepository.updatePassword(id, hashed);
   },
   findUsers: async () => {
     return await userRepository.findAll();
@@ -80,17 +37,19 @@ export const userService = {
   findUserById: async (id: number) => {
     const existingId = await userRepository.findById(id);
 
-    if (!existingId) throw new AppError("Id inesistente!!!", 404);
+    if (!existingId) throw new AppError("Id inesistente!!!", 400);
 
     return existingId;
   },
-  verifyClient: async(id: number, data: {bi: string, biUrl: string, userPhotoUrl: string}) => {
-    const user = await userRepository.findById(id)
+  updateEmail: async(id:number,email:string) => {
+    const existingUser = await userRepository.findById(id)
 
-    if(!user)
-      throw new AppError("Usuairo não encontrado!", 403)
-
+    if(!existingUser) throw new AppError('Usuario nao encontrado!', 400)
+    if(email === existingUser.email) throw new AppError('Novo e-mail deve ser diferente do antigo!', 400)
     
-  }
+    const updatingEmail = await userRepository.updateEmail(id, email)
 
+    /* if(!updatingEmail?.email_verified) sendVerificationEmail(updatingEmail?.email, accessToken) */
+    
+  } // terminar o updating Email !!!
 };

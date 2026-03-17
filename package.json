@@ -16,7 +16,13 @@
     "type": "git",
     "url": "git+https://github.com/AdaoTchiyombe20/backend-kubico.git"
   },
-  "keywords": ["kubico", "real-estate", "api", "nodejs", "typescript"],
+  "keywords": [
+    "kubico",
+    "real-estate",
+    "api",
+    "nodejs",
+    "typescript"
+  ],
   "author": "Adao Tchiyombe",
   "license": "ISC",
   "type": "module",
@@ -33,9 +39,12 @@
     "@types/cookie-parser": "^1.4.10",
     "@types/express": "^5.0.6",
     "@types/jsonwebtoken": "^9.0.10",
+    "@types/multer": "^2.0.0",
     "@types/node": "^25.0.9",
     "@types/nodemailer": "^7.0.9",
     "@types/pg": "^8.16.0",
+    "@types/swagger-ui-express": "^4.1.8",
+    "@types/yamljs": "^0.2.34",
     "nodemon": "^3.1.11",
     "prisma": "^7.2.0",
     "tsx": "^4.21.0",
@@ -45,12 +54,17 @@
     "@prisma/adapter-pg": "^7.2.0",
     "@prisma/client": "^7.2.0",
     "bcrypt": "^6.0.0",
+    "cloudinary": "^2.9.0",
     "cookie-parser": "^1.4.7",
     "dotenv": "^17.2.3",
     "express": "^5.2.1",
+    "express-rate-limit": "^8.2.1",
     "jsonwebtoken": "^9.0.3",
+    "multer": "^2.0.2",
     "nodemailer": "^7.0.13",
     "pg": "^8.17.1",
+    "swagger-ui-express": "^5.0.1",
+    "yamljs": "^0.3.0",
     "zod": "^4.3.5"
   }
 }

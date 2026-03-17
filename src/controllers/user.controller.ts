@@ -1,53 +1,33 @@
-import {
-  updateUser,
-  type UserUpdateDTO,
-  getUserId,
-  type GetUserIdDTO,
-  type UserUpdateEmailDTO,
-  updateEmail,
-  type VerifyClient,
-  verifyclient,
+import {updateUserPassword, type UpdateUserPassworsDTO, getUserId,type GetUserIdDTO,type UserUpdateEmailDTO,updateEmail, 
 } from "../dto/user.dto.js";
 import { AppError } from "../errors/App.Errors.js";
 import { userService } from "../services/user.services.js";
 import { type NextFunction, type Request, type Response } from "express";
 
 const userController = {
-  findAll: async (_: Request, res: Response, next : NextFunction) => {
-    try {
-      const users = await userService.findUsers();
-
-      res.json({
-        success: true,
-        users
-      });
-    } catch (err) {
-      next(err);
-    }
-  },
   delete: async(req: Request, res: Response, next : NextFunction) => {
     try{ 
-      const data : GetUserIdDTO = getUserId.parse(req.user!.sub)
-        const user = await userService.deleteUser({id: data.id})
+        const data : GetUserIdDTO = getUserId.parse({id: req.user!.sub})
+        const user = await userService.deleteUser(data.id)
         res.json({
             success: true,
             message: "Usario Apagado!",
             data: user
         })
     }catch (err) {
-      next(err);
+      throw new AppError(`Erro no controller ${err}`, 400);
     }
   }, 
-  update: async(req: Request, res: Response, next : NextFunction) => {
+  updatePassword: async(req: Request, res: Response, next : NextFunction) => {
     try{
         const data: GetUserIdDTO = getUserId.parse(req.user!.sub)
-        const dataToUpdate : UserUpdateDTO = updateUser.parse(req.body)
+        const dataToUpdate : UpdateUserPassworsDTO= updateUserPassword.parse(req.body)
 
-        const user = await userService.updateUser(data.id ,dataToUpdate)
+        const password = await userService.updateUserPassword(data.id ,dataToUpdate.password)
         res.json({
             success : true, 
-            message: 'Usuario Actualizado',
-            user
+            message: 'Password Actualizada',
+            password
         })
     }catch (err) {
       next(err);
@@ -56,7 +36,7 @@ const userController = {
   updateEmail: async(req:Request, res: Response, next : NextFunction) => {
     try{
       const data: GetUserIdDTO = getUserId.parse(req.user!.sub)
-      const email: UserUpdateEmailDTO = updateEmail.parse({email: req.body.email})
+      const {email}: UserUpdateEmailDTO = updateEmail.parse({email: req.body.email})
       const user = await userService.updateEmail(data.id, email)
       res.json({
         success: true,
@@ -65,39 +45,6 @@ const userController = {
       }) 
     }catch(err){
       next(err)
-    }
-  },
-  findById: async(req:Request, res: Response, next : NextFunction) => {
-   try{ 
-    const id = req.user!.sub
-    const user = await userService.findUserById(Number(id))
-
-    res.json({
-        sucess: true,
-        message: 'usuario encontrado!',
-        user
-    })
-  }catch(err){
-    next(err)
-  }
-  },
-  verifyClient: async(req: Request,res: Response, next : NextFunction) => {
-    try{
-      const {id} : GetUserIdDTO = getUserId.parse(req.user!.sub)
-      const {bi, biUrl, userPhotoUrl}: VerifyClient = verifyclient.parse(req.body)
-
-      const client = await userService.verifyClient(id,{bi, biUrl, userPhotoUrl})
-      
-    }catch(error){
-      next(error)
-    }
-  },
-  verifyOwner: async(req: Request,res: Response, next : NextFunction) => {
-    try{
-      const id = req.user!.sub
-      
-    }catch(error){
-      next(error)
     }
   },
 };
