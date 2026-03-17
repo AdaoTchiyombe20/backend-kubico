@@ -1,5 +1,4 @@
 import rateLimit from "express-rate-limit";
-import { error } from "node:console";
 
 export const globalRateLimiting  = rateLimit({
   windowMs: 15 * 60 * 1000, 

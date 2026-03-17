@@ -73,6 +73,7 @@ model profile_medias {
   profile_id      Int
   type            DocType
   document_number String?
+  public_id       String
   url             String
   is_current      Boolean   @default(true)
   is_verified     Boolean   @default(false)

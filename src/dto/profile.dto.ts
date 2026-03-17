@@ -7,10 +7,10 @@ export const createClientCompanyComplete = z.object({
   .length(9, "9 digitos")
   .regex(/^[0-9]+$/, "Apenas números").optional(),
   nif: z.string().length(6, "NIF deve ter 6 caracteres").optional(),
-  nameOfLegalRepresentative: z.string().min(3, "Mínimo 3 caracteres").optional(),
+  nameOfLegalRepresentative: z.string().min(3, "Mínimo 3 caracteres").optional(),/* 
   biOfLegalRepresentative: z.string().url("URl do BI do Representante legal da empresa inválida"),
   docOfLegalRepresentativeFromCompany: z.string().url("URL do documento do representante legal da Empresa inválido").optional(),
-  commercialCertificate: z.string().url("URL Da certidão comercial inválida"),
+  commercialCertificate: z.string().url("URL Da certidão comercial inválida"), */
 });
 
 export const createOwnerCompanyComplete = z.object({
@@ -21,11 +21,11 @@ export const createOwnerCompanyComplete = z.object({
     .regex(/^[0-9]+$/, "Apenas números").optional(),
   nif: z.string().length(6, "6 caracteres").optional(),
   nameOfLegalRepresentative: z.string().min(3, "Mínimo 3 caracteres").optional(),
+  bankAccount: z.string().length(21, "21 caracteres"),/* 
   docOfLegalRepresentativeFromCompany: z.string().url("URL do documento do representante legal da Empresa inválido").optional(),
   biOfLegalRepresentative: z.string().url("URl do BI do Representante legal da empresa inválida"),
-  bankAccount: z.string().length(21, "21 caracteres"),
   bankAccountProof: z.string().url("URL do comprovativo de titularidade de conta Bancária inválida"),
-  commercialCertificate: z.string().url("URL inválida"),
+  commercialCertificate: z.string().url("URL inválida"), */
 });
 
 export const createIndividualClient = z.object({
@@ -39,8 +39,8 @@ export const createIndividualClient = z.object({
     .string()
     .length(9, "9 caracteres")
     .regex(/^[0-9]+$/, "Apenas números"),
-    selfieWithBi: z.string().url("URL inválida"),
-    biFrontAndBack: z.string().url("URL inválida"),
+/*     selfieWithBi: z.string().url("URL inválida"),
+    biFrontAndBack: z.string().url("URL inválida"), */
   });
   
   export const createIndividualOwner = z.object({
@@ -51,7 +51,7 @@ export const createIndividualClient = z.object({
     .regex(/^[0-9]+$/, "Apenas números"),
     bi: z.string().length(14, "14 caracteres"),
     nif: z.string().length(6, "6 caracteres"),
-    bankAccountProof: z.string().url("URL inválida"),
+  /*bankAccountProof: z.string().url("URL inválida"), */
     bankAccount: z.string().length(21, "21 caracteres"),
     dateOfBirth: z
       .string()

@@ -7,7 +7,7 @@ export const authRepositories = {
       data: {
         email: data.email,
         password: data.password,
-        email_verified: true, //por enquanto ficar como true, e no final ativar a verificacao por email e actualizar para falso
+        email_verified: false,
         last_access: null,
         date_register: new Date(),
       },

@@ -5,11 +5,10 @@ import { loginRateLimiting } from "../../../lib/ratelimiting.js";
 
 const authRouter = Router()
 
-authRouter.post('/signup', loginRateLimiting, UnauthorizeRefreshTokenMiddleware, authController.signup)
+authRouter.post('/signup/:type', loginRateLimiting, UnauthorizeRefreshTokenMiddleware, authController.signup)
 authRouter.post('/login', UnauthorizeRefreshTokenMiddleware, authController.login)
-authRouter.post('/logout', authorizeRefreshTokenMiddleware, authController.logout)
-authRouter.post('/refresh',authorizeRefreshTokenMiddleware, authController.refresh)
-
-authRouter.get("/auth/verify-email/:token", authController.verifyEmailController);
+authRouter.get('/logout', authorizeRefreshTokenMiddleware, authController.logout)
+authRouter.get('/refresh',authorizeRefreshTokenMiddleware, authController.refresh)
+authRouter.get("/verify-email", authController.verifyEmailController);
 
 export {authRouter}

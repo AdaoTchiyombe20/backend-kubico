@@ -10,16 +10,17 @@ import { profileRole } from "../repositories/userProfile/profileRole.repositorie
 import { userRepository } from "../repositories/auth/user.repositories.js";
 import { sendVerificationEmail } from "./mail.services.js";
 import { profileRepository } from "../repositories/userProfile/profile.repositories.js";
+import type { ProfileType } from "../../generated/prisma/index.js";
+
 
 export const authServices = {
-  signUp: async (data: AuthSignUpDTO) => {
-    const { email, password, typeOfUser } = data;
+  signUp: async (email: string, password:string, typeOfUser:ProfileType ) => {
 
-    const existingEmail = await authRepositories.findByEmail(email);
+    const userEmail = email.trim();
+    const existingEmail = await authRepositories.findByEmail(userEmail);
     
     if (existingEmail) throw new AppError("Email já cadastrado!!", 400);
 
-    const userEmail = email.trim();
     const passwordHash = await hashPassword(password);
   
     const user = await authRepositories.signUp({
@@ -53,6 +54,19 @@ export const authServices = {
       { expiresIn: "15m" },
     );
 
+    const verifyEmailToken = jwt.sign(
+      {
+        iss: 'kubico-api',
+        sub: user.id,
+        iat: Math.floor(Date.now() / 1000),
+        aud: user.email
+      },
+      env('JWT_SECRET'),
+      {
+       expiresIn: '15m' 
+      }
+    )
+
     const expiresAt = new Date();
     expiresAt.setDate(expiresAt.getDate() + 7);
 
@@ -63,7 +77,7 @@ export const authServices = {
     });
 
     if (!user.email_verified)
-      await sendVerificationEmail(user.email, accessToken);
+      await sendVerificationEmail(user.email, verifyEmailToken);
 
     return {
       user,
@@ -140,12 +154,12 @@ export const authServices = {
     return { message: "Logout Realizado com Sucesso!" };
   },
   verifyEmail: async (token: string) => {
-    const user = await refreshTokenUser.findRefreshToken(token);
+    const tokenVerification = await jwt.decode(token)
 
-    if (!user) {
-      throw new AppError("Token inválido ou expirado", 401);
-    }
-    const getUser = await userRepository.findById(user!.user_id);
+    if(!tokenVerification) throw new AppError('Token Invalido ou expirado!', 401)
+    const userId = tokenVerification.sub
+  
+    const getUser = await userRepository.findById(Number(userId));
 
     if (!getUser) throw new AppError("Usuario usuario nao encontrado", 404);
 

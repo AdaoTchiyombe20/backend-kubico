@@ -15,7 +15,6 @@ interface AccessTokenPayload {
   iat: number;
   type: string;
   exp: number;
-  
 }
 
 declare global {
@@ -154,7 +153,7 @@ export const authorizeNormalAccessTokenMiddleware = async (
 export function authorizeRoleAcessTokenMiddleware(allowedRole: string[]) {
   return (req: Request, res: Response, next: NextFunction) => {
     if (!req.user || !("role" in req.user)) {
-      throw new AppError("Role não encontrada");
+      throw new AppError("Role não encontrada", 400);
     }
     const userRole = req.user?.role;
 

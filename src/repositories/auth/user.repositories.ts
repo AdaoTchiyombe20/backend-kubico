@@ -43,10 +43,13 @@ updateStatus: async(id:number, status:boolean): Promise<void> => {
     }
     })
   },
-  updateEmail: async (id: number, data: { email: string }) => {
-    return await prisma.users.update({
+  updateEmail: async (id: number, email: string): Promise<users|null> => {
+    return prisma.users.update({
       where: { id: id },
-      data: { email: data.email },
+      data: { 
+        email: email,
+        email_verified: false
+      },
     });
   },
 };

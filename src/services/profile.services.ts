@@ -4,7 +4,23 @@ import { person_profilesRepository } from "../repositories/userProfile/personPro
 import { profileMediaRepository } from "../repositories/userProfile/profileMedia.repositories.js";
 import { companyProfileRepository } from "../repositories/userProfile/companyProfile.repositories.js";
 import { DocType } from "../../generated/prisma/index.js";
+import { profileRepository } from "../repositories/userProfile/profile.repositories.js";
+import { uploadToCloudinary, deleteTempFile } from "../middlewares/multer.middleware.js";
+import { threadCpuUsage } from "process";
 
+// ─── Tipos ────────────────────────────────────────────────────────────────────
+type MulterFiles =
+  | { [fieldname: string]: Express.Multer.File[] }
+  | Express.Multer.File[]
+  | undefined;
+
+type UploadedFile = {
+  fieldname: string;
+  public_id: string;
+  secure_url: string;
+};
+
+// ─── Docs permitidos por perfil ───────────────────────────────────────────────
 const BASE_INDIVIDUAL_DOCS: DocType[] = [
   "BI",
   "NIF",
@@ -24,13 +40,6 @@ const INDIVIDUAL_OWNER_DOCS: DocType[] = [
   ...INDIVIDUAL_OWNER_EXTRA_DOCS,
 ];
 
-const COMPANY_OWNER_DOCS: DocType[] = [
-  "CERTIDAO_PREDIAL",
-  "CADERNETA_PREDIAL",
-  "LICENCA_UTILIZACAO",
-  "CERTIDAO_NEGATIVA_ONUS",
-];
-
 const COMPANY_CLIENT_DOCS: DocType[] = [
   "BI_REPRESENTANTE",
   "NIF",
@@ -38,137 +47,282 @@ const COMPANY_CLIENT_DOCS: DocType[] = [
   "COMPROVANTE_RESIDENCIA",
 ];
 
+const COMPANY_OWNER_DOCS: DocType[] = [
+  "BI_REPRESENTANTE",
+  "CERTIDAO_COMERCIAL",
+  "DOC_COMPROVANTE_REPRESENTANTE_LEGAL_EMPRESA",
+  "COMPROVATIVO_TITULARIDADE_CONTA_BANCARIA",
+];
+
+// ─── Utilitários ──────────────────────────────────────────────────────────────
+const uploadFiles = async (
+  files: MulterFiles,
+  folder: string
+): Promise<UploadedFile[]> => {
+  if (!files) throw new AppError("Nenhum ficheiro inserido", 400);
+
+  const fileArray = Array.isArray(files)
+    ? files
+    : Object.values(files).flat();
+
+  if (fileArray.length === 0) throw new AppError("Nenhum ficheiro inserido", 400);
+
+  const results = await Promise.all(
+    fileArray.map(async (file) => {
+      const resourceType =
+        file.mimetype.startsWith("video/") ? "video"
+        : file.mimetype === "application/pdf" ? "raw"
+        : "image";
+
+      try {
+        const data = await uploadToCloudinary(file.path, folder, resourceType);
+
+        return {
+          fieldname: file.fieldname,
+          public_id: data.public_id,
+          secure_url: data.secure_url,
+        };
+      } finally {
+        await deleteTempFile(file.path).catch(() => {});
+      }
+    })
+  );
+  return results;
+};
+
+const getUrl = (uploaded: UploadedFile[], fieldname: string): string =>
+  uploaded.find((f) => f.fieldname === fieldname)?.secure_url ?? "";
+
+const getPublicId = (uploaded: UploadedFile[], fieldname: string): string =>
+  uploaded.find((f) => f.fieldname === fieldname)?.public_id ?? "";
+
+// ─── Service ──────────────────────────────────────────────────────────────────
 export const profileService = {
   createClientIndividual: async (
-    profile_id: number,
+    user_id: number,
     data: {
       full_name: string;
       birth_date: Date;
       phone: string;
+      bi: string;
     },
-    documents: { type: DocType; url: string; document_number?: string }[]
+    files: MulterFiles
   ) => {
-    const existing = await person_profilesRepository.findById(profile_id);
-
-    if (!existing) {
-      await person_profilesRepository.createBase(profile_id, data);
-    }
-
-
+    
+    const existingProfile = await profileRepository.findByUserId(user_id)
+    
+    if(!existingProfile) throw new AppError('Profile inexistente!', 400)
+      
+    const {id: profile_id} = existingProfile
+    const {full_name, birth_date, phone, bi} = data  
+      const existingPerson = await person_profilesRepository.findById(profile_id);
+      if (!existingPerson) {
+        await person_profilesRepository.createBase(profile_id,{full_name, birth_date, phone});
+      }
+      else{
+        throw new AppError('usuario ja existente',400)
+      }
+      
+    const existingRole = await profileRole.findProfileRoleByRole(profile_id, 1);
+    if (existingRole) throw new AppError("Cliente já existe", 400);
+    
+    const uploaded = await uploadFiles(files, "profiles/individual-client");
+      
     await profileMediaRepository.upsertDocuments(
       profile_id,
-      documents,
+      [
+        {
+          type: "BI",
+          url: getUrl(uploaded, "bi"),
+          public_id: getPublicId(uploaded, "bi"),
+          document_number: bi,
+        },
+        {
+          type: "SELFIE_WITH_BI",
+          url: getUrl(uploaded, "selfie_with_bi"),
+          public_id: getPublicId(uploaded, "selfie_with_bi"),
+        },
+      ],
       BASE_INDIVIDUAL_DOCS
     );
 
-     const existingProfileRole = await profileRole.findProfileRoleByRole(profile_id, 1);
+    await profileRole.updateAllProfileRolesStatus(profile_id, false);
+    await profileRole.insertValues(profile_id, 1, "PENDING");
+  },
 
-    if(existingProfileRole)
-      throw new AppError('Cliente ja existe', 400)
+  createClientCompany: async (
+    user_id: number,
+    data: {
+      legal_name: string;
+      phone: string;
+      nif: string;
+      nameOfLegalRepresentative: string;
+    },
+    files: MulterFiles
+  ) => {
+    const uploaded = await uploadFiles(files, "profiles/company-client");
 
-    await profileRole.updateAllProfileRolesStatus(profile_id, false)
-  
-    await profileRole.insertValues(profile_id,1,'PENDING')
+    const existingProfile = await profileRepository.findByUserId(user_id)
     
+    if(!existingProfile) throw new AppError('Profile inexistente!', 400)
+    
+    const {id: profile_id} = existingProfile
+
+    const existingCompany = await companyProfileRepository.findById(profile_id);
+    if (!existingCompany){
+      await companyProfileRepository.createBase(profile_id, data);
+    }else{
+      throw new AppError('Empresa ja existente', 400)
+    }
+    
+    const existingRole = await profileRole.findProfileRoleByRole(profile_id, 1);
+
+    if (existingRole) throw new AppError("Cliente já existe", 400);
+
+    await profileMediaRepository.upsertDocuments(
+      profile_id,
+      [
+        {
+          type: "BI_REPRESENTANTE",
+          url: getUrl(uploaded, "bi_representante"),
+          public_id: getPublicId(uploaded, "bi_representante"),
+        },
+        {
+          type: "CERTIDAO_COMERCIAL",
+          url: getUrl(uploaded, "certidao_comercial"),
+          public_id: getPublicId(uploaded, "certidao_comercial"),
+        },
+        {
+          type: "DOC_COMPROVANTE_REPRESENTANTE_LEGAL_EMPRESA",
+          url: getUrl(uploaded, "doc_comprovante_representante_legal_empresa"),
+          public_id: getPublicId(uploaded, "doc_comprovante_representante_legal_empresa"),
+        },
+      ],
+      COMPANY_CLIENT_DOCS
+    );
+
+    await profileRole.updateAllProfileRolesStatus(profile_id, false);
+    await profileRole.insertValues(profile_id, 1, "PENDING");
   },
 
   createOwnerIndividual: async (
-    profile_id: number,
+    user_id: number,
     data: {
       full_name: string;
       birth_date: Date;
       phone: string;
+      bi: string;
+      nif: string;
+      bank_account: string;
     },
-    documents: { type: DocType; url?: string; document_number?: string }[]
+    files: MulterFiles
   ) => {
-    const existing = await person_profilesRepository.findById(profile_id);
+    const uploaded = await uploadFiles(files, "profiles/individual-owner");
 
-    if (!existing) {
+    const existingProfile = await profileRepository.findByUserId(user_id)
+    
+    if(!existingProfile) throw new AppError('Profile inexistente!', 400)
+    
+    const {id: profile_id} = existingProfile
+    
+    const existingPerson = await person_profilesRepository.findById(profile_id);
+    
+    if (!existingPerson) {
       await person_profilesRepository.createBase(profile_id, data);
     } else {
-      // Perfil já existe — pode atualizar dados base se necessário
-      await person_profilesRepository.updateById(profile_id, data);
+      throw new AppError('Usuario ja existente',400)
     }
 
-    // Owner precisa dos docs base + docs de propriedade
-    const createOwnerIndividual: DocType[] = [...BASE_INDIVIDUAL_DOCS, ...INDIVIDUAL_OWNER_EXTRA_DOCS];
+    const existingRole = await profileRole.findProfileRoleByRole(profile_id, 2);
+    
+    if (existingRole) throw new AppError("Owner já existe", 400);
 
     await profileMediaRepository.upsertDocuments(
       profile_id,
-      documents,
-      createOwnerIndividual
+      [
+        {
+          type: "BI",
+          url: getUrl(uploaded, "bi"),
+          public_id: getPublicId(uploaded, "bi"),
+          document_number: data.bi,
+        },
+        {
+          type: "NIF",
+          document_number: data.nif,
+        },
+        {
+          type: "COMPROVATIVO_TITULARIDADE_CONTA_BANCARIA",
+          url: getUrl(uploaded, "comprovativo_titularidade_conta_bancaria"),
+          public_id: getPublicId(uploaded, "comprovativo_titularidade_conta_bancaria"),
+          document_number: data.bank_account,
+        },
+      ],
+      INDIVIDUAL_OWNER_DOCS
     );
 
-     const existingProfileRole = await profileRole.findProfileRoleByRole(profile_id, 2);
-
-    if(existingProfileRole)
-      throw new AppError("Owner Ja existe!", 400)
-        await profileRole.updateAllProfileRolesStatus(profile_id, false)
-    await profileRole.insertValues(profile_id,2,'PENDING')
-     
-
-  },
-
-  createClientCompany: async (
-    profile_id: number,
-    data: {
-      legal_name: string;
-      phone: string;
-      nif: string;
-      nameOfLegalRepresentative: string;
-    },
-    documents: { type: DocType; url: string; document_number?: string }[]
-  ) => {
-    
-    const existing = await companyProfileRepository.findById(profile_id);
-
-    if (!existing) {
-      await companyProfileRepository.createBase(profile_id, data);
-    }
-    
-    const existingProfileRole = await profileRole.findProfileRoleByRole(profile_id, 1);
-
-    if(existingProfileRole)
-      throw new AppError("Cliente Ja existe!", 400)
-      await profileRole.updateAllProfileRolesStatus(profile_id, false)
-    await profileRole.insertValues(profile_id,1,'PENDING')
- 
-    await profileMediaRepository.upsertDocuments(profile_id, documents, COMPANY_CLIENT_DOCS);
-
+    await profileRole.updateAllProfileRolesStatus(profile_id, false);
+    await profileRole.insertValues(profile_id, 2, "PENDING");
   },
 
   createOwnerCompany: async (
-    profile_id: number,
+    user_id: number,
     data: {
       legal_name: string;
       phone: string;
       nif: string;
       nameOfLegalRepresentative: string;
-      bank_account: string; // obrigatório para owner
+      bank_account: string;
     },
-    documents: { type: DocType; url: string; document_number?: string }[]
+    files: MulterFiles
   ) => {
-    const existing = await companyProfileRepository.findById(profile_id);
+    const uploaded = await uploadFiles(files, "profiles/company-owner");
 
-    if (!existing) {
-      // Cria do zero com bank_account
+    const existingProfile = await profileRepository.findByUserId(user_id)
+
+    if(!existingProfile) throw new AppError('Profile inexistente!', 400)
+
+    const {id: profile_id} = existingProfile
+    
+    const existingCompany = await companyProfileRepository.findById(profile_id);
+    
+    if (!existingCompany) {
       await companyProfileRepository.createBase(profile_id, data);
     } else {
-      // Já existe (era client), só atualiza bank_account
-      await companyProfileRepository.updateById(profile_id, {
-        bank_account: data.bank_account,
-      });
+      throw new AppError('Empresa ja existente',400) 
     }
-    
-    const existingProfileRole = await profileRole.findProfileRoleByRole(profile_id, 2);
 
-    if (existingProfileRole) {
-      throw new AppError("Owner já existe!", 400);
-    }
-      await profileRole.updateAllProfileRolesStatus(profile_id, false)
-    await profileRole.insertValues(profile_id, 2, 'PENDING');
+    const existingRole = await profileRole.findProfileRoleByRole(profile_id, 2);
+    if (existingRole) throw new AppError("Owner já existe", 400);
 
-    await profileMediaRepository.upsertDocuments(profile_id, documents, COMPANY_OWNER_DOCS);
+    await profileMediaRepository.upsertDocuments(
+      profile_id,
+      [
+        {
+          type: "BI_REPRESENTANTE",
+          url: getUrl(uploaded, "bi_representante"),
+          public_id: getPublicId(uploaded, "bi_representante"),
+        },
+        {
+          type: "CERTIDAO_COMERCIAL",
+          url: getUrl(uploaded, "certidao_comercial"),
+          public_id: getPublicId(uploaded, "certidao_comercial"),
+        },
+        {
+          type: "DOC_COMPROVANTE_REPRESENTANTE_LEGAL_EMPRESA",
+          url: getUrl(uploaded, "doc_comprovante_representante_legal_empresa"),
+          public_id: getPublicId(uploaded, "doc_comprovante_representante_legal_empresa"),
+        },
+        {
+          type: "COMPROVATIVO_TITULARIDADE_CONTA_BANCARIA",
+          url: getUrl(uploaded, "comprovativo_titularidade_conta_bancaria"),
+          public_id: getPublicId(uploaded, "comprovativo_titularidade_conta_bancaria"),
+          document_number: data.bank_account,
+        },
+      ],
+      COMPANY_OWNER_DOCS
+    );
 
+    await profileRole.updateAllProfileRolesStatus(profile_id, false);
+    await profileRole.insertValues(profile_id, 2, "PENDING");
   },
-};
+}
