@@ -1,35 +1,42 @@
-import { updateEmail, type UpdateUserPassworsDTO 
-} from "../dto/user.dto.js";
+import "dotenv/config";
+import { env } from "prisma/config";
+import jwt from "jsonwebtoken";
 import { AppError } from "../errors/App.Errors.js";
 import { userRepository } from "../repositories/auth/user.repositories.js";
 import { profileRepository } from "../repositories/userProfile/profile.repositories.js";
 import { hashPassword } from "../utils/hash.js";
 import { sendVerificationEmail } from "./mail.services.js";
+import { threadCpuUsage } from "node:process";
 
 
 export const userService = {
   deleteUser: async (id: number) => {
-    const existingId = await userRepository.findById(id);
+    try{
+      const existingId = await userRepository.findById(id);
+  
+      if (!existingId) throw new AppError("User não cadastrado!!", 404);
 
-    if (!existingId) throw new AppError("Id não cadastrado!!", 404);
+      return await userRepository.delete(id);
 
-    const deleteProfile= await profileRepository.deleteProfile(id)
-
-    if(!deleteProfile) throw new AppError('Erro ao Apapgar profile!', 400)
-      
-    return await userRepository.delete(id);
-  },//pending...
+    }catch(error){
+      throw new AppError(`Erro: ${error}`, 400)
+    }
+  },
   updateUserPassword: async (id: number, password: string) => {
+    try{
+      const existingUser = await userRepository.findById(id);
+  
+      if (!existingUser) throw new AppError("Usuario não cadastrado!!", 404);
+  
+      if (!password) throw new AppError("Password inválida!", 400);
+  
+      const hashed = await hashPassword(password);
+      
+      return await userRepository.updatePassword(id, hashed);
 
-    const existingUser = await userRepository.findById(id);
-
-    if (!existingUser) throw new AppError("Id não cadastrado!!", 404);
-
-    if (!password) throw new AppError("Password inválida!", 400);
-
-    const hashed = await hashPassword(password);
-    
-    return await userRepository.updatePassword(id, hashed);
+    }catch(error){
+      throw new AppError(`Erro: ${error}`, 400)
+    }
   },
   findUsers: async () => {
     return await userRepository.findAll();
@@ -42,14 +49,35 @@ export const userService = {
     return existingId;
   },
   updateEmail: async(id:number,email:string) => {
-    const existingUser = await userRepository.findById(id)
+    try{
+      const existingUser = await userRepository.findById(id)
+      const verifyEmail = await userRepository.findByEmail(email)
+      
+      if(!existingUser) throw new AppError('Usuario nao encontrado!', 404)
+      
+      if(email === existingUser.email) throw new AppError('Novo e-mail deve ser diferente do antigo!', 400)
+      
+      if(verifyEmail) throw new AppError('Email ja cadastrado!', 400)
+      
+      const updatingEmail = await userRepository.updateEmail(id, email)
+      const verifyEmailToken = jwt.sign(
+            {
+              iss: 'kubico-api',
+              sub: id,
+              iat: Math.floor(Date.now() / 1000),
+              aud: existingUser.email
+            },
+            env('JWT_SECRET'),
+            {
+             expiresIn: '15m' 
+            }
+          )
+  
+      await sendVerificationEmail(updatingEmail!.email, verifyEmailToken)
 
-    if(!existingUser) throw new AppError('Usuario nao encontrado!', 400)
-    if(email === existingUser.email) throw new AppError('Novo e-mail deve ser diferente do antigo!', 400)
+    }catch(error){
+      throw new AppError(`Erro: ${error}`, 400)
+    }
     
-    const updatingEmail = await userRepository.updateEmail(id, email)
-
-    /* if(!updatingEmail?.email_verified) sendVerificationEmail(updatingEmail?.email, accessToken) */
-    
-  } // terminar o updating Email !!!
+  } 
 };

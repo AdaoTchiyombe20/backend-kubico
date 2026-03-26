@@ -20,12 +20,7 @@ const LIMITS = {
 };
 
 const ALLOWED_DOCUMENT_FIELDS = new Set([
-  "bi", "bi_representante", "nif", "selfie_with_bi",
-  "certidao_comercial", "profile_photo", "certidao_predial",
-  "caderneta_predial", "licenca_utilizacao", "certidao_negativa_onus",
-  "contrato_promessa", "contrato_arrendamento", "comprovante_residencia",
-  "comprovativo_titularidade_conta_bancaria",
-  "doc_comprovante_representante_legal_empresa",
+   "profile_photo","contrato_venda", "contrato_arrendamento", 
 ]);
 
 const IMAGE_MIME_TYPES = new Set(["image/png", "image/jpeg", "image/jpg", "image/webp"]);

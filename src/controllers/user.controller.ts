@@ -7,20 +7,19 @@ import { type NextFunction, type Request, type Response } from "express";
 const userController = {
   delete: async(req: Request, res: Response, next : NextFunction) => {
     try{ 
-        const data : GetUserIdDTO = getUserId.parse({id: req.user!.sub})
-        const user = await userService.deleteUser(data.id)
+        const data : GetUserIdDTO = getUserId.parse({id: req.refreshUser!.sub})
+        await userService.deleteUser(data.id)
         res.json({
             success: true,
-            message: "Usario Apagado!",
-            data: user
+            message: "Usario Apagado!"
         })
     }catch (err) {
-      throw new AppError(`Erro no controller ${err}`, 400);
+      throw new AppError(`Erro ao apagar usuario ${err}`, 400);
     }
   }, 
   updatePassword: async(req: Request, res: Response, next : NextFunction) => {
     try{
-        const data: GetUserIdDTO = getUserId.parse(req.user!.sub)
+        const data: GetUserIdDTO = getUserId.parse(req.refreshUser!.sub)
         const dataToUpdate : UpdateUserPassworsDTO= updateUserPassword.parse(req.body)
 
         const password = await userService.updateUserPassword(data.id ,dataToUpdate.password)
@@ -35,7 +34,7 @@ const userController = {
   },
   updateEmail: async(req:Request, res: Response, next : NextFunction) => {
     try{
-      const data: GetUserIdDTO = getUserId.parse(req.user!.sub)
+      const data: GetUserIdDTO = getUserId.parse(req.refreshUser!.sub)
       const {email}: UserUpdateEmailDTO = updateEmail.parse({email: req.body.email})
       const user = await userService.updateEmail(data.id, email)
       res.json({

@@ -5,13 +5,54 @@ import { authServices } from "../services/auth.services.js";
 import { getUserId, type GetUserIdDTO } from "../dto/user.dto.js";
 import { setCookie } from "../utils/cookies.js";
 import type { ProfileType } from "../../generated/prisma/index.js";
+import { createAdmin, type AdminLoginDTO, type createAdminDTO } from "../dto/admin.dto.js";
+import { adminService } from "../services/admin.services.js";
 
 
 export const authController = {
+  //admin
+      createAdmin: async(req: Request, res: Response, next: NextFunction)=> {
+        try{
+          const data: createAdminDTO = createAdmin.parse({email: req.body.email, password: req.body.password, accessLevel: req.body.accessLevel.toUpperCase()})
+          const {email,password, accessLevel} = data
+  
+          await adminService.createAdmin(email, password, accessLevel)
+  
+          res.json({
+            success: true,
+            message: 'Admin Criado!'
+          })
+  
+        }catch(error){
+          next(error)
+        }    
+      },
+      login: async(req:Request, res: Response, next: NextFunction)=> {
+        try{
+          const data: AdminLoginDTO = login.parse(req.body)
+          const {userName, password} = data
+  
+          await adminService.login(userName, password)
+  
+          res.status(200).json({
+            success: true,
+            message:'Admin com sessao iniciada'
+          })
+        }catch(error){
+          next(error)
+        }
+      },
+  
+
+  //Normal Users
     signup : async (req: Request, res: Response, next: NextFunction) => {
          try {
               const data: AuthSignUpDTO = signup.parse(req.body);
-              const typeOfUser= req.params.type
+              const typeParam = req.params.type;
+              if (!typeParam || Array.isArray(typeParam)) {
+                throw new AppError('Invalid or missing profile type', 400);
+              }
+              const typeOfUser = typeParam.toUpperCase();
               const user = await authServices.signUp(data.email, data.password, typeOfUser as ProfileType);
 
               res.set('Access-Control-Expose-Headers', 'Authorization');
@@ -22,7 +63,7 @@ export const authController = {
               res.status(201).json({
                 success: true,
                 user: user.user,
-                refresh: user.accessToken
+                accessToken: user.accessToken
               });
             } catch (err) {
               next(err);
@@ -69,7 +110,7 @@ export const authController = {
     },
     refresh: async(req: Request, res: Response, next: NextFunction) => {
      try{
-        const {id}: GetUserIdDTO = getUserId.parse({id: req.user!.sub})
+        const {id}: GetUserIdDTO = getUserId.parse({id: req.accessUser!.sub})
         const refreshToken = req.cookies.refreshToken
         const refreshAcess = await authServices.refresh(id, refreshToken)
 
@@ -83,7 +124,8 @@ export const authController = {
      }
     }, 
     verifyEmailController: async(req: Request, res: Response, next: NextFunction) => {
-     const token = req.query.token as string;
+     try{
+      const token = req.query.token as string;
     
       if (!token) 
         return new AppError('Token não fornecido', 400)
@@ -91,5 +133,21 @@ export const authController = {
       await authServices.verifyEmail(token);
 
       return res.send("Email verificado com sucesso");
-    },
+    }catch(error){
+      next(error)
+    }
+  },
+  sendMailVerification: async(req: Request, res: Response,next: NextFunction)=> {
+    try{
+      const {id}: GetUserIdDTO = getUserId.parse({id: req.refreshUser!.sub})
+      await authServices.sendVerificationEmail(id) 
+
+      res.json({
+        success: true,
+        message: 'Email de verificacao enviado!'
+      })
+    }catch(error){
+      next(error)
+    }
+  }
 }

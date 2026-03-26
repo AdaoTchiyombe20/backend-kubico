@@ -19,6 +19,6 @@ router.use("/users", authorizeNormalAccessTokenMiddleware, userRouter)
 router.use("/auth", authRouter)
 router.use("/profile", authorizeNormalAccessTokenMiddleware, verifyProfile)
 router.use("/admin", withRole("ADMIN"), adminRoute) 
-router.use("/assume-roles",withRole("NORMAL", "CLIENT", "OWNER"), assumeRole);
+router.use("/assume-roles",withRole("CLIENT", "OWNER"), assumeRole);
 
 export { router };
