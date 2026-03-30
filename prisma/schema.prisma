@@ -97,6 +97,8 @@ model profile_roles {
   admin    admins?  @relation(name: "AdminProfile")
 
   @@unique([profile_id, role_id], name: "profile_id_role_id")
+  properties properties[] 
+  property_history propertyHistory[]
 }
 
 model admins {
@@ -142,6 +144,69 @@ model emailVerification {
   @@index([user_id, used, expires_at])
 }
 
+model properties {
+  id Int @id @default(autoincrement())
+  id_owner Int 
+  title String
+  type_of_property TypeProperties
+  description String
+  status_property PropertyStatus
+  create_at DateTime @default(now())
+  price Int
+  total_area Int?
+
+  owner profile_roles @relation(fields: [id_owner],references: [id], onDelete: Cascade)
+  
+  property_history propertyHistory[]
+  property_medias propertiyMedia[]
+  property_localization propertyLocalization[]
+  property_compartments propertyCompartments[]
+}
+
+model propertyHistory {
+  id Int @id @default(autoincrement())
+  id_owner Int 
+  id_property Int
+  last_status PropertyStatus
+  new_status PropertyStatus
+  started_at DateTime
+  ended_at DateTime?
+
+  owner profile_roles @relation(fields: [id_owner], references: [id], onDelete: Cascade)
+  property properties @relation(fields: [id_property], references: [id], onDelete: Cascade)
+}
+
+model propertiyMedia{ 
+  id Int @id @default(autoincrement())
+  property_id Int
+  type MediaTypes
+  url String
+  order Int
+  uploaded_at DateTime @default(now())
+
+  property properties @relation(fields: [property_id], references: [id])
+}
+
+model propertyLocalization {
+  id Int @id @default(autoincrement())
+  property_id Int 
+  latitude Int
+  longitude Int
+  address_info String
+  neighborhood String
+  municipality String
+
+  property properties @relation(fields: [property_id], references: [id])
+}
+
+model propertyCompartments {
+  id Int @id @default(autoincrement())
+  property_id Int 
+  quantity Int
+  type  CompartmentsTypes
+
+  property properties @relation(fields: [property_id], references: [id])
+}
 
 // ============================================================================
 // ENUMS
@@ -181,4 +246,36 @@ enum DocType {
   PROFILE_PHOTO
   CONTRATO_VENDA
   CONTRATO_ARRENDAMENTO
+}
+
+enum TypeProperties {
+  APARTAMENTO
+  VIVENDA 
+  ESCRITORIO
+  FAZENDA
+  TERRENO
+}
+
+enum PropertyStatus {
+  DISPONIVEL
+  RESERVADO
+  ALUGADO
+  VENDIDO
+  INATIVO
+}
+
+enum MediaTypes {
+  IMAGEM
+  VIDEO
+}
+
+enum CompartmentsTypes {
+  QUARTO
+  SALA_DE_ESTAR
+  SALA_DE_LAZER
+  ESCRITORIO
+  QUARTO_DE_BANHO
+  COZINHA
+  LAVANDARIA
+  GARAGEM
 }

@@ -160,7 +160,7 @@ export function authorizeRoleAcessTokenMiddleware(allowedRole: string[]) {
 
     if (!userRole) throw new AppError("Roles nao encontradas", 403);
 
-    const hasPermission = allowedRole.some((role) => userRole.includes(role));
+    const hasPermission = allowedRole.some((role) => userRole.includes(role.toUpperCase()));
 
     if (!hasPermission) throw new AppError("Acesso negado", 403);
 

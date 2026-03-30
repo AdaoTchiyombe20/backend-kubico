@@ -5,7 +5,7 @@ import { authServices } from "../services/auth.services.js";
 import { getUserId, type GetUserIdDTO } from "../dto/user.dto.js";
 import { setCookie } from "../utils/cookies.js";
 import type { ProfileType } from "../../generated/prisma/index.js";
-import { createAdmin, type AdminLoginDTO, type createAdminDTO } from "../dto/admin.dto.js";
+import { createAdmin, type AdminLoginDTO, type createAdminDTO, loginAdmin} from "../dto/admin.dto.js";
 import { adminService } from "../services/admin.services.js";
 
 
@@ -13,10 +13,10 @@ export const authController = {
   //admin
       createAdmin: async(req: Request, res: Response, next: NextFunction)=> {
         try{
-          const data: createAdminDTO = createAdmin.parse({email: req.body.email, password: req.body.password, accessLevel: req.body.accessLevel.toUpperCase()})
-          const {email,password, accessLevel} = data
+          const data: createAdminDTO = createAdmin.parse({adminsName: req.body.adminsName, email: req.body.email, password: req.body.password, accessLevel: req.body.accessLevel.toUpperCase()})
+          const {adminsName,email,password, accessLevel} = data
   
-          await adminService.createAdmin(email, password, accessLevel)
+          await adminService.createAdmin(adminsName,email, password, accessLevel)
   
           res.json({
             success: true,
@@ -27,9 +27,9 @@ export const authController = {
           next(error)
         }    
       },
-      login: async(req:Request, res: Response, next: NextFunction)=> {
+      loginAdmin: async(req:Request, res: Response, next: NextFunction)=> {
         try{
-          const data: AdminLoginDTO = login.parse(req.body)
+          const data: AdminLoginDTO = loginAdmin.parse(req.body)
           const {userName, password} = data
   
           await adminService.login(userName, password)
