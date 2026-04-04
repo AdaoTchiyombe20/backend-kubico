@@ -1,4 +1,4 @@
-import type { users, UserStatus } from "../../../generated/prisma/client.js";
+import type { users } from "../../../generated/prisma/client.js";
 import { prisma } from "../../../lib/prisma.js";
 
 export const userRepository = {
