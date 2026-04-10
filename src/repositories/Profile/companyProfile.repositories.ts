@@ -7,9 +7,6 @@ export const companyProfileRepository = {
     profile_data: {
       legal_name: string;
       phone: string;
-      nif: string;
-      nameOfLegalRepresentative: string;
-      bank_account?: string;
     }): Promise<company_profiles> => {
     return prisma.company_profiles.create({ data: { profile_id, ...profile_data } });
   },

@@ -35,11 +35,12 @@ export const userRepository = {
       data: password,
     });
   },
-updateStatus: async(id:number, status:boolean): Promise<void> => {
+updateStatus: async(id:number, status:boolean,last_access: any): Promise<void> => {
     await prisma.users.update({
       where: {id},
       data: {
-      status: status ? 'ACTIVE' : 'SUSPENDED'
+      status: status ? 'ACTIVE' : 'SUSPENDED',
+      last_access: last_access? last_access: null
     }
     })
   },

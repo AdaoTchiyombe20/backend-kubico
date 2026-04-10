@@ -8,8 +8,4 @@ const userRouter = Router();
 userRouter.put("/update-email",authorizeRoleAcessTokenMiddleware(["NORMAL", "CLIENT", "OWNER"]),userController.updateEmail);
 userRouter.delete("/",authorizeRoleAcessTokenMiddleware(["ADMIN", "NORMAL", "CLIENT", "OWNER"]),userController.delete);
 
-
-
-
-
 export { userRouter };

@@ -1,5 +1,5 @@
 import { AppError } from "../errors/App.Errors.js";
-import { profileRole } from "../repositories/userProfile/profileRole.repositories.js";
+import { profileRole } from "../repositories/Profile/profileRole.repositories.js";
 
 export const assumeRolesServices = {
   client: async (id: number) => {

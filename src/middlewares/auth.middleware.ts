@@ -20,7 +20,8 @@ interface AccessTokenPayload {
 declare global {
   namespace Express {
     interface Request {
-      user?: TokenPayload | AccessTokenPayload;
+      refreshUser?: TokenPayload 
+      accessUser?: AccessTokenPayload;
     }
   }
 }
@@ -42,7 +43,7 @@ export const authorizeRefreshTokenMiddleware = async (
       env("JWT_REFRESH_SECRET"),
     ) as TokenPayload;
 
-    req.user = decoded;
+    req.refreshUser = decoded;
 
     next();
   } catch (error) {
@@ -137,7 +138,7 @@ export const authorizeNormalAccessTokenMiddleware = async (
       exp: payload.exp,
     };
 
-    req.user = accessPayload;
+    req.accessUser = accessPayload;
     next();
   } catch (error) {
     if (error instanceof jwt.JsonWebTokenError) {
@@ -152,14 +153,14 @@ export const authorizeNormalAccessTokenMiddleware = async (
 
 export function authorizeRoleAcessTokenMiddleware(allowedRole: string[]) {
   return (req: Request, res: Response, next: NextFunction) => {
-    if (!req.user || !("role" in req.user)) {
+    if (!req.accessUser || !("role" in req.accessUser)) {
       throw new AppError("Role não encontrada", 400);
     }
-    const userRole = req.user?.role;
+    const userRole = req.accessUser?.role;
 
     if (!userRole) throw new AppError("Roles nao encontradas", 403);
 
-    const hasPermission = allowedRole.some((role) => userRole.includes(role));
+    const hasPermission = allowedRole.some((role) => userRole.includes(role.toUpperCase()));
 
     if (!hasPermission) throw new AppError("Acesso negado", 403);
 

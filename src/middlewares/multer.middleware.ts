@@ -20,12 +20,7 @@ const LIMITS = {
 };
 
 const ALLOWED_DOCUMENT_FIELDS = new Set([
-  "bi", "bi_representante", "nif", "selfie_with_bi",
-  "certidao_comercial", "profile_photo", "certidao_predial",
-  "caderneta_predial", "licenca_utilizacao", "certidao_negativa_onus",
-  "contrato_promessa", "contrato_arrendamento", "comprovante_residencia",
-  "comprovativo_titularidade_conta_bancaria",
-  "doc_comprovante_representante_legal_empresa",
+   "profile_photo","contrato_venda", "contrato_arrendamento", 
 ]);
 
 const IMAGE_MIME_TYPES = new Set(["image/png", "image/jpeg", "image/jpg", "image/webp"]);
@@ -44,6 +39,9 @@ const diskStorage = multer.diskStorage({
     cb(null, `${Date.now()}-${crypto.randomUUID()}${ext}`);
   },
 });
+
+// ─── Buffer para todos ───────────────────────────────────────────
+const bufferStorage = multer.memoryStorage();
 
 // ─── Upload para Cloudinary (stream a partir do disco) ────────────────────────
 type CloudinaryUploadResult = {
@@ -107,6 +105,12 @@ const videoFileFilter = (_req: Request, file: Express.Multer.File, cb: any) => {
   cb(new AppError("Apenas vídeos são permitidos (mp4, mkv, mov, avi, webm)", 400));
 };
 
+const imageOrVideoFilter = (_req: Request, file: Express.Multer.File, cb: any) => {
+  if (isImage(file.mimetype) || isVideo(file.mimetype)) return cb(null, true);
+  cb(new AppError("Apenas imagens ou vídeos são permitidos", 400));
+};
+
+
 // ─── Multer exports ───────────────────────────────────────────────────────────
 export const multerUploads = {
   uploadFilesFromProfile: multer({
@@ -132,4 +136,10 @@ export const multerUploads = {
     limits: { fileSize: LIMITS.video },
     fileFilter: videoFileFilter,
   }),
+
+  uploadImagesAndVideo: multer({
+  storage: diskStorage,
+  limits: { fileSize: LIMITS.video }, 
+  fileFilter: imageOrVideoFilter,
+}),
 };

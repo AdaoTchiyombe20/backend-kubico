@@ -1,3 +1,7 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+// Get a free hosted Postgres database in seconds: `npx create-db`
 generator client {
   provider = "prisma-client-js"
   output   = "../generated/prisma"
@@ -28,6 +32,7 @@ model roles {
   id          Int           @id @default(autoincrement())
   role        ProfileRoles     @unique
   description String
+  
   user_role   profile_roles[]
 }
 
@@ -43,7 +48,7 @@ model profiles {
   person_profile  person_profiles?
   company_profile company_profiles?
 
-  user users @relation(fields: [user_id], references: [id])
+  user users @relation(fields: [user_id], references: [id], onDelete: Cascade )
 }
 
 model person_profiles {
@@ -60,10 +65,7 @@ model company_profiles {
   id               Int      @id @default(autoincrement())
   profile_id       Int      @unique
   legal_name       String
-  nameOfLegalRepresentative String
   phone            String
-  nif              String   @unique
-  bank_account     String?
 
   profile profiles @relation(fields: [profile_id], references: [id])
 }
@@ -72,17 +74,16 @@ model profile_medias {
   id              Int       @id @default(autoincrement())
   profile_id      Int
   type            DocType
-  document_number String?
-  public_id       String
-  url             String
+  document_number String
   is_current      Boolean   @default(true)
   is_verified     Boolean   @default(false)
   verified_at     DateTime?
-  uploaded_at     DateTime  @default(now())
+  inserted_in     DateTime  @default(now())
   deleted_at      DateTime?
 
   profile profiles @relation(fields: [profile_id], references: [id], onDelete: Cascade)
 
+  @@unique([type, document_number])
   @@index([profile_id, type])
   @@index([profile_id, type, is_current])
 }
@@ -93,29 +94,29 @@ model profile_roles {
   role_id     Int
   status      UserRoleStatus @default(PENDING)
   is_active   Boolean        @default(false)
-  approved_by Int?
   approved_at DateTime?
   created_at  DateTime       @default(now())
 
   role     roles    @relation(fields: [role_id], references: [id])
   profile  profiles @relation(fields: [profile_id], references: [id], onDelete: Cascade)
-  approver admins?  @relation(name: "ApprovedBy", fields: [approved_by], references: [id], onDelete: SetNull, onUpdate: Cascade)
   admin    admins?  @relation(name: "AdminProfile")
 
   @@unique([profile_id, role_id], name: "profile_id_role_id")
+  properties properties[] 
+  property_history propertyHistory[]
 }
 
 model admins {
   id               Int         @id @default(autoincrement())
   profile_role_id  Int         @unique
   user_id          Int         @unique
+  adminsName       String
   access_level     AccessLevel @default(NORMAL)
   date_register    DateTime    @default(now())
   deleted_at       DateTime?
 
   profile_role   profile_roles   @relation(name: "AdminProfile", fields: [profile_role_id], references: [id], onDelete: Cascade)
   user           users           @relation(fields: [user_id], references: [id])
-  approved_roles profile_roles[] @relation(name: "ApprovedBy")
 }
 
 model refresh_tokens {
@@ -148,6 +149,69 @@ model emailVerification {
   @@index([user_id, used, expires_at])
 }
 
+model properties {
+  id Int @id @default(autoincrement())
+  id_owner Int 
+  title String
+  type_of_property TypeProperties
+  description String
+  status_property PropertyStatus
+  create_at DateTime @default(now())
+  price Int
+  total_area Int?
+
+  owner profile_roles @relation(fields: [id_owner],references: [id], onDelete: Cascade)
+  
+  property_history propertyHistory[]
+  property_medias propertyMedia[]
+  property_localization propertyLocalization[]
+  property_compartments propertyCompartments[]
+}
+
+model propertyHistory {
+  id Int @id @default(autoincrement())
+  id_owner Int 
+  id_property Int 
+  last_status PropertyStatus
+  new_status PropertyStatus
+  started_at DateTime @default(now())
+  ended_at DateTime?
+
+  owner profile_roles @relation(fields: [id_owner], references: [id], onDelete: Cascade)
+  property properties @relation(fields: [id_property], references: [id], onDelete: Cascade)
+}
+
+model propertyMedia{ 
+  id Int @id @default(autoincrement())
+  property_id Int
+  type MediaTypes
+  url String
+  order Int
+  uploaded_at DateTime @default(now())
+
+  property properties @relation(fields: [property_id], references: [id])
+}
+
+model propertyLocalization {
+  id Int @id @default(autoincrement())
+  property_id Int 
+  latitude Int
+  longitude Int
+  address_info String
+  neighborhood String
+  municipality String
+
+  property properties @relation(fields: [property_id], references: [id])
+}
+
+model propertyCompartments {
+  id Int @id @default(autoincrement())
+  property_id Int 
+  quantity Int
+  type  CompartmentsTypes
+
+  property properties @relation(fields: [property_id], references: [id])
+}
 
 // ============================================================================
 // ENUMS
@@ -161,7 +225,6 @@ enum AccessLevel {
 enum ProfileRoles {
   CLIENT
   OWNER
-  NORMAL
   ADMIN
 }
 
@@ -183,18 +246,41 @@ enum UserStatus {
 
 enum DocType {
   BI
-  BI_REPRESENTANTE
   NIF
-  SELFIE_WITH_BI
-  CERTIDAO_COMERCIAL
+  CONTA_BANCARIA
   PROFILE_PHOTO
-  CERTIDAO_PREDIAL
-  CADERNETA_PREDIAL
-  LICENCA_UTILIZACAO
-  CERTIDAO_NEGATIVA_ONUS
-  CONTRATO_PROMESSA
+  CONTRATO_VENDA
   CONTRATO_ARRENDAMENTO
-  COMPROVANTE_RESIDENCIA
-  COMPROVATIVO_TITULARIDADE_CONTA_BANCARIA
-  DOC_COMPROVANTE_REPRESENTANTE_LEGAL_EMPRESA
+}
+
+enum TypeProperties {
+  APARTAMENTO
+  VIVENDA 
+  ESCRITORIO
+  FAZENDA
+  TERRENO
+}
+
+enum PropertyStatus {
+  DISPONIVEL
+  RESERVADO
+  ALUGADO
+  VENDIDO
+  INATIVO
+}
+
+enum MediaTypes {
+  IMAGEM
+  VIDEO
+}
+
+enum CompartmentsTypes {
+  QUARTO
+  SALA_DE_ESTAR
+  SALA_DE_LAZER
+  ESCRITORIO
+  QUARTO_DE_BANHO
+  COZINHA
+  LAVANDARIA
+  GARAGEM
 }
