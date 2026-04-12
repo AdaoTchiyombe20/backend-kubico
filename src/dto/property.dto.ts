@@ -31,9 +31,22 @@ export const createPropertySchema = z.object({
                          }
                        })
                        .pipe(z.array(compartmentSchema).min(1, "Pelo menos um cômodo é obrigatório")),
-  total_area:       z.number().positive().optional(),
-  latitude:         z.number().optional(),
-  longitude:        z.number().optional(),
+  total_area:       z.string()
+                       .transform(val => Number(val))
+                       .pipe(
+                         z.number()
+                          .positive("A área total deve ser um valor positivo")
+                       ).optional(),
+  latitude:         z.string()
+                        .transform(val => Number(val))
+                        .pipe(
+                          z.number()
+                        ).optional(),
+  longitude:        z.string()
+                         .transform(val => Number(val))
+                         .pipe(
+                           z.number()
+                         ).optional(),
 });
 
 export type CreatePropertyDTO = z.infer<typeof createPropertySchema>;

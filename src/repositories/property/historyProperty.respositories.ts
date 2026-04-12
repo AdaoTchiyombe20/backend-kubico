@@ -13,7 +13,7 @@ export const historyPropertyRepository = {
     orderBy: { id: 'asc' },
     })||[]
     },
-    createHistoryPrpoperty: async(id_owner: number, id_property: number, last_status: PropertyStatus, new_status: PropertyStatus, ):Promise<propertyHistory> => {
+    createHistoryProperty: async(id_owner: number, id_property: number, last_status: PropertyStatus, new_status: PropertyStatus, ):Promise<propertyHistory> => {
         return prisma.propertyHistory.create({
             data: {
                 id_owner,
@@ -33,3 +33,4 @@ export const historyPropertyRepository = {
             }
         })
     }
+}

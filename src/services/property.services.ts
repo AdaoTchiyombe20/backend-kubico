@@ -1,8 +1,11 @@
-import type { PropertyStatus, TypeProperties } from "../../generated/prisma/index.js";
+import type { CompartmentsTypes, PropertyStatus, TypeProperties } from "../../generated/prisma/index.js";
 import { AppError } from "../errors/App.Errors.js";
 import { deleteTempFile, uploadToCloudinary } from "../middlewares/multer.middleware.js";
 import { profileRole } from "../repositories/Profile/profileRole.repositories.js";
+import { historyPropertyRepository } from "../repositories/property/historyProperty.respositories.js";
 import { propertyRepository } from "../repositories/property/properties.repositories.js";
+import { propertyCompartmentsRepository } from "../repositories/property/propertyCompartments.repositories.js";
+import { propertyLocalizationRepository } from "../repositories/property/propertyLocalization.repositories.js";
 import { propertyMediaRepository } from "../repositories/property/propertyMedia.repositories.js";
 import pLimit from "p-limit";
 
@@ -31,6 +34,12 @@ export const propertyService = {
       status_property: PropertyStatus;
       price: number;
       total_area: number | undefined;
+      address_info: string;
+      neighborhood: string;
+      municipality: string;
+      compartments: { type: string; quantity: number }[];
+      latitude: number | undefined;
+      longitude: number | undefined;
     },
     files: { [fieldName: string]: Express.Multer.File[] },
   ) => {
@@ -75,6 +84,32 @@ export const propertyService = {
             mediaType,
             result.public_id,
             0,
+          );
+
+          await Promise.allSettled(
+            data.compartments.map(async (compartment) => {
+              await propertyCompartmentsRepository.createPropertyCompartments(
+                property.id,
+                compartment.type.toUpperCase() as CompartmentsTypes,
+                compartment.quantity,
+              );
+            })
+          )
+            data.latitude && data.longitude ? await propertyLocalizationRepository.createPropertyLocalization(
+              property.id,
+              data.latitude,
+              data.longitude,
+              data.address_info,
+              data.neighborhood,
+              data.municipality
+            ) : null
+
+          
+            await historyPropertyRepository.createHistoryProperty(
+            ownerRole.id, 
+            property.id,
+            "INATIVO",
+            "INATIVO",
           );
 
           console.log(`Registro de mídia criado para "${fieldname}" com URL:`, result.secure_url);
