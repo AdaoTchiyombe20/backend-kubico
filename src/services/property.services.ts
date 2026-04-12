@@ -58,10 +58,19 @@ export const propertyService = {
     );
     console.log("Propriedade criada com ID:", property.id);
 
+    await Promise.allSettled(
+            data.compartments.map(async (compartment) => {
+              await propertyCompartmentsRepository.createPropertyCompartments(
+                property.id,
+                compartment.type.toUpperCase() as CompartmentsTypes,
+                compartment.quantity,
+              );
+            })
+          )
+
     const allFiles = Object.entries(files).flatMap(([fieldname, fieldFiles]) =>
       fieldFiles.map((file) => ({ fieldname, file })),
     );
-
     const results = await Promise.allSettled(
       allFiles.map(async ({ fieldname, file }) => limit(async () => {
         
@@ -86,34 +95,6 @@ export const propertyService = {
             0,
           );
 
-          await Promise.allSettled(
-            data.compartments.map(async (compartment) => {
-              await propertyCompartmentsRepository.createPropertyCompartments(
-                property.id,
-                compartment.type.toUpperCase() as CompartmentsTypes,
-                compartment.quantity,
-              );
-            })
-          )
-            data.latitude && data.longitude ? await propertyLocalizationRepository.createPropertyLocalization(
-              property.id,
-              data.latitude,
-              data.longitude,
-              data.address_info,
-              data.neighborhood,
-              data.municipality
-            ) : null
-
-          
-            await historyPropertyRepository.createHistoryProperty(
-            ownerRole.id, 
-            property.id,
-            "INATIVO",
-            "INATIVO",
-          );
-
-          console.log(`Registro de mídia criado para "${fieldname}" com URL:`, result.secure_url);
-
           return { fieldname, url: result.secure_url, public_id: result.public_id };
         } catch (error) {
           const message = error instanceof Error ? error.message : String(error);
@@ -123,6 +104,24 @@ export const propertyService = {
         }
       }),
     ));
+
+    if(data.latitude && data.longitude){
+      await propertyLocalizationRepository.createPropertyLocalization(
+            property.id,
+            data.latitude,
+            data.longitude,
+            data.address_info,
+            data.neighborhood,
+            data.municipality
+          );
+    }
+
+    await historyPropertyRepository.createHistoryProperty(
+            ownerRole.id, 
+            property.id,
+            "INATIVO",
+            "INATIVO",
+          );
 
     const uploaded: Record<string, string> = {};
     const errors: string[] = [];
