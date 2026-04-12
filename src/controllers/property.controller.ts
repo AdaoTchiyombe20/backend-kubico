@@ -35,18 +35,25 @@ export const propertyController = {
   },
   createProperty: async(req: Request, res: Response, next: NextFunction) => {
     try{
+      req.setTimeout(120_000);
       const profileId = req.accessUser?.sub;
       if(!profileId) throw new AppError("Perfil não encontrado!", 404)
 
       const files = req.files as { [fieldName: string]: Express.Multer.File[] } ;
 
-      const data: CreatePropertyDTO = createPropertySchema.parse({...req.body,type_of_property: req.body.type_of_property.toLowerCase(), status_property: req.body.status_property.toLowerCase(),});
+      const data: CreatePropertyDTO = createPropertySchema.parse({...req.body,type_of_property: req.body.type_of_property.toUpperCase() });
 
-      const { title, description, price, total_area, type_of_property, status_property } = data;
+      const { title, description, price, total_area, type_of_property} = data;
+      const status_property = "INATIVO";
 
       if(!files || Object.keys(files).length === 0) throw new AppError("Pelo menos uma imagem ou vídeo é obrigatório!", 400)
 
       const createProperty = await propertyService.createProperty({profile_id: Number(profileId), title, type_of_property, description, status_property, price, total_area }, files);
+
+      res.status(201).json({
+        sucess: true,
+        property: createProperty
+      })
       
     }catch(error){
       next(error)

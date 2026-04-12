@@ -1,15 +1,18 @@
-import { prisma } from "../../../lib/prisma.js";
 import type { company_profiles } from "../../../generated/prisma/index.js";
+import { prisma } from "../../../lib/prisma.js";
 
 export const companyProfileRepository = {
   createBase: async (
     profile_id: number,
-    profile_data: {
+    data: {
       legal_name: string;
-      phone: string;
-    }): Promise<company_profiles> => {
-    return prisma.company_profiles.create({ data: { profile_id, ...profile_data } });
+    }
+  ): Promise<company_profiles> => {
+    return prisma.company_profiles.create({
+      data: { profile_id, ...data },
+    });
   },
+
   updateById: async (
     profile_id: number,
     data: Partial<Omit<company_profiles, "id" | "profile_id">>
@@ -19,12 +22,14 @@ export const companyProfileRepository = {
       data,
     });
   },
-  findAll: async(): Promise<company_profiles[]> => {
-    return prisma.company_profiles.findMany() || []
+
+  findAll: async (): Promise<company_profiles[]> => {
+    return prisma.company_profiles.findMany();
   },
-  findById: async(profile_id: number): Promise<company_profiles | null> => {
+
+  findById: async (profile_id: number): Promise<company_profiles | null> => {
     return prisma.company_profiles.findUnique({
-      where: {profile_id}
-    })
-  }
+      where: { profile_id },
+    });
+  },
 };

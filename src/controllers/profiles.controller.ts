@@ -14,7 +14,7 @@ export const profileController = {
     try {
       const id = req.accessUser!.sub;
       const data: CreateIndividualOwnerDTO = createIndividualOwner.parse(req.body);
-
+     //full_name, birth_date, phone, bi, nif, bank_account 
       await profileService.createOwnerIndividual(Number(id), {
         full_name: data.ownerName,
         birth_date:new Date(data.dateOfBirth),

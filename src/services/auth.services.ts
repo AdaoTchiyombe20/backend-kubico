@@ -190,7 +190,11 @@ export const authServices = {
   },
   refresh: async (id: number, refreshTkn: string) => {
     try {
-      const profileRoles = await profileRole.findAllRolesByProfileId(id);
+      const findProfile = await profileRepository.findByUserId(id);
+
+      if (!findProfile) throw new AppError("Perfil nao encontrado!", 404);
+
+      const profileRoles = await profileRole.findAllRolesByProfileId(findProfile.id);
 
       if (!refreshTkn) throw new AppError("Refresh token nao fornecido!", 400);
 

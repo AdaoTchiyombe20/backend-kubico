@@ -12,14 +12,25 @@ export const createPropertySchema = z.object({
   address_info:     z.string().min(1, "A informação do endereço é obrigatória"),
   neighborhood:     z.string().min(1, "O bairro é obrigatório"),
   municipality:     z.string().min(1, "O município é obrigatório"),
-  price:            z.number().positive("O preço deve ser um valor positivo"),
-  type_of_property: z.string().transform(v => v.toLowerCase()).pipe(
+  price:             z.string()
+                       .transform(val => Number(val)) 
+                       .pipe(
+                         z.number()
+                          .int("O preço deve ser um número inteiro")
+                          .positive("O preço deve ser um valor positivo")
+                       ),
+  type_of_property: z.string().transform(v => v.toUpperCase()).pipe(
                       z.nativeEnum(TypeProperties, { message: "Tipo de propriedade inválido" })
                     ),
-  status_property:  z.string().transform(v => v.toLowerCase()).pipe(
-                      z.nativeEnum(PropertyStatus, { message: "Status da propriedade inválido" })
-                    ),
-  compartments:     z.array(compartmentSchema).min(1, "Pelo menos um cômodo é obrigatório"),
+  compartments:     z.string()
+                       .transform(val => {
+                         try {
+                           return JSON.parse(val);
+                         } catch {
+                           throw new Error("Formato inválido para compartments. Deve ser JSON válido.");
+                         }
+                       })
+                       .pipe(z.array(compartmentSchema).min(1, "Pelo menos um cômodo é obrigatório")),
   total_area:       z.number().positive().optional(),
   latitude:         z.number().optional(),
   longitude:        z.number().optional(),

@@ -110,7 +110,7 @@ export const authController = {
     },
     refresh: async(req: Request, res: Response, next: NextFunction) => {
      try{
-        const {id}: GetUserIdDTO = getUserId.parse({id: req.accessUser!.sub})
+        const {id}: GetUserIdDTO = getUserId.parse({id: req.refreshUser!.sub})
         const refreshToken = req.cookies.refreshToken
         const refreshAcess = await authServices.refresh(id, refreshToken)
 

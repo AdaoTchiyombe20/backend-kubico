@@ -17,7 +17,6 @@ export const createOwnerCompanyComplete = z.object({
     .length(9, "9 caracteres")
     .regex(/^[0-9]+$/, "Apenas números"),
   nif: z.string().length(6, "6 caracteres"),
-  nameOfLegalRepresentative: z.string().min(3, "Mínimo 3 caracteres"),
   bankAccount: z.string().length(21, "21 caracteres"),
 });
 

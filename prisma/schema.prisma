@@ -42,7 +42,7 @@ model profiles {
   type            ProfileType
   deleted_at      DateTime?
 
-  userMidia       profile_medias[]
+  userMidia       profile_data[]
   user_role       profile_roles[]
 
   person_profile  person_profiles?
@@ -56,7 +56,6 @@ model person_profiles {
   profile_id Int      @unique
   full_name  String
   birth_date DateTime
-  phone      String
 
   profile profiles @relation(fields: [profile_id], references: [id])
 }
@@ -65,12 +64,11 @@ model company_profiles {
   id               Int      @id @default(autoincrement())
   profile_id       Int      @unique
   legal_name       String
-  phone            String
 
   profile profiles @relation(fields: [profile_id], references: [id])
 }
 
-model profile_medias {
+model profile_data {
   id              Int       @id @default(autoincrement())
   profile_id      Int
   type            DocType
@@ -157,7 +155,7 @@ model properties {
   description String
   status_property PropertyStatus
   create_at DateTime @default(now())
-  price Int
+  price Decimal
   total_area Int?
 
   owner profile_roles @relation(fields: [id_owner],references: [id], onDelete: Cascade)
@@ -187,6 +185,7 @@ model propertyMedia{
   type MediaTypes
   url String
   order Int
+  public_id String
   uploaded_at DateTime @default(now())
 
   property properties @relation(fields: [property_id], references: [id])
@@ -248,8 +247,9 @@ enum DocType {
   BI
   NIF
   CONTA_BANCARIA
+  PHONE           
   PROFILE_PHOTO
-  CONTRATO_VENDA
+CONTRATO_VENDA
   CONTRATO_ARRENDAMENTO
 }
 
