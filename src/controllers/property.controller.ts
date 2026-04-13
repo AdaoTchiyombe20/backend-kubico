@@ -41,14 +41,14 @@ export const propertyController = {
 
       const files = req.files as { [fieldName: string]: Express.Multer.File[] } ;
 
-      const data: CreatePropertyDTO = createPropertySchema.parse({...req.body,type_of_property: req.body.type_of_property.toUpperCase() }); 
+      const data: CreatePropertyDTO = createPropertySchema.parse({...req.body}); 
 
-      const { title, description, address_info, neighborhood, municipality, price, total_area, type_of_property, compartments, latitude, longitude} = data;
+      const { title, description, address_info,type_purchase, neighborhood, municipality, price, total_area, type_of_property, compartments, latitude, longitude} = data;
       const status_property = "INATIVO";
 
       if(!files || Object.keys(files).length === 0) throw new AppError("Pelo menos uma imagem ou vídeo é obrigatório!", 400)
 
-      const createProperty = await propertyService.createProperty({profile_id: Number(profileId), title, type_of_property, description, status_property, price, total_area, address_info, neighborhood, municipality, compartments, latitude, longitude }, files);
+      const createProperty = await propertyService.createProperty({profile_id: Number(profileId), title, type_purchase, type_of_property, description, status_property, price, total_area, address_info, neighborhood, municipality, compartments, latitude, longitude }, files);
 
       res.status(201).json({
         sucess: true,

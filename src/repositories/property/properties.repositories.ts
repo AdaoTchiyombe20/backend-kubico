@@ -1,12 +1,13 @@
-import { type properties, PropertyStatus, TypeProperties } from "../../../generated/prisma/index.js";
+import { type properties, Property_purchase, PropertyStatus, TypeProperties } from "../../../generated/prisma/index.js";
 import { prisma } from "../../../lib/prisma.js";
 
 export const propertyRepository = {
-    createProperty: async(id_owner:number, title: string, type_of_property: TypeProperties, description: string,status_property: PropertyStatus, price: number, total_area: number| undefined): Promise<properties> => {
+    createProperty: async(id_owner:number, title: string, type_property_purchase: Property_purchase, type_of_property: TypeProperties, description: string,status_property: PropertyStatus, price: number, total_area: number| undefined): Promise<properties> => {
         return prisma.properties.create({
             data: {
                 id_owner,
                 title,
+                type_property_purchase,
                 type_of_property,
                 description,
                 status_property,

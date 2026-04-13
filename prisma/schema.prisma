@@ -151,6 +151,7 @@ model properties {
   id Int @id @default(autoincrement())
   id_owner Int 
   title String
+  type_property_purchase Property_purchase
   type_of_property TypeProperties
   description String
   status_property PropertyStatus
@@ -188,19 +189,19 @@ model propertyMedia{
   public_id String
   uploaded_at DateTime @default(now())
 
-  property properties @relation(fields: [property_id], references: [id])
+  property properties @relation(fields: [property_id], references: [id], onDelete: Cascade)
 }
 
 model propertyLocalization {
   id Int @id @default(autoincrement())
   property_id Int 
-  latitude Int
-  longitude Int
+  latitude Decimal
+  longitude Decimal
   address_info String
   neighborhood String
   municipality String
 
-  property properties @relation(fields: [property_id], references: [id])
+  property properties @relation(fields: [property_id], references: [id],onDelete: Cascade)
 }
 
 model propertyCompartments {
@@ -209,7 +210,7 @@ model propertyCompartments {
   quantity Int
   type  CompartmentsTypes
 
-  property properties @relation(fields: [property_id], references: [id])
+  property properties @relation(fields: [property_id], references: [id],onDelete: Cascade)
 }
 
 // ============================================================================
@@ -251,6 +252,11 @@ enum DocType {
   PROFILE_PHOTO
   CONTRATO_VENDA
   CONTRATO_ARRENDAMENTO
+}
+
+enum Property_purchase {
+  FOR_SALE
+  FOR_RENT
 }
 
 enum TypeProperties {
@@ -332,5 +338,5 @@ enum CompartmentsTypes {
   GINASIO
   SPA
   PISCINA
-TERRAÇO
+  TERRAÇO
 }

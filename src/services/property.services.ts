@@ -1,4 +1,4 @@
-import type { CompartmentsTypes, PropertyStatus, TypeProperties } from "../../generated/prisma/index.js";
+import type { CompartmentsTypes, Property_purchase, PropertyStatus, TypeProperties } from "../../generated/prisma/index.js";
 import { AppError } from "../errors/App.Errors.js";
 import { deleteTempFile, uploadToCloudinary } from "../middlewares/multer.middleware.js";
 import { profileRole } from "../repositories/Profile/profileRole.repositories.js";
@@ -29,6 +29,7 @@ export const propertyService = {
     data: {
       profile_id: number;
       title: string;
+      type_purchase: Property_purchase;
       type_of_property: TypeProperties;
       description: string;
       status_property: PropertyStatus;
@@ -48,8 +49,9 @@ export const propertyService = {
     if (!ownerRole) throw new AppError("Owner not found!", 404);
 
     const property = await propertyRepository.createProperty(
-      data.profile_id,
+      ownerRole.id,
       data.title,
+      data.type_purchase,
       data.type_of_property,
       data.description,
       data.status_property,

@@ -1,8 +1,10 @@
 import z from "zod";
-import { PropertyStatus, TypeProperties, CompartmentsTypes } from "../../generated/prisma/index.js";
+import { PropertyStatus, TypeProperties, CompartmentsTypes, Property_purchase } from "../../generated/prisma/index.js";
 
 const compartmentSchema = z.object({
-  type:     z.nativeEnum(CompartmentsTypes, { message: "Tipo de cômodo inválido" }),
+  type: z.string().transform(v => v.toUpperCase()).pipe(    
+    z.nativeEnum(CompartmentsTypes, { message: "Tipo de cômodo inválido" })
+  ),
   quantity: z.number().int().positive("A quantidade deve ser um valor positivo"),
 });
 
@@ -19,6 +21,9 @@ export const createPropertySchema = z.object({
                           .int("O preço deve ser um número inteiro")
                           .positive("O preço deve ser um valor positivo")
                        ),
+  type_purchase:   z.string().transform(v => v.toUpperCase()).pipe(
+                      z.nativeEnum(Property_purchase, { message: "Tipo de compra inválido" })
+                    ),
   type_of_property: z.string().transform(v => v.toUpperCase()).pipe(
                       z.nativeEnum(TypeProperties, { message: "Tipo de propriedade inválido" })
                     ),
