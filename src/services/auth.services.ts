@@ -200,7 +200,7 @@ export const authServices = {
 
       if (!profileRoles) throw new AppError("Id nao cadastrado!!", 401);
 
-      await refreshTokenUser.revokeRefreshToken(refreshTkn);
+      const revokedToken = await refreshTokenUser.revokeRefreshToken(refreshTkn);
 
       const user = await userRepository.findById(id);
 
@@ -259,6 +259,7 @@ export const authServices = {
       return {
         refreshToken,
         accessToken,
+        revokedToken
       };
     } catch (error) {
       throw new AppError(`Erro no refresh: ${error}`, 400);

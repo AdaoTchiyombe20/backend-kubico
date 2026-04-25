@@ -20,6 +20,7 @@ export const propertyController = {
 
       res.json({
         sucess: true,
+        cursor: getAllProperties.cursor,
         properties: getAllProperties
       })
     } catch (error) {
@@ -28,7 +29,18 @@ export const propertyController = {
   },
   findUserProperties: async(req: Request, res: Response, next: NextFunction)=> { 
     try{
-
+      const profileId = req.accessUser?.sub;
+      const limit = req.query.limit || 20;
+      const lastPropertyId = req.query.cursor || 0;
+      if(!profileId) throw new AppError("Perfil não encontrado!", 404)
+      if (Array.isArray(limit)) throw new AppError("Valor invalido!", 400);
+      if (Array.isArray(lastPropertyId)) throw new AppError("Valor invalido!", 400);
+      const properties = await propertyService.findUserProperties(Number(profileId), Number(limit), Number(lastPropertyId));
+      res.json({
+        sucess: true,
+        cursor: properties.cursor,
+        properties: properties,
+      })
     }catch(error){
       next(error)
     }
@@ -44,11 +56,10 @@ export const propertyController = {
       const data: CreatePropertyDTO = createPropertySchema.parse({...req.body}); 
 
       const { title, description, address_info,type_purchase, neighborhood, municipality, price, total_area, type_of_property, compartments, latitude, longitude} = data;
-      const status_property = "INATIVO";
 
       if(!files || Object.keys(files).length === 0) throw new AppError("Pelo menos uma imagem ou vídeo é obrigatório!", 400)
 
-      const createProperty = await propertyService.createProperty({profile_id: Number(profileId), title, type_purchase, type_of_property, description, status_property, price, total_area, address_info, neighborhood, municipality, compartments, latitude, longitude }, files);
+      const createProperty = await propertyService.createProperty({profile_id: Number(profileId), title, type_purchase, type_of_property, description, price, total_area, address_info, neighborhood, municipality, compartments, latitude, longitude }, files);
 
       res.status(201).json({
         sucess: true,
@@ -61,9 +72,18 @@ export const propertyController = {
   }, 
   publishProperty: async(req: Request, res: Response, next: NextFunction)=> {
     try{
-
+      const profileId = req.accessUser?.sub;
+      const propertyId = req.params.id;
+      if(!profileId) throw new AppError("Perfil não encontrado!", 404)
+      const publish = await propertyService.publishProperty(Number(profileId), Number(propertyId));
     }catch(error){
       next(error)
     }
+  },
+  unPublishProperty: async(req: Request, res: Response, next: NextFunction)=> {
+    try{
+    }catch(error){
+      next(error)
+    } 
   }
 };

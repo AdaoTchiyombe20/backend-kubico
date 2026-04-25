@@ -14,19 +14,28 @@ CREATE TYPE "ProfileType" AS ENUM ('INDIVIDUAL', 'COMPANY');
 CREATE TYPE "UserStatus" AS ENUM ('ACTIVE', 'SUSPENDED');
 
 -- CreateEnum
-CREATE TYPE "DocType" AS ENUM ('BI', 'NIF', 'CONTA_BANCARIA', 'PROFILE_PHOTO', 'CONTRATO_VENDA', 'CONTRATO_ARRENDAMENTO');
+CREATE TYPE "DocType" AS ENUM ('BI', 'NIF', 'CONTA_BANCARIA', 'PHONE', 'PROFILE_PHOTO', 'CONTRATO_VENDA', 'CONTRATO_ARRENDAMENTO');
 
 -- CreateEnum
-CREATE TYPE "TypeProperties" AS ENUM ('APARTAMENTO', 'VIVENDA', 'ESCRITORIO', 'FAZENDA', 'TERRENO');
+CREATE TYPE "Property_purchase" AS ENUM ('FOR_SALE', 'FOR_RENT');
 
 -- CreateEnum
-CREATE TYPE "PropertyStatus" AS ENUM ('DISPONIVEL', 'RESERVADO', 'ALUGADO', 'VENDIDO', 'INATIVO');
+CREATE TYPE "TypeProperties" AS ENUM ('APARTAMENTO', 'VIVENDA', 'ESCRITORIO', 'FAZENDA', 'TERRENO', 'LOJA', 'ARMAZEM', 'HOTEL', 'PENTHOUSE', 'DUPLEX', 'TRIPLEX', 'QUARTO', 'SUITE', 'CONDOMINIO', 'RESORT', 'HOSPITAL', 'ESCOLA', 'RESTAURANTE', 'CINEMA', 'SHOPPING');
+
+-- CreateEnum
+CREATE TYPE "PropertyStatus" AS ENUM ('PUBLICADO', 'NAO_PUBLICADO', 'EM_ANALISE');
+
+-- CreateEnum
+CREATE TYPE "propertySelingStatus" AS ENUM ('DISPONIVEL', 'RESERVADO', 'VENDIDO', 'ALUGADO', 'CANCELADO');
+
+-- CreateEnum
+CREATE TYPE "PropertyMediaStatus" AS ENUM ('FAILED', 'UPLOADED', 'PENDING');
 
 -- CreateEnum
 CREATE TYPE "MediaTypes" AS ENUM ('IMAGEM', 'VIDEO');
 
 -- CreateEnum
-CREATE TYPE "CompartmentsTypes" AS ENUM ('QUARTO', 'SALA_DE_ESTAR', 'SALA_DE_LAZER', 'ESCRITORIO', 'QUARTO_DE_BANHO', 'COZINHA', 'LAVANDARIA', 'GARAGEM');
+CREATE TYPE "CompartmentsTypes" AS ENUM ('QUARTO', 'SALA_DE_ESTAR', 'SALA_DE_LAZER', 'ESCRITORIO', 'QUARTO_DE_BANHO', 'COZINHA', 'LAVANDARIA', 'GARAGEM', 'VARANDA', 'CLOSET', 'DESPENSA', 'HALL_DE_ENTRADA', 'SALA_DE_JANTAR', 'BIBLIOTECA', 'QUARTO_DE_VISITAS', 'SUITE_PRINCIPAL', 'ADEGA', 'QUARTO_DE_EMPREGADOS', 'RECEPCAO', 'SALA_DE_REUNIOES', 'AUDITORIO', 'LOJA', 'ARMAZEM', 'CANTINA', 'GINASIO', 'SPA', 'PISCINA', 'TERRAÇO');
 
 -- CreateTable
 CREATE TABLE "users" (
@@ -66,7 +75,6 @@ CREATE TABLE "person_profiles" (
     "profile_id" INTEGER NOT NULL,
     "full_name" TEXT NOT NULL,
     "birth_date" TIMESTAMP(3) NOT NULL,
-    "phone" TEXT NOT NULL,
 
     CONSTRAINT "person_profiles_pkey" PRIMARY KEY ("id")
 );
@@ -76,13 +84,12 @@ CREATE TABLE "company_profiles" (
     "id" SERIAL NOT NULL,
     "profile_id" INTEGER NOT NULL,
     "legal_name" TEXT NOT NULL,
-    "phone" TEXT NOT NULL,
 
     CONSTRAINT "company_profiles_pkey" PRIMARY KEY ("id")
 );
 
 -- CreateTable
-CREATE TABLE "profile_medias" (
+CREATE TABLE "profile_data" (
     "id" SERIAL NOT NULL,
     "profile_id" INTEGER NOT NULL,
     "type" "DocType" NOT NULL,
@@ -93,7 +100,7 @@ CREATE TABLE "profile_medias" (
     "inserted_in" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
     "deleted_at" TIMESTAMP(3),
 
-    CONSTRAINT "profile_medias_pkey" PRIMARY KEY ("id")
+    CONSTRAINT "profile_data_pkey" PRIMARY KEY ("id")
 );
 
 -- CreateTable
@@ -151,11 +158,13 @@ CREATE TABLE "properties" (
     "id" SERIAL NOT NULL,
     "id_owner" INTEGER NOT NULL,
     "title" TEXT NOT NULL,
+    "type_property_purchase" "Property_purchase" NOT NULL,
     "type_of_property" "TypeProperties" NOT NULL,
     "description" TEXT NOT NULL,
     "status_property" "PropertyStatus" NOT NULL,
+    "seling_status" "propertySelingStatus" NOT NULL,
     "create_at" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    "price" INTEGER NOT NULL,
+    "price" DECIMAL(65,30) NOT NULL,
     "total_area" INTEGER,
 
     CONSTRAINT "properties_pkey" PRIMARY KEY ("id")
@@ -166,8 +175,8 @@ CREATE TABLE "propertyHistory" (
     "id" SERIAL NOT NULL,
     "id_owner" INTEGER NOT NULL,
     "id_property" INTEGER NOT NULL,
-    "last_status" "PropertyStatus" NOT NULL,
-    "new_status" "PropertyStatus" NOT NULL,
+    "last_status" "propertySelingStatus" NOT NULL,
+    "new_status" "propertySelingStatus" NOT NULL,
     "started_at" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
     "ended_at" TIMESTAMP(3),
 
@@ -175,23 +184,24 @@ CREATE TABLE "propertyHistory" (
 );
 
 -- CreateTable
-CREATE TABLE "propertiyMedia" (
+CREATE TABLE "propertyMedia" (
     "id" SERIAL NOT NULL,
     "property_id" INTEGER NOT NULL,
     "type" "MediaTypes" NOT NULL,
     "url" TEXT NOT NULL,
     "order" INTEGER NOT NULL,
+    "public_id" TEXT NOT NULL,
     "uploaded_at" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
 
-    CONSTRAINT "propertiyMedia_pkey" PRIMARY KEY ("id")
+    CONSTRAINT "propertyMedia_pkey" PRIMARY KEY ("id")
 );
 
 -- CreateTable
 CREATE TABLE "propertyLocalization" (
     "id" SERIAL NOT NULL,
     "property_id" INTEGER NOT NULL,
-    "latitude" INTEGER NOT NULL,
-    "longitude" INTEGER NOT NULL,
+    "latitude" DECIMAL(65,30) NOT NULL,
+    "longitude" DECIMAL(65,30) NOT NULL,
     "address_info" TEXT NOT NULL,
     "neighborhood" TEXT NOT NULL,
     "municipality" TEXT NOT NULL,
@@ -231,13 +241,13 @@ CREATE UNIQUE INDEX "person_profiles_profile_id_key" ON "person_profiles"("profi
 CREATE UNIQUE INDEX "company_profiles_profile_id_key" ON "company_profiles"("profile_id");
 
 -- CreateIndex
-CREATE INDEX "profile_medias_profile_id_type_idx" ON "profile_medias"("profile_id", "type");
+CREATE INDEX "profile_data_profile_id_type_idx" ON "profile_data"("profile_id", "type");
 
 -- CreateIndex
-CREATE INDEX "profile_medias_profile_id_type_is_current_idx" ON "profile_medias"("profile_id", "type", "is_current");
+CREATE INDEX "profile_data_profile_id_type_is_current_idx" ON "profile_data"("profile_id", "type", "is_current");
 
 -- CreateIndex
-CREATE UNIQUE INDEX "profile_medias_type_document_number_key" ON "profile_medias"("type", "document_number");
+CREATE UNIQUE INDEX "profile_data_type_document_number_key" ON "profile_data"("type", "document_number");
 
 -- CreateIndex
 CREATE UNIQUE INDEX "profile_roles_profile_id_role_id_key" ON "profile_roles"("profile_id", "role_id");
@@ -279,7 +289,7 @@ ALTER TABLE "person_profiles" ADD CONSTRAINT "person_profiles_profile_id_fkey" F
 ALTER TABLE "company_profiles" ADD CONSTRAINT "company_profiles_profile_id_fkey" FOREIGN KEY ("profile_id") REFERENCES "profiles"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
 
 -- AddForeignKey
-ALTER TABLE "profile_medias" ADD CONSTRAINT "profile_medias_profile_id_fkey" FOREIGN KEY ("profile_id") REFERENCES "profiles"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+ALTER TABLE "profile_data" ADD CONSTRAINT "profile_data_profile_id_fkey" FOREIGN KEY ("profile_id") REFERENCES "profiles"("id") ON DELETE CASCADE ON UPDATE CASCADE;
 
 -- AddForeignKey
 ALTER TABLE "profile_roles" ADD CONSTRAINT "profile_roles_role_id_fkey" FOREIGN KEY ("role_id") REFERENCES "roles"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
@@ -309,10 +319,10 @@ ALTER TABLE "propertyHistory" ADD CONSTRAINT "propertyHistory_id_owner_fkey" FOR
 ALTER TABLE "propertyHistory" ADD CONSTRAINT "propertyHistory_id_property_fkey" FOREIGN KEY ("id_property") REFERENCES "properties"("id") ON DELETE CASCADE ON UPDATE CASCADE;
 
 -- AddForeignKey
-ALTER TABLE "propertiyMedia" ADD CONSTRAINT "propertiyMedia_property_id_fkey" FOREIGN KEY ("property_id") REFERENCES "properties"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
+ALTER TABLE "propertyMedia" ADD CONSTRAINT "propertyMedia_property_id_fkey" FOREIGN KEY ("property_id") REFERENCES "properties"("id") ON DELETE CASCADE ON UPDATE CASCADE;
 
 -- AddForeignKey
-ALTER TABLE "propertyLocalization" ADD CONSTRAINT "propertyLocalization_property_id_fkey" FOREIGN KEY ("property_id") REFERENCES "properties"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
+ALTER TABLE "propertyLocalization" ADD CONSTRAINT "propertyLocalization_property_id_fkey" FOREIGN KEY ("property_id") REFERENCES "properties"("id") ON DELETE CASCADE ON UPDATE CASCADE;
 
 -- AddForeignKey
-ALTER TABLE "propertyCompartments" ADD CONSTRAINT "propertyCompartments_property_id_fkey" FOREIGN KEY ("property_id") REFERENCES "properties"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
+ALTER TABLE "propertyCompartments" ADD CONSTRAINT "propertyCompartments_property_id_fkey" FOREIGN KEY ("property_id") REFERENCES "properties"("id") ON DELETE CASCADE ON UPDATE CASCADE;

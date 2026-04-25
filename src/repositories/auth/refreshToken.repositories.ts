@@ -32,7 +32,7 @@ export const refreshTokenUser = {
       throw new AppError("Token não encontrado no banco de dados!", 404);
     }
 
-    return await prisma.refresh_tokens.update({
+    return prisma.refresh_tokens.update({
       where: { token },
       data: {
         isActive: false,
