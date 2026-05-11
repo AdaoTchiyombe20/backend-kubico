@@ -3,15 +3,12 @@
   "version": "1.0.0",
   "description": "API Backend para Kubico - Sistema de gestão imobiliária",
   "main": "server.js",
-  "scripts": {
-    "start": "node dist/server.js",
-    "dev": "nodemon --exec tsx server.ts",
-    "build": "prisma generate && tsc",
-    "prisma:generate": "prisma generate",
-    "prisma:migrate": "prisma migrate deploy",
-    "prisma:studio": "prisma studio",
-    "test": "echo \"Error: no test specified\" && exit 1"
-  },
+"scripts": {
+  "start": "node dist/server.js",
+  "dev": "nodemon --exec tsx server.ts",
+  "build": "prisma generate && tsc",
+  "prisma:migrate": "prisma migrate deploy"
+},
   "repository": {
     "type": "git",
     "url": "git+https://github.com/AdaoTchiyombe20/backend-kubico.git"
