@@ -2,7 +2,13 @@ openapi: 3.0.0
 info:
   title: Kubico API
   version: 1.0.0
-  description: API documentation for Kubico - Plataforma web para arrendamento e venda de imóveis
+  description: |
+    API documentation for Kubico — Plataforma web para arrendamento e venda de imóveis.
+
+    > **⚠️ Legenda de estado dos endpoints:**
+    > - ✅ **Funcional** — Implementado e operacional
+    > - 🚧 **Em desenvolvimento** — Rota registada mas ainda sem implementação
+    > - ❌ **Não implementado** — Definido no contrato mas ainda não criado
   contact:
     name: Kubico Support
     email: support@kubico.com
@@ -24,21 +30,12 @@ components:
     # ─── Auth ───────────────────────────────────────────────
     SignUpRequest:
       type: object
-      required: [name, email, phone, password]
+      required: [email, password]
       properties:
-        name:
-          type: string
-          minLength: 3
-          example: João Silva
         email:
           type: string
           format: email
           example: joao@example.com
-        phone:
-          type: string
-          minLength: 9
-          maxLength: 9
-          example: "923456789"
         password:
           type: string
           minLength: 6
@@ -62,9 +59,6 @@ components:
         accessToken:
           type: string
           example: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
-        refreshToken:
-          type: string
-          example: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
         user:
           $ref: '#/components/schemas/User'
 
@@ -75,39 +69,20 @@ components:
         id:
           type: integer
           example: 1
-        name:
-          type: string
-          example: João Silva
         email:
           type: string
           example: joao@example.com
-        phone:
+        status:
           type: string
-          example: "923456789"
-        role:
-          type: string
-          enum: [ADMIN, NORMAL, CLIENT, OWNER]
-          example: NORMAL
-        createdAt:
+          enum: [ACTIVE, SUSPENDED]
+          example: ACTIVE
+        email_verified:
+          type: boolean
+          example: false
+        date_register:
           type: string
           format: date-time
           example: 2026-02-14T12:00:00Z
-
-    UpdateUserRequest:
-      type: object
-      properties:
-        name:
-          type: string
-          minLength: 3
-          example: João Silva Updated
-        phone:
-          type: string
-          pattern: ^[0-9]{9}$
-          example: "923456789"
-        password:
-          type: string
-          minLength: 6
-          example: newpassword123
 
     UpdateEmailRequest:
       type: object
@@ -118,70 +93,87 @@ components:
           format: email
           example: newemail@example.com
 
-    # ─── Verification ────────────────────────────────────────
-    IndividualClientVerification:
+    # ─── Admin ──────────────────────────────────────────────
+    CreateAdminRequest:
       type: object
-      description: Enviado como multipart/form-data
+      required: [adminsName, email, password, accessLevel]
       properties:
+        adminsName:
+          type: string
+          minLength: 3
+          example: Admin Kubico
+        email:
+          type: string
+          format: email
+          example: admin@kubico.com
+        password:
+          type: string
+          minLength: 3
+          example: strongPassword123
+        accessLevel:
+          type: string
+          enum: [SUPER_ADMIN, NORMAL]
+          example: NORMAL
+
+    # ─── Profiles / Verification ────────────────────────────
+    IndividualOwnerProfileRequest:
+      type: object
+      required: [ownerName, phone, bi, nif, bankAccount, dateOfBirth]
+      properties:
+        ownerName:
+          type: string
+          minLength: 3
+          example: João Silva
+        phone:
+          type: string
+          minLength: 9
+          maxLength: 9
+          pattern: '^[0-9]{9}$'
+          example: "923456789"
         bi:
           type: string
-          format: binary
-          description: Foto do Bilhete de Identidade
-        selfieWithBi:
+          minLength: 14
+          maxLength: 14
+          example: "12345678901234"
+        nif:
           type: string
-          format: binary
-          description: Selfie segurando o BI
+          minLength: 6
+          maxLength: 6
+          example: "123456"
+        bankAccount:
+          type: string
+          minLength: 21
+          maxLength: 21
+          example: "123456789012345678901"
+        dateOfBirth:
+          type: string
+          format: date
+          example: "1990-01-01"
 
-    CompanyClientVerification:
+    CompanyOwnerProfileRequest:
       type: object
-      description: Enviado como multipart/form-data
+      required: [nameOfCompany, phone, nif, bankAccount]
       properties:
-        bi_representante:
+        nameOfCompany:
           type: string
-          format: binary
-          description: BI do representante legal
-        certidao_comercial:
+          minLength: 3
+          example: Empresa XYZ
+        phone:
           type: string
-          format: binary
-          description: Certidão comercial da empresa
-        doc_comprovante_representante_legal_empresa:
+          minLength: 9
+          maxLength: 9
+          pattern: '^[0-9]{9}$'
+          example: "923456789"
+        nif:
           type: string
-          format: binary
-          description: Documento que comprova representação legal
-
-    IndividualOwnerVerification:
-      type: object
-      description: Enviado como multipart/form-data
-      properties:
-        bi:
+          minLength: 6
+          maxLength: 6
+          example: "123456"
+        bankAccount:
           type: string
-          format: binary
-          description: Foto do Bilhete de Identidade
-        comprovativo_titularidade_conta_bancaria:
-          type: string
-          format: binary
-          description: Comprovativo de titularidade da conta bancária
-
-    CompanyOwnerVerification:
-      type: object
-      description: Enviado como multipart/form-data
-      properties:
-        comprovativo_titularidade_conta_bancaria:
-          type: string
-          format: binary
-          description: Comprovativo de titularidade da conta bancária
-        bi_representante:
-          type: string
-          format: binary
-          description: BI do representante legal
-        certidao_comercial:
-          type: string
-          format: binary
-          description: Certidão comercial da empresa
-        doc_comprovante_representante_legal_empresa:
-          type: string
-          format: binary
-          description: Documento que comprova representação legal
+          minLength: 21
+          maxLength: 21
+          example: "123456789012345678901"
 
     # ─── Properties ──────────────────────────────────────────
     Property:
@@ -190,260 +182,101 @@ components:
         id:
           type: integer
           example: 1
-        title:
-          type: string
-          example: Apartamento T3 em Talatona
-        description:
-          type: string
-          example: Apartamento espaçoso com 3 quartos e varanda
-        type:
-          type: string
-          enum: [APARTMENT, HOUSE, COMMERCIAL, LAND]
-          example: APARTMENT
-        purpose:
-          type: string
-          enum: [RENT, SALE]
-          example: RENT
-        price:
-          type: number
-          example: 150000
-        area:
-          type: number
-          description: Área em m²
-          example: 120
-        bedrooms:
-          type: integer
-          example: 3
-        bathrooms:
-          type: integer
-          example: 2
-        location:
-          type: object
-          properties:
-            province:
-              type: string
-              example: Luanda
-            municipality:
-              type: string
-              example: Talatona
-            address:
-              type: string
-              example: Rua das Acácias, nº 12
-        status:
-          type: string
-          enum: [PENDING, APPROVED, REJECTED, INACTIVE]
-          example: PENDING
-        ownerId:
+        id_owner:
           type: integer
           example: 5
-        createdAt:
-          type: string
-          format: date-time
-          example: 2026-02-14T12:00:00Z
-
-    CreatePropertyRequest:
-      type: object
-      required: [title, description, type, purpose, price, area, location]
-      properties:
         title:
           type: string
           example: Apartamento T3 em Talatona
         description:
           type: string
           example: Apartamento espaçoso com 3 quartos e varanda
+        type_of_property:
+          type: string
+          enum:
+            - APARTAMENTO
+            - VIVENDA
+            - ESCRITORIO
+            - FAZENDA
+            - TERRENO
+            - LOJA
+            - ARMAZEM
+            - HOTEL
+            - PENTHOUSE
+            - DUPLEX
+            - TRIPLEX
+            - QUARTO
+            - SUITE
+            - CONDOMINIO
+            - RESORT
+            - HOSPITAL
+            - ESCOLA
+            - RESTAURANTE
+            - CINEMA
+            - SHOPPING
+          example: APARTAMENTO
+        type_property_purchase:
+          type: string
+          enum: [FOR_SALE, FOR_RENT]
+          example: FOR_RENT
+        price:
+          type: integer
+          example: 150000
+        total_area:
+          type: number
+          example: 120
+        is_negotiable:
+          type: boolean
+          example: false
+        status_property:
+          type: string
+          enum: [PUBLICADO, NAO_PUBLICADO, EM_ANALISE]
+          example: EM_ANALISE
+        create_at:
+          type: string
+          format: date-time
+          example: 2026-02-14T12:00:00Z
+
+    Compartment:
+      type: object
+      required: [type, quantity]
+      properties:
         type:
           type: string
-          enum: [APARTMENT, HOUSE, COMMERCIAL, LAND]
-          example: APARTMENT
-        purpose:
-          type: string
-          enum: [RENT, SALE]
-          example: RENT
-        price:
-          type: number
-          example: 150000
-        area:
-          type: number
-          example: 120
-        bedrooms:
+          enum:
+            - QUARTO
+            - SALA_DE_ESTAR
+            - SALA_DE_LAZER
+            - ESCRITORIO
+            - QUARTO_DE_BANHO
+            - COZINHA
+            - LAVANDARIA
+            - GARAGEM
+            - VARANDA
+            - CLOSET
+            - DESPENSA
+            - HALL_DE_ENTRADA
+            - SALA_DE_JANTAR
+            - BIBLIOTECA
+            - QUARTO_DE_VISITAS
+            - SUITE_PRINCIPAL
+            - ADEGA
+            - QUARTO_DE_EMPREGADOS
+            - RECEPCAO
+            - SALA_DE_REUNIOES
+            - AUDITORIO
+            - LOJA
+            - ARMAZEM
+            - CANTINA
+            - GINASIO
+            - SPA
+            - PISCINA
+            - TERRAÇO
+          example: QUARTO
+        quantity:
           type: integer
+          minimum: 1
           example: 3
-        bathrooms:
-          type: integer
-          example: 2
-        location:
-          type: object
-          required: [province, municipality, address]
-          properties:
-            province:
-              type: string
-              example: Luanda
-            municipality:
-              type: string
-              example: Talatona
-            address:
-              type: string
-              example: Rua das Acácias, nº 12
-
-    CreatePropertyForm:
-      type: object
-      required: [title, description, address_info, neighborhood, municipality, price, type_purchase, type_of_property, compartments]
-      properties:
-        title:
-          type: string
-          example: Apartamento T3 em Talatona
-        description:
-          type: string
-          example: Apartamento espaçoso com 3 quartos e varanda
-        address_info:
-          type: string
-          example: Rua das Acácias, nº 12
-        neighborhood:
-          type: string
-          example: Talatona
-        municipality:
-          type: string
-          example: Luanda
-        price:
-          type: number
-          example: 150000
-        is_negotiable:
-          type: boolean
-          example: false
-        type_purchase:
-          type: string
-          enum: [RENT, SALE]
-          example: RENT
-        type_of_property:
-          type: string
-          enum: [APARTMENT, HOUSE, COMMERCIAL, LAND]
-          example: APARTMENT
-        compartments:
-          type: string
-          description: JSON array como string, ex: [{"type":"BEDROOM","quantity":3}]
-        total_area:
-          type: number
-          example: 120
-        latitude:
-          type: number
-          example: -8.839
-        longitude:
-          type: number
-          example: 13.289
-        images:
-          type: array
-          items:
-            type: string
-            format: binary
-        video:
-          type: string
-          format: binary
-
-    UpdatePropertyInfoRequest:
-      type: object
-      properties:
-        title:
-          type: string
-          example: Apartamento T3 em Talatona
-        description:
-          type: string
-          example: Apartamento espaçoso com 3 quartos e varanda
-        address_info:
-          type: string
-          example: Rua das Acácias, nº 12
-        neighborhood:
-          type: string
-          example: Talatona
-        municipality:
-          type: string
-          example: Luanda
-        price:
-          type: number
-          example: 150000
-        is_negotiable:
-          type: boolean
-          example: false
-        type_purchase:
-          type: string
-          enum: [RENT, SALE]
-          example: RENT
-        type_of_property:
-          type: string
-          enum: [APARTMENT, HOUSE, COMMERCIAL, LAND]
-          example: APARTMENT
-        compartments:
-          type: string
-          description: JSON array como string, ex: [{"type":"BEDROOM","quantity":3}]
-        total_area:
-          type: number
-          example: 120
-
-    IndividualOwnerProfileRequest:
-      type: object
-      required: [ownerName, phone, bi, nif, bankAccount, dateOfBirth]
-      properties:
-        ownerName:
-          type: string
-          example: João Silva
-        phone:
-          type: string
-          example: "923456789"
-        bi:
-          type: string
-          example: "12345678901234"
-        nif:
-          type: string
-          example: "123456"
-        bankAccount:
-          type: string
-          example: "123456789012345678901"
-        dateOfBirth:
-          type: string
-          format: date
-          example: 1990-01-01
-
-    CompanyOwnerProfileRequest:
-      type: object
-      required: [nameOfCompany, phone, nif, bankAccount]
-      properties:
-        nameOfCompany:
-          type: string
-          example: Empresa XYZ
-        phone:
-          type: string
-          example: "923456789"
-        nif:
-          type: string
-          example: "123456"
-        bankAccount:
-          type: string
-          example: "123456789012345678901"
-
-    # ─── Listings ────────────────────────────────────────────
-    Listing:
-      type: object
-      properties:
-        id:
-          type: integer
-          example: 1
-        propertyId:
-          type: integer
-          example: 1
-        planId:
-          type: integer
-          example: 2
-        status:
-          type: string
-          enum: [ACTIVE, PAUSED, EXPIRED, REJECTED]
-          example: ACTIVE
-        expiresAt:
-          type: string
-          format: date-time
-          example: 2026-05-14T12:00:00Z
-        createdAt:
-          type: string
-          format: date-time
-          example: 2026-02-14T12:00:00Z
 
     # ─── Plans ───────────────────────────────────────────────
     Plan:
@@ -480,26 +313,27 @@ components:
         id:
           type: integer
           example: 1
-        propertyId:
+        property_listing_id:
           type: integer
           example: 5
-        clientId:
+        client_id:
           type: integer
           example: 3
-        ownerId:
+        owner_id:
           type: integer
           example: 7
-        proposedPrice:
+        proposed_price:
           type: number
           example: 140000
+        accepted_value:
+          type: number
+          nullable: true
+          example: null
         status:
           type: string
-          enum: [PENDING, ACCEPTED, REJECTED, COUNTERED]
+          enum: [PENDING, ACCEPTED, REJECTED, CANCELLED]
           example: PENDING
-        message:
-          type: string
-          example: Gostaria de negociar o valor do arrendamento
-        createdAt:
+        created_at:
           type: string
           format: date-time
           example: 2026-02-14T12:00:00Z
@@ -548,15 +382,12 @@ components:
           example: 5
         downPayment:
           type: number
-          description: Valor de entrada
           example: 30000
         termMonths:
           type: integer
-          description: Prazo em meses
           example: 120
         interestRate:
           type: number
-          description: Taxa de juros anual (%)
           example: 12.5
 
     SimulationResponse:
@@ -584,6 +415,30 @@ components:
           type: number
           example: 90060
 
+    # ─── Listings ────────────────────────────────────────────
+    Listing:
+      type: object
+      properties:
+        id:
+          type: integer
+          example: 1
+        property_id:
+          type: integer
+          example: 1
+        listed_at:
+          type: string
+          format: date-time
+          example: 2026-02-14T12:00:00Z
+        delisted_at:
+          type: string
+          format: date-time
+          nullable: true
+          example: null
+        status:
+          type: string
+          enum: [RESERVADO, VENDIDO, ALUGADO, DISPONIVEL]
+          example: DISPONIVEL
+
     # ─── Error ───────────────────────────────────────────────
     ErrorResponse:
       type: object
@@ -609,7 +464,7 @@ tags:
   - name: User Management (Admin)
     description: Endpoints administrativos de gestão de utilizadores
   - name: Role Verification
-    description: Submissão de documentos para verificação de perfil (client/owner)
+    description: Submissão de dados para verificação de perfil (owner individual/empresa)
   - name: Role Management
     description: Troca de role activa do utilizador
   - name: Properties
@@ -638,11 +493,19 @@ paths:
   # ═══════════════════════════════════════════════════════════
   # AUTH
   # ═══════════════════════════════════════════════════════════
+
   /auth/signup/{type}:
     post:
       tags: [Authentication]
-      summary: Criar conta
-      description: Cria uma nova conta de utilizador. O parâmetro `type` define o tipo de perfil inicial.
+      summary: "✅ Criar conta"
+      description: |
+        Cria uma nova conta de utilizador. O parâmetro `type` define o tipo de perfil inicial.
+
+        - `individual` → perfil pessoal (`ProfileType.INDIVIDUAL`)
+        - `company` → perfil de empresa (`ProfileType.COMPANY`)
+
+        O `accessToken` é retornado no body e também no header `Authorization: Bearer <token>`.
+        O `refreshToken` é definido como cookie `HttpOnly`.
       operationId: signup
       security: []
       parameters:
@@ -662,10 +525,23 @@ paths:
       responses:
         '201':
           description: Conta criada com sucesso
+          headers:
+            Authorization:
+              description: Bearer <accessToken>
+              schema:
+                type: string
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/AuthResponse'
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  user:
+                    $ref: '#/components/schemas/User'
+                  accessToken:
+                    type: string
         '400':
           description: Dados inválidos
           content:
@@ -678,7 +554,12 @@ paths:
   /auth/login:
     post:
       tags: [Authentication]
-      summary: Login
+      summary: "✅ Login"
+      description: |
+        Autentica o utilizador com email e password.
+
+        O `accessToken` é retornado no body e no header `Authorization`.
+        O `refreshToken` é definido como cookie `HttpOnly`.
       operationId: login
       security: []
       requestBody:
@@ -690,47 +571,91 @@ paths:
       responses:
         '200':
           description: Login bem-sucedido
+          headers:
+            Authorization:
+              description: Bearer <accessToken>
+              schema:
+                type: string
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/AuthResponse'
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: usuario com sessao iniciada!
+                  user:
+                    $ref: '#/components/schemas/User'
+                  accessToken:
+                    type: string
         '401':
           description: Credenciais inválidas
 
   /auth/logout:
     get:
       tags: [Authentication]
-      summary: Logout
-      description: Invalida a sessão actual usando o refresh token da cookie.
+      summary: "✅ Logout"
+      description: |
+        Invalida a sessão actual usando o `refreshToken` da cookie.
+        Requer o cookie `refreshToken` válido (middleware `authorizeRefreshTokenMiddleware`).
       operationId: logout
       security: []
+      parameters:
+        - in: cookie
+          name: refreshToken
+          required: true
+          schema:
+            type: string
       responses:
         '200':
           description: Logout bem-sucedido
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
         '401':
           description: Refresh token inválido ou expirado
 
   /auth/refresh:
     get:
       tags: [Authentication]
-      summary: Renovar access token
-      description: Gera um novo par de tokens usando o refresh token na cookie.
+      summary: "✅ Renovar access token"
+      description: |
+        Gera um novo par de tokens usando o `refreshToken` guardado na cookie.
+        Requer o cookie `refreshToken` válido.
       operationId: refresh
       security: []
+      parameters:
+        - in: cookie
+          name: refreshToken
+          required: true
+          schema:
+            type: string
       responses:
         '200':
           description: Tokens renovados com sucesso
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/AuthResponse'
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  message:
+                    type: string
+                  refreshAcess:
+                    $ref: '#/components/schemas/AuthResponse'
         '401':
           description: Refresh token inválido ou expirado
 
   /auth/verify-email:
     get:
       tags: [Authentication]
-      summary: Verificar email
+      summary: "✅ Verificar email"
+      description: Verifica o email do utilizador a partir do token enviado por email.
       operationId: verifyEmail
       security: []
       parameters:
@@ -742,28 +667,47 @@ paths:
           description: Token enviado por email
       responses:
         '200':
-          description: Email verificado com sucesso
+          description: Email verificado com sucesso (resposta em texto simples)
         '400':
-          description: Token inválido ou expirado
+          description: Token inválido, expirado ou não fornecido
 
   /auth/send-verify-mail:
     get:
       tags: [Authentication]
-      summary: Enviar email de verificação
-      description: Solicita reenvio do email de verificação. Na implementação atual, depende da identificação do utilizador via refresh cookie.
+      summary: "✅ Reenviar email de verificação"
+      description: |
+        Reenvia o email de verificação para o utilizador. 
+        Requer o cookie `refreshToken` válido para identificar o utilizador.
       operationId: sendVerifyMail
       security: []
+      parameters:
+        - in: cookie
+          name: refreshToken
+          required: true
+          schema:
+            type: string
       responses:
         '200':
           description: Email de verificação enviado
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  message:
+                    type: string
         '400':
-          description: Dados inválidos ou utilizador não autenticado
+          description: Utilizador não autenticado ou dados inválidos
 
   /auth/create-admin:
     post:
       tags: [Authentication]
-      summary: Criar administrador
-      description: Cria um administrador com acesso administrativo.
+      summary: "✅ Criar administrador"
+      description: |
+        Cria um novo administrador. O campo `accessLevel` é convertido para maiúsculas automaticamente.
+        Valores válidos: `SUPER_ADMIN`, `NORMAL`.
       operationId: createAdmin
       security: []
       requestBody:
@@ -771,35 +715,34 @@ paths:
         content:
           application/json:
             schema:
-              type: object
-              required: [adminsName, email, password, accessLevel]
-              properties:
-                adminsName:
-                  type: string
-                  example: Admin Kubico
-                email:
-                  type: string
-                  format: email
-                  example: admin@kubico.com
-                password:
-                  type: string
-                  example: strongPassword123
-                accessLevel:
-                  type: string
-                  example: ADMIN
+              $ref: '#/components/schemas/CreateAdminRequest'
       responses:
-        '201':
+        '200':
           description: Administrador criado com sucesso
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  message:
+                    type: string
+                    example: Admin Criado!
         '400':
           description: Dados inválidos
 
   # ═══════════════════════════════════════════════════════════
   # USERS
   # ═══════════════════════════════════════════════════════════
+
   /users/update-email:
     put:
       tags: [User Management]
-      summary: Atualizar email
+      summary: "✅ Atualizar email"
+      description: |
+        Atualiza o email do utilizador autenticado.
+        Requer `Authorization: Bearer <accessToken>` e role `NORMAL`, `CLIENT` ou `OWNER`.
       operationId: updateEmail
       security:
         - bearerAuth: []
@@ -811,35 +754,66 @@ paths:
               $ref: '#/components/schemas/UpdateEmailRequest'
       responses:
         '200':
-          description: Email atualizado
+          description: Email atualizado com sucesso
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/User'
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  message:
+                    type: string
+                  user:
+                    $ref: '#/components/schemas/User'
         '409':
           description: Email já está em uso
 
   /users:
     delete:
       tags: [User Management]
-      summary: Apagar conta
+      summary: "✅ Apagar conta"
+      description: |
+        Elimina a conta do utilizador autenticado.
+        Requer `Authorization: Bearer <accessToken>` e qualquer role válida (ADMIN, NORMAL, CLIENT, OWNER).
+        Usa o `refreshToken` da cookie para identificar o utilizador.
       operationId: deleteUser
       security:
         - bearerAuth: []
+      parameters:
+        - in: cookie
+          name: refreshToken
+          required: true
+          schema:
+            type: string
       responses:
         '200':
           description: Conta eliminada com sucesso
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  message:
+                    type: string
         '401':
           description: Não autorizado
 
   # ═══════════════════════════════════════════════════════════
   # ROLE VERIFICATION
   # ═══════════════════════════════════════════════════════════
+
   /profile/individual-owner:
     post:
       tags: [Role Verification]
-      summary: Criar proposta de verificação para proprietário individual
-      description: Envia os dados de proprietário individual para verificação.
+      summary: "✅ Registar proprietário individual"
+      description: |
+        Envia os dados pessoais para criação do perfil de proprietário individual.
+        Após submissão, o perfil fica a aguardar aprovação por um administrador.
+
+        Requer `Authorization: Bearer <accessToken>`.
       operationId: createOwnerIndividual
       security:
         - bearerAuth: []
@@ -851,15 +825,27 @@ paths:
               $ref: '#/components/schemas/IndividualOwnerProfileRequest'
       responses:
         '201':
-          description: Proprietário individual cadastrado, aguardando verificação
+          description: Proprietário cadastrado, aguardando verificação
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: Proprietário cadastrado! Aguarde a verificação dos dados.
         '400':
           description: Dados inválidos
 
   /profile/company-owner:
     post:
       tags: [Role Verification]
-      summary: Criar proposta de verificação para proprietário empresa
-      description: Envia os dados de proprietário empresa para verificação.
+      summary: "✅ Registar proprietário empresa"
+      description: |
+        Envia os dados empresariais para criação do perfil de proprietário empresa.
+        Após submissão, o perfil fica a aguardar aprovação por um administrador.
+
+        Requer `Authorization: Bearer <accessToken>`.
       operationId: createOwnerCompany
       security:
         - bearerAuth: []
@@ -872,56 +858,88 @@ paths:
       responses:
         '201':
           description: Proprietário empresa cadastrado, aguardando verificação
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: Proprietário cadastrado! Aguarde a verificação dos dados.
         '400':
           description: Dados inválidos
 
   # ═══════════════════════════════════════════════════════════
   # ROLE MANAGEMENT
   # ═══════════════════════════════════════════════════════════
+
   /assume-roles/client:
     get:
       tags: [Role Management]
-      summary: Assumir role CLIENT
-      description: Desativa todas as roles e ativa a role CLIENT. Requer role NORMAL, CLIENT ou OWNER.
+      summary: "✅ Assumir role CLIENT"
+      description: |
+        Activa a role CLIENT para o utilizador autenticado.
+        Após esta chamada, o utilizador deve chamar `GET /auth/refresh` para obter um novo access token
+        com a role CLIENT activa.
+
+        Requer `Authorization: Bearer <accessToken>` e role `CLIENT` ou `OWNER`.
       operationId: assumeClient
       security:
         - bearerAuth: []
       responses:
         '200':
-          description: Role CLIENT assumida com sucesso
+          description: Role CLIENT assumida. Chame /auth/refresh para actualizar o token.
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/AuthResponse'
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  message:
+                    type: string
         '403':
           description: Utilizador não possui role de CLIENT
 
   /assume-roles/owner:
     get:
       tags: [Role Management]
-      summary: Assumir role OWNER
-      description: Desativa todas as roles e ativa a role OWNER. Requer role NORMAL, CLIENT ou OWNER.
+      summary: "✅ Assumir role OWNER"
+      description: |
+        Activa a role OWNER para o utilizador autenticado.
+        Após esta chamada, o utilizador deve chamar `GET /auth/refresh` para obter um novo access token
+        com a role OWNER activa.
+
+        Requer `Authorization: Bearer <accessToken>` e role `CLIENT` ou `OWNER`.
       operationId: assumeOwner
       security:
         - bearerAuth: []
       responses:
         '200':
-          description: Role OWNER assumida com sucesso
+          description: Role OWNER assumida. Chame /auth/refresh para actualizar o token.
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/AuthResponse'
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  message:
+                    type: string
         '403':
           description: Utilizador não possui role de OWNER
 
   # ═══════════════════════════════════════════════════════════
   # PROPERTIES
   # ═══════════════════════════════════════════════════════════
+
   /properties:
     get:
       tags: [Properties]
-      summary: Listar imóveis
-      description: Lista os imóveis disponíveis para o utilizador autentificado com role ADMIN ou OWNER.
+      summary: "✅ Listar todos os imóveis"
+      description: |
+        Lista imóveis com paginação por cursor.
+        Requer `Authorization: Bearer <accessToken>` com role `ADMIN` ou `OWNER`.
       operationId: listProperties
       security:
         - bearerAuth: []
@@ -933,6 +951,7 @@ paths:
             default: 20
         - name: cursor
           in: query
+          description: ID do último imóvel retornado (para paginação)
           schema:
             type: integer
             default: 0
@@ -955,8 +974,41 @@ paths:
 
     post:
       tags: [Properties]
-      summary: Cadastrar imóvel
-      description: Cria um novo imóvel. Requer role ADMIN ou OWNER.
+      summary: "✅ Cadastrar imóvel"
+      description: |
+        Cria um novo imóvel com imagens e/ou vídeo.
+
+        **Content-Type:** `multipart/form-data`
+
+        Requer `Authorization: Bearer <accessToken>` com role `ADMIN` ou `OWNER`.
+
+        ---
+
+        ### 📎 Upload de ficheiros
+
+        | Campo do input (`name`) | Tipo | Máx. ficheiros | Tamanho máximo | Formatos aceites |
+        |---|---|---|---|---|
+        | `images` | Imagem | 5 | 5 MB cada | PNG, JPEG, JPG, WEBP |
+        | `video` | Vídeo | 1 | 500 MB | MP4, MKV, MOV, AVI, WEBM |
+
+        > **Pelo menos um ficheiro (imagem ou vídeo) é obrigatório.**
+
+        ---
+
+        ### 🗂️ Campo `compartments`
+
+        O campo `compartments` deve ser enviado como **string JSON**. Exemplo:
+        ```json
+        "[{\"type\":\"QUARTO\",\"quantity\":3},{\"type\":\"QUARTO_DE_BANHO\",\"quantity\":2}]"
+        ```
+
+        ### 💰 Campo `price`
+
+        Enviado como string (formulário), convertido internamente para número inteiro positivo.
+
+        ### 📐 Campos numéricos (`total_area`, `latitude`, `longitude`)
+
+        Enviados como string no formulário, convertidos internamente para número.
       operationId: createProperty
       security:
         - bearerAuth: []
@@ -965,7 +1017,108 @@ paths:
         content:
           multipart/form-data:
             schema:
-              $ref: '#/components/schemas/CreatePropertyForm'
+              type: object
+              required:
+                - title
+                - description
+                - address_info
+                - neighborhood
+                - municipality
+                - price
+                - type_purchase
+                - type_of_property
+                - compartments
+              properties:
+                title:
+                  type: string
+                  example: Apartamento T3 em Talatona
+                description:
+                  type: string
+                  example: Apartamento espaçoso com 3 quartos e varanda
+                address_info:
+                  type: string
+                  example: Rua das Acácias, nº 12
+                neighborhood:
+                  type: string
+                  example: Talatona
+                municipality:
+                  type: string
+                  example: Luanda
+                price:
+                  type: string
+                  description: Valor inteiro positivo enviado como string. Ex:"150000"
+                  example: "150000"
+                is_negotiable:
+                  type: boolean
+                  default: false
+                  example: false
+                type_purchase:
+                  type: string
+                  enum: [FOR_SALE, FOR_RENT]
+                  description: Case-insensitive (convertido para maiúsculas automaticamente)
+                  example: FOR_RENT
+                type_of_property:
+                  type: string
+                  enum:
+                    - APARTAMENTO
+                    - VIVENDA
+                    - ESCRITORIO
+                    - FAZENDA
+                    - TERRENO
+                    - LOJA
+                    - ARMAZEM
+                    - HOTEL
+                    - PENTHOUSE
+                    - DUPLEX
+                    - TRIPLEX
+                    - QUARTO
+                    - SUITE
+                    - CONDOMINIO
+                    - RESORT
+                    - HOSPITAL
+                    - ESCOLA
+                    - RESTAURANTE
+                    - CINEMA
+                    - SHOPPING
+                  description: Case-insensitive (convertido para maiúsculas automaticamente)
+                  example: APARTAMENTO
+                compartments:
+                  type: string
+                  description: |
+                    Array de cômodos serializado como string JSON.
+                    Cada item deve ter `type` (enum CompartmentsTypes) e `quantity` (inteiro positivo).
+                  example: '[{"type":"QUARTO","quantity":3},{"type":"QUARTO_DE_BANHO","quantity":2}]'
+                total_area:
+                  type: string
+                  description: Área total em m², enviada como string. Ex:"120"
+                  example: "120"
+                latitude:
+                  type: string
+                  description: Latitude geográfica enviada como string. Ex:"-8.839"
+                  example: "-8.839"
+                longitude:
+                  type: string
+                  description: Longitude geográfica enviada como string. Ex:"13.289"
+                  example: "13.289"
+                images:
+                  type: array
+                  items:
+                    type: string
+                    format: binary
+                  description: |
+                    Até 5 imagens. O atributo `name` do input HTML deve ser **`images`**.
+                    Formatos: PNG, JPEG, JPG, WEBP. Tamanho máximo: 5 MB por ficheiro.
+                video:
+                  type: string
+                  format: binary
+                  description: |
+                    Um único vídeo. O atributo `name` do input HTML deve ser **`video`**.
+                    Formatos: MP4, MKV, MOV, AVI, WEBM. Tamanho máximo: 500 MB.
+            encoding:
+              images:
+                contentType: image/png, image/jpeg, image/webp
+              video:
+                contentType: video/mp4, video/mkv, video/mov, video/avi, video/webm
       responses:
         '201':
           description: Imóvel criado com sucesso
@@ -980,11 +1133,16 @@ paths:
                     $ref: '#/components/schemas/Property'
         '400':
           description: Dados inválidos ou ficheiros obrigatórios em falta
+        '404':
+          description: Perfil não encontrado
 
   /properties/owner:
     get:
       tags: [Properties]
-      summary: Listar imóveis do owner autenticado
+      summary: "✅ Listar imóveis do owner autenticado"
+      description: |
+        Retorna apenas os imóveis pertencentes ao owner autenticado, com paginação por cursor.
+        Requer `Authorization: Bearer <accessToken>` com role `OWNER`.
       operationId: findUserProperties
       security:
         - bearerAuth: []
@@ -996,6 +1154,7 @@ paths:
             default: 20
         - name: cursor
           in: query
+          description: ID do último imóvel retornado
           schema:
             type: integer
             default: 0
@@ -1019,7 +1178,10 @@ paths:
   /properties/publish/{id}:
     post:
       tags: [Properties]
-      summary: Publicar imóvel
+      summary: "✅ Publicar imóvel"
+      description: |
+        Publica um imóvel que esteja aprovado.
+        Requer `Authorization: Bearer <accessToken>` com role `ADMIN` ou `OWNER`.
       operationId: publishProperty
       security:
         - bearerAuth: []
@@ -1032,11 +1194,21 @@ paths:
       responses:
         '200':
           description: Imóvel publicado
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
 
   /properties/unpublish/{id}:
     post:
       tags: [Properties]
-      summary: Despublicar imóvel
+      summary: "✅ Despublicar imóvel"
+      description: |
+        Despublica um imóvel publicado.
+        Requer `Authorization: Bearer <accessToken>` com role `ADMIN` ou `OWNER`.
       operationId: unpublishProperty
       security:
         - bearerAuth: []
@@ -1049,11 +1221,24 @@ paths:
       responses:
         '200':
           description: Imóvel despublicado
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
 
   /properties/{id}/info:
     patch:
       tags: [Properties]
-      summary: Atualizar informações do imóvel
+      summary: "✅ Atualizar informações do imóvel"
+      description: |
+        Atualiza dados textuais/numéricos de um imóvel. Todos os campos são opcionais.
+        Os campos `price`, `total_area`, `type_purchase` e `type_of_property` seguem as mesmas
+        regras de transformação do endpoint de criação.
+
+        Requer `Authorization: Bearer <accessToken>` com role `ADMIN` ou `OWNER`.
       operationId: updatePropertyInfo
       security:
         - bearerAuth: []
@@ -1068,15 +1253,92 @@ paths:
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/UpdatePropertyInfoRequest'
+              type: object
+              properties:
+                title:
+                  type: string
+                  example: Apartamento T3 em Talatona
+                description:
+                  type: string
+                  example: Apartamento espaçoso com 3 quartos e varanda
+                address_info:
+                  type: string
+                  example: Rua das Acácias, nº 12
+                neighborhood:
+                  type: string
+                  example: Talatona
+                municipality:
+                  type: string
+                  example: Luanda
+                price:
+                  type: string
+                  example: "150000"
+                is_negotiable:
+                  type: boolean
+                  example: false
+                type_purchase:
+                  type: string
+                  enum: [FOR_SALE, FOR_RENT]
+                  example: FOR_RENT
+                type_of_property:
+                  type: string
+                  enum:
+                    - APARTAMENTO
+                    - VIVENDA
+                    - ESCRITORIO
+                    - FAZENDA
+                    - TERRENO
+                    - LOJA
+                    - ARMAZEM
+                    - HOTEL
+                    - PENTHOUSE
+                    - DUPLEX
+                    - TRIPLEX
+                    - QUARTO
+                    - SUITE
+                    - CONDOMINIO
+                    - RESORT
+                    - HOSPITAL
+                    - ESCOLA
+                    - RESTAURANTE
+                    - CINEMA
+                    - SHOPPING
+                  example: APARTAMENTO
+                compartments:
+                  type: string
+                  example: '[{"type":"QUARTO","quantity":3}]'
+                total_area:
+                  type: string
+                  example: "120"
       responses:
         '200':
-          description: Informações do imóvel atualizadas
+          description: Informações atualizadas com sucesso
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  property:
+                    $ref: '#/components/schemas/Property'
+                  message:
+                    type: string
 
   /properties/{id}/media:
     post:
       tags: [Properties]
-      summary: Adicionar media ao imóvel
+      summary: "✅ Adicionar media ao imóvel"
+      description: |
+        Adiciona uma imagem ou vídeo a um imóvel existente.
+
+        **Content-Type:** `multipart/form-data`
+
+        | Campo (`name`) | Tipo | Tamanho máximo | Formatos |
+        |---|---|---|---|
+        | `file` | Imagem ou Vídeo | 5 MB (imagem) / 500 MB (vídeo) | PNG, JPEG, WEBP / MP4, MKV, MOV, AVI, WEBM |
+
+        Requer `Authorization: Bearer <accessToken>` com role `ADMIN` ou `OWNER`.
       operationId: addPropertyMedia
       security:
         - bearerAuth: []
@@ -1097,14 +1359,38 @@ paths:
                 file:
                   type: string
                   format: binary
+                  description: |
+                    O atributo `name` do input HTML deve ser **`file`**.
+                    Aceita imagens (PNG, JPEG, JPG, WEBP) ou vídeo (MP4, MKV, MOV, AVI, WEBM).
       responses:
         '201':
           description: Media adicionada com sucesso
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  media:
+                    type: object
+                  message:
+                    type: string
 
   /properties/{id}/media/{mediaId}:
     patch:
       tags: [Properties]
-      summary: Atualizar media do imóvel
+      summary: "✅ Substituir media do imóvel"
+      description: |
+        Substitui um ficheiro de media existente por um novo.
+
+        **Content-Type:** `multipart/form-data`
+
+        | Campo (`name`) | Tipo | Formatos |
+        |---|---|---|
+        | `file` | Imagem ou Vídeo | PNG, JPEG, WEBP / MP4, MKV, MOV, AVI, WEBM |
+
+        Requer `Authorization: Bearer <accessToken>` com role `ADMIN` ou `OWNER`.
       operationId: updatePropertyMedia
       security:
         - bearerAuth: []
@@ -1130,13 +1416,28 @@ paths:
                 file:
                   type: string
                   format: binary
+                  description: O atributo `name` do input HTML deve ser **`file`**.
       responses:
         '200':
           description: Media atualizada com sucesso
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  media:
+                    type: object
+                  message:
+                    type: string
 
     delete:
       tags: [Properties]
-      summary: Remover media do imóvel
+      summary: "✅ Remover media do imóvel"
+      description: |
+        Remove um ficheiro de media associado a um imóvel.
+        Requer `Authorization: Bearer <accessToken>` com role `ADMIN` ou `OWNER`.
       operationId: deletePropertyMedia
       security:
         - bearerAuth: []
@@ -1158,7 +1459,10 @@ paths:
   /properties/{id}:
     delete:
       tags: [Properties]
-      summary: Remover imóvel
+      summary: "✅ Remover imóvel"
+      description: |
+        Elimina um imóvel e todos os seus recursos associados.
+        Requer `Authorization: Bearer <accessToken>` com role `ADMIN` ou `OWNER`.
       operationId: deleteProperty
       security:
         - bearerAuth: []
@@ -1175,11 +1479,15 @@ paths:
   # ═══════════════════════════════════════════════════════════
   # LISTINGS
   # ═══════════════════════════════════════════════════════════
+
   /listings:
     post:
       tags: [Listings]
-      summary: Publicar anúncio
-      description: Publica um imóvel como anúncio. Requer plano ativo e imóvel aprovado.
+      summary: "❌ Publicar anúncio"
+      description: |
+        > **❌ Endpoint ainda não implementado.**
+
+        Publica um imóvel como anúncio. Requer plano ativo e imóvel aprovado.
       operationId: createListing
       security:
         - bearerAuth: []
@@ -1195,20 +1503,20 @@ paths:
                   type: integer
                   example: 5
       responses:
+        '501':
+          description: Não implementado
         '201':
           description: Anúncio publicado
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/Listing'
-        '402':
-          description: Sem plano ativo ou limite de anúncios atingido
-        '403':
-          description: Imóvel não aprovado
 
     get:
       tags: [Listings]
-      summary: Listar anúncios ativos
+      summary: "❌ Listar anúncios ativos"
+      description: |
+        > **❌ Endpoint ainda não implementado.**
       operationId: getListings
       security: []
       parameters:
@@ -1223,19 +1531,15 @@ paths:
             type: integer
             default: 20
       responses:
-        '200':
-          description: Lista de anúncios
-          content:
-            application/json:
-              schema:
-                type: array
-                items:
-                  $ref: '#/components/schemas/Listing'
+        '501':
+          description: Não implementado
 
   /listings/{id}:
     get:
       tags: [Listings]
-      summary: Detalhe de anúncio
+      summary: "❌ Detalhe de anúncio"
+      description: |
+        > **❌ Endpoint ainda não implementado.**
       operationId: getListing
       security: []
       parameters:
@@ -1245,16 +1549,14 @@ paths:
           schema:
             type: integer
       responses:
-        '200':
-          description: Anúncio encontrado
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/Listing'
+        '501':
+          description: Não implementado
 
     delete:
       tags: [Listings]
-      summary: Despublicar anúncio
+      summary: "❌ Despublicar anúncio"
+      description: |
+        > **❌ Endpoint ainda não implementado.**
       operationId: deleteListing
       security:
         - bearerAuth: []
@@ -1265,13 +1567,15 @@ paths:
           schema:
             type: integer
       responses:
-        '200':
-          description: Anúncio removido
+        '501':
+          description: Não implementado
 
   /listings/{id}/pause:
     post:
       tags: [Listings]
-      summary: Pausar anúncio
+      summary: "❌ Pausar anúncio"
+      description: |
+        > **❌ Endpoint ainda não implementado.**
       operationId: pauseListing
       security:
         - bearerAuth: []
@@ -1282,13 +1586,15 @@ paths:
           schema:
             type: integer
       responses:
-        '200':
-          description: Anúncio pausado
+        '501':
+          description: Não implementado
 
   /listings/{id}/publish:
     post:
       tags: [Listings]
-      summary: Reativar anúncio
+      summary: "❌ Reativar anúncio"
+      description: |
+        > **❌ Endpoint ainda não implementado.**
       operationId: publishListing
       security:
         - bearerAuth: []
@@ -1299,33 +1605,32 @@ paths:
           schema:
             type: integer
       responses:
-        '200':
-          description: Anúncio reativado
+        '501':
+          description: Não implementado
 
   # ═══════════════════════════════════════════════════════════
   # FAVORITES
   # ═══════════════════════════════════════════════════════════
+
   /favorites:
     get:
       tags: [Favorites]
-      summary: Listar favoritos
+      summary: "❌ Listar favoritos"
+      description: |
+        > **❌ Endpoint ainda não implementado.**
       operationId: getFavorites
       security:
         - bearerAuth: []
       responses:
-        '200':
-          description: Lista de imóveis guardados
-          content:
-            application/json:
-              schema:
-                type: array
-                items:
-                  $ref: '#/components/schemas/Property'
+        '501':
+          description: Não implementado
 
   /favorites/{propertyId}:
     post:
       tags: [Favorites]
-      summary: Guardar imóvel
+      summary: "❌ Guardar imóvel nos favoritos"
+      description: |
+        > **❌ Endpoint ainda não implementado.**
       operationId: addFavorite
       security:
         - bearerAuth: []
@@ -1336,14 +1641,14 @@ paths:
           schema:
             type: integer
       responses:
-        '201':
-          description: Imóvel guardado com sucesso
-        '409':
-          description: Imóvel já está nos favoritos
+        '501':
+          description: Não implementado
 
     delete:
       tags: [Favorites]
-      summary: Remover dos favoritos
+      summary: "❌ Remover dos favoritos"
+      description: |
+        > **❌ Endpoint ainda não implementado.**
       operationId: removeFavorite
       security:
         - bearerAuth: []
@@ -1354,17 +1659,19 @@ paths:
           schema:
             type: integer
       responses:
-        '200':
-          description: Removido dos favoritos
+        '501':
+          description: Não implementado
 
   # ═══════════════════════════════════════════════════════════
   # NEGOTIATIONS
   # ═══════════════════════════════════════════════════════════
+
   /negotiations:
     post:
       tags: [Negotiations]
-      summary: Iniciar negociação
-      description: Cliente inicia uma proposta de negociação para um imóvel
+      summary: "❌ Iniciar negociação"
+      description: |
+        > **❌ Endpoint ainda não implementado.**
       operationId: createNegotiation
       security:
         - bearerAuth: []
@@ -1386,34 +1693,27 @@ paths:
                   type: string
                   example: Gostaria de negociar o arrendamento
       responses:
-        '201':
-          description: Negociação iniciada
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/Negotiation'
+        '501':
+          description: Não implementado
 
     get:
       tags: [Negotiations]
-      summary: Listar negociações
-      description: Lista as negociações do utilizador autenticado (como cliente ou owner)
+      summary: "❌ Listar negociações"
+      description: |
+        > **❌ Endpoint ainda não implementado.**
       operationId: getNegotiations
       security:
         - bearerAuth: []
       responses:
-        '200':
-          description: Lista de negociações
-          content:
-            application/json:
-              schema:
-                type: array
-                items:
-                  $ref: '#/components/schemas/Negotiation'
+        '501':
+          description: Não implementado
 
   /negotiations/{id}:
     get:
       tags: [Negotiations]
-      summary: Detalhe de negociação
+      summary: "❌ Detalhe de negociação"
+      description: |
+        > **❌ Endpoint ainda não implementado.**
       operationId: getNegotiation
       security:
         - bearerAuth: []
@@ -1424,17 +1724,15 @@ paths:
           schema:
             type: integer
       responses:
-        '200':
-          description: Detalhes da negociação
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/Negotiation'
+        '501':
+          description: Não implementado
 
   /negotiations/{id}/accept:
     put:
       tags: [Negotiations]
-      summary: Aceitar proposta
+      summary: "❌ Aceitar proposta"
+      description: |
+        > **❌ Endpoint ainda não implementado.**
       operationId: acceptNegotiation
       security:
         - bearerAuth: []
@@ -1445,13 +1743,15 @@ paths:
           schema:
             type: integer
       responses:
-        '200':
-          description: Proposta aceite
+        '501':
+          description: Não implementado
 
   /negotiations/{id}/reject:
     put:
       tags: [Negotiations]
-      summary: Rejeitar proposta
+      summary: "❌ Rejeitar proposta"
+      description: |
+        > **❌ Endpoint ainda não implementado.**
       operationId: rejectNegotiation
       security:
         - bearerAuth: []
@@ -1462,13 +1762,15 @@ paths:
           schema:
             type: integer
       responses:
-        '200':
-          description: Proposta rejeitada
+        '501':
+          description: Não implementado
 
   /negotiations/{id}/counter:
     put:
       tags: [Negotiations]
-      summary: Fazer contraproposta
+      summary: "❌ Fazer contraproposta"
+      description: |
+        > **❌ Endpoint ainda não implementado.**
       operationId: counterNegotiation
       security:
         - bearerAuth: []
@@ -1493,17 +1795,19 @@ paths:
                   type: string
                   example: Posso aceitar 145.000 Kz
       responses:
-        '200':
-          description: Contraproposta enviada
+        '501':
+          description: Não implementado
 
   # ═══════════════════════════════════════════════════════════
   # CONTRACTS
   # ═══════════════════════════════════════════════════════════
+
   /contracts:
     post:
       tags: [Contracts]
-      summary: Gerar contrato
-      description: Gera um contrato a partir de uma negociação aceite
+      summary: "❌ Gerar contrato"
+      description: |
+        > **❌ Endpoint ainda não implementado.**
       operationId: createContract
       security:
         - bearerAuth: []
@@ -1519,35 +1823,27 @@ paths:
                   type: integer
                   example: 1
       responses:
-        '201':
-          description: Contrato gerado
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/Contract'
-        '400':
-          description: Negociação não aceite ou já tem contrato
+        '501':
+          description: Não implementado
 
     get:
       tags: [Contracts]
-      summary: Listar contratos
+      summary: "❌ Listar contratos"
+      description: |
+        > **❌ Endpoint ainda não implementado.**
       operationId: getContracts
       security:
         - bearerAuth: []
       responses:
-        '200':
-          description: Lista de contratos
-          content:
-            application/json:
-              schema:
-                type: array
-                items:
-                  $ref: '#/components/schemas/Contract'
+        '501':
+          description: Não implementado
 
   /contracts/{id}:
     get:
       tags: [Contracts]
-      summary: Detalhe / download do contrato
+      summary: "❌ Detalhe do contrato"
+      description: |
+        > **❌ Endpoint ainda não implementado.**
       operationId: getContract
       security:
         - bearerAuth: []
@@ -1558,18 +1854,15 @@ paths:
           schema:
             type: integer
       responses:
-        '200':
-          description: Contrato encontrado
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/Contract'
+        '501':
+          description: Não implementado
 
   /contracts/{id}/sign:
     put:
       tags: [Contracts]
-      summary: Assinar contrato
-      description: Cliente ou owner assina digitalmente o contrato
+      summary: "❌ Assinar contrato"
+      description: |
+        > **❌ Endpoint ainda não implementado.**
       operationId: signContract
       security:
         - bearerAuth: []
@@ -1580,18 +1873,19 @@ paths:
           schema:
             type: integer
       responses:
-        '200':
-          description: Contrato assinado com sucesso
-        '400':
-          description: Contrato já assinado ou cancelado
+        '501':
+          description: Não implementado
 
   # ═══════════════════════════════════════════════════════════
   # SIMULATIONS
   # ═══════════════════════════════════════════════════════════
+
   /simulations:
     post:
       tags: [Simulations]
-      summary: Simular pagamento / financiamento
+      summary: "❌ Simular pagamento / financiamento"
+      description: |
+        > **❌ Endpoint ainda não implementado.**
       operationId: createSimulation
       security: []
       requestBody:
@@ -1601,36 +1895,31 @@ paths:
             schema:
               $ref: '#/components/schemas/SimulationRequest'
       responses:
-        '200':
-          description: Simulação calculada
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/SimulationResponse'
+        '501':
+          description: Não implementado
 
   # ═══════════════════════════════════════════════════════════
   # PLANS
   # ═══════════════════════════════════════════════════════════
+
   /plans:
     get:
       tags: [Plans]
-      summary: Listar planos disponíveis
+      summary: "❌ Listar planos disponíveis"
+      description: |
+        > **❌ Endpoint ainda não implementado.**
       operationId: getPlans
       security: []
       responses:
-        '200':
-          description: Lista de planos
-          content:
-            application/json:
-              schema:
-                type: array
-                items:
-                  $ref: '#/components/schemas/Plan'
+        '501':
+          description: Não implementado
 
   /plans/{id}:
     get:
       tags: [Plans]
-      summary: Detalhe de plano
+      summary: "❌ Detalhe de plano"
+      description: |
+        > **❌ Endpoint ainda não implementado.**
       operationId: getPlan
       security: []
       parameters:
@@ -1640,18 +1929,15 @@ paths:
           schema:
             type: integer
       responses:
-        '200':
-          description: Plano encontrado
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/Plan'
+        '501':
+          description: Não implementado
 
   /plans/{id}/subscribe:
     post:
       tags: [Plans]
-      summary: Subscrever plano
-      description: Subscreve um plano de serviço. Requer role OWNER.
+      summary: "❌ Subscrever plano"
+      description: |
+        > **❌ Endpoint ainda não implementado.**
       operationId: subscribePlan
       security:
         - bearerAuth: []
@@ -1662,48 +1948,47 @@ paths:
           schema:
             type: integer
       responses:
-        '201':
-          description: Plano subscrito com sucesso
-        '402':
-          description: Pagamento necessário
-        '409':
-          description: Já possui plano ativo
+        '501':
+          description: Não implementado
 
   /plans/my-plan:
     get:
       tags: [Plans]
-      summary: Meu plano atual
+      summary: "❌ Meu plano atual"
+      description: |
+        > **❌ Endpoint ainda não implementado.**
       operationId: getMyPlan
       security:
         - bearerAuth: []
       responses:
-        '200':
-          description: Plano ativo do utilizador
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/Plan'
-        '404':
-          description: Sem plano ativo
+        '501':
+          description: Não implementado
 
     delete:
       tags: [Plans]
-      summary: Cancelar subscrição
+      summary: "❌ Cancelar subscrição"
+      description: |
+        > **❌ Endpoint ainda não implementado.**
       operationId: cancelPlan
       security:
         - bearerAuth: []
       responses:
-        '200':
-          description: Subscrição cancelada
+        '501':
+          description: Não implementado
 
   # ═══════════════════════════════════════════════════════════
   # ADMIN - VERIFICATIONS
   # ═══════════════════════════════════════════════════════════
-  /admin/verifications:
+
+  /admin/profiles/verifications:
     get:
       tags: [Admin - Verifications]
-      summary: Listar verificações pendentes
-      description: Requer role ADMIN
+      summary: "🚧 Listar verificações de perfil"
+      description: |
+        > **🚧 Rota registada mas ainda sem implementação no controller.**
+
+        Lista verificações de perfil pendentes ou filtradas por status/tipo.
+        Requer role `ADMIN`.
       operationId: getPendingVerifications
       security:
         - bearerAuth: []
@@ -1714,21 +1999,20 @@ paths:
             type: string
             enum: [PENDING, APPROVED, REJECTED]
             default: PENDING
-        - name: type
-          in: query
-          schema:
-            type: string
-            enum: [individual-client, company-client, individual-owner, company-owner]
       responses:
-        '200':
-          description: Lista de verificações
+        '501':
+          description: Não implementado
         '403':
           description: Acesso restrito a admins
 
-  /admin/verifications/{id}/approve:
+  /admin/profiles/verifications/{id}/approve:
     put:
       tags: [Admin - Verifications]
-      summary: Aprovar verificação
+      summary: "🚧 Aprovar verificação"
+      description: |
+        > **🚧 Rota registada mas ainda sem implementação no controller.**
+
+        Requer role `ADMIN`.
       operationId: approveVerification
       security:
         - bearerAuth: []
@@ -1739,13 +2023,17 @@ paths:
           schema:
             type: integer
       responses:
-        '200':
-          description: Verificação aprovada
+        '501':
+          description: Não implementado
 
-  /admin/verifications/{id}/reject:
+  /admin/profiles/verifications/{id}/reject:
     put:
       tags: [Admin - Verifications]
-      summary: Rejeitar verificação
+      summary: "🚧 Rejeitar verificação"
+      description: |
+        > **🚧 Rota registada mas ainda sem implementação no controller.**
+
+        Requer role `ADMIN`.
       operationId: rejectVerification
       security:
         - bearerAuth: []
@@ -1767,34 +2055,46 @@ paths:
                   type: string
                   example: Documentos ilegíveis ou expirados
       responses:
-        '200':
-          description: Verificação rejeitada
+        '501':
+          description: Não implementado
 
   # ═══════════════════════════════════════════════════════════
-  # ADMIN - PROPERTIES
+  # ADMIN - USERS
   # ═══════════════════════════════════════════════════════════
-  /admin/properties/pending:
+
+  /admin/profiles:
     get:
-      tags: [Admin - Properties]
-      summary: Imóveis aguardando aprovação
-      operationId: getPendingProperties
+      tags: [User Management (Admin)]
+      summary: "✅ Listar todos os perfis"
+      description: |
+        Retorna a lista de todos os perfis registados.
+        Requer role `ADMIN`.
+      operationId: adminFindAllProfiles
       security:
         - bearerAuth: []
       responses:
         '200':
-          description: Lista de imóveis pendentes
+          description: Lista de perfis
           content:
             application/json:
               schema:
-                type: array
-                items:
-                  $ref: '#/components/schemas/Property'
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  users:
+                    type: array
+                    items:
+                      type: object
 
-  /admin/properties/{id}/approve:
-    put:
-      tags: [Admin - Properties]
-      summary: Aprovar imóvel
-      operationId: approveProperty
+  /admin/profiles/{id}:
+    get:
+      tags: [User Management (Admin)]
+      summary: "✅ Detalhe de perfil"
+      description: |
+        Retorna os dados detalhados de um perfil pelo ID.
+        Requer role `ADMIN`.
+      operationId: adminFindProfileById
       security:
         - bearerAuth: []
       parameters:
@@ -1805,12 +2105,112 @@ paths:
             type: integer
       responses:
         '200':
-          description: Imóvel aprovado
+          description: Perfil encontrado
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  sucess:
+                    type: boolean
+                  message:
+                    type: string
+                  user:
+                    type: object
+
+  /admin/profiles/{id}/ban:
+    get:
+      tags: [User Management (Admin)]
+      summary: "🚧 Banir utilizador"
+      description: |
+        > **🚧 Rota registada mas ainda sem implementação no controller.**
+
+        Requer role `ADMIN`.
+      operationId: banUser
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        '501':
+          description: Não implementado
+
+  /admin/profiles/{id}/unBan:
+    get:
+      tags: [User Management (Admin)]
+      summary: "🚧 Desbanir utilizador"
+      description: |
+        > **🚧 Rota registada mas ainda sem implementação no controller.**
+
+        Requer role `ADMIN`.
+      operationId: unbanUser
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        '501':
+          description: Não implementado
+
+  # ═══════════════════════════════════════════════════════════
+  # ADMIN - PROPERTIES
+  # ═══════════════════════════════════════════════════════════
+
+  /admin/properties/peding:
+    get:
+      tags: [Admin - Properties]
+      summary: "🚧 Imóveis aguardando aprovação"
+      description: |
+        > **🚧 Rota registada mas ainda sem implementação no controller.**
+
+        > ⚠️ Nota: O path actual é `/admin/properties/peding` (um 'd' — possível typo). 
+        > Confirmar antes de consumir.
+
+        Requer role `ADMIN`.
+      operationId: getPendingProperties
+      security:
+        - bearerAuth: []
+      responses:
+        '501':
+          description: Não implementado
+
+  /admin/properties/{id}/approve:
+    put:
+      tags: [Admin - Properties]
+      summary: "🚧 Aprovar imóvel"
+      description: |
+        > **🚧 Rota registada mas ainda sem implementação no controller.**
+
+        Requer role `ADMIN`.
+      operationId: approveProperty
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        '501':
+          description: Não implementado
 
   /admin/properties/{id}/reject:
     put:
       tags: [Admin - Properties]
-      summary: Rejeitar imóvel
+      summary: "🚧 Rejeitar imóvel"
+      description: |
+        > **🚧 Rota registada mas ainda sem implementação no controller.**
+
+        Requer role `ADMIN`.
       operationId: rejectProperty
       security:
         - bearerAuth: []
@@ -1832,63 +2232,21 @@ paths:
                   type: string
                   example: Informações incompletas ou imóvel não elegível
       responses:
-        '200':
-          description: Imóvel rejeitado
-
-  # ═══════════════════════════════════════════════════════════
-  # ADMIN - USERS
-  # ═══════════════════════════════════════════════════════════
-  /admin/users/{id}/ban:
-    put:
-      tags: [User Management (Admin)]
-      summary: Banir utilizador
-      operationId: banUser
-      security:
-        - bearerAuth: []
-      parameters:
-        - name: id
-          in: path
-          required: true
-          schema:
-            type: integer
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              type: object
-              properties:
-                reason:
-                  type: string
-                  example: Violação dos termos de serviço
-      responses:
-        '200':
-          description: Utilizador banido
-
-  /admin/users/{id}/unban:
-    put:
-      tags: [User Management (Admin)]
-      summary: Desbanir utilizador
-      operationId: unbanUser
-      security:
-        - bearerAuth: []
-      parameters:
-        - name: id
-          in: path
-          required: true
-          schema:
-            type: integer
-      responses:
-        '200':
-          description: Utilizador desbanido
+        '501':
+          description: Não implementado
 
   # ═══════════════════════════════════════════════════════════
   # ADMIN - PLANS
   # ═══════════════════════════════════════════════════════════
+
   /admin/plans:
     post:
       tags: [Admin - Plans]
-      summary: Criar plano
+      summary: "🚧 Criar plano"
+      description: |
+        > **🚧 Rota registada mas ainda sem implementação no controller.**
+
+        Requer role `ADMIN`.
       operationId: createPlan
       security:
         - bearerAuth: []
@@ -1899,13 +2257,17 @@ paths:
             schema:
               $ref: '#/components/schemas/Plan'
       responses:
-        '201':
-          description: Plano criado
+        '501':
+          description: Não implementado
 
   /admin/plans/{id}:
     put:
       tags: [Admin - Plans]
-      summary: Editar plano
+      summary: "🚧 Editar plano"
+      description: |
+        > **🚧 Rota registada mas ainda sem implementação no controller.**
+
+        Requer role `ADMIN`.
       operationId: updatePlan
       security:
         - bearerAuth: []
@@ -1922,12 +2284,16 @@ paths:
             schema:
               $ref: '#/components/schemas/Plan'
       responses:
-        '200':
-          description: Plano atualizado
+        '501':
+          description: Não implementado
 
     delete:
       tags: [Admin - Plans]
-      summary: Remover plano
+      summary: "🚧 Remover plano"
+      description: |
+        > **🚧 Rota registada mas ainda sem implementação no controller.**
+
+        Requer role `ADMIN`.
       operationId: deletePlan
       security:
         - bearerAuth: []
@@ -1938,5 +2304,5 @@ paths:
           schema:
             type: integer
       responses:
-        '200':
-          description: Plano removido
+        '501':
+          description: Não implementado
