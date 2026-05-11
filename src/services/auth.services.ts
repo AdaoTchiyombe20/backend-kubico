@@ -11,8 +11,6 @@ import { userRepository } from "../repositories/auth/user.repositories.js";
 import { sendVerificationEmail } from "./mail.services.js";
 import { profileRepository } from "../repositories/Profile/profile.repositories.js";
 import type { ProfileType } from "@prisma/client";
-import { AuthError } from "@supabase/supabase-js";
-import { supabaseAdmin } from "../../lib/supabase.js";
 
 export const authServices = {
   signUp: async (email: string, password: string, typeOfUser: ProfileType) => {
