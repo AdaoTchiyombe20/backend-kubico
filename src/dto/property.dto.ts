@@ -1,5 +1,5 @@
 import z from "zod";
-import { PropertyStatus, TypeProperties, CompartmentsTypes, Property_purchase } from "../../generated/prisma/index.js";
+import { PropertyStatus, TypeProperties, CompartmentsTypes, Property_purchase } from "@prisma/client";
 
 const compartmentSchema = z.object({
   type: z.string().transform(v => v.toUpperCase()).pipe(    

@@ -1,4 +1,4 @@
-import type { CompartmentsTypes } from "../../../generated/prisma/index.js"
+import type { CompartmentsTypes } from "@prisma/client"
 import { prisma } from "../../../lib/prisma.js"
 
 export const propertyCompartmentsRepository = {

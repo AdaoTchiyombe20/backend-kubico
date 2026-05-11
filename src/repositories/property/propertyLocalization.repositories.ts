@@ -1,4 +1,4 @@
-import type { Prisma, propertyLocalization } from "../../../generated/prisma/edge.js";
+import type { Prisma, propertyLocalization } from "@prisma/client";
 import { prisma } from "../../../lib/prisma.js";
 
 export const propertyLocalizationRepository = {

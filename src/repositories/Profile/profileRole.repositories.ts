@@ -1,7 +1,7 @@
 import {
   UserRoleStatus,
   type profile_roles,
-} from "../../../generated/prisma/client.js";
+} from "@prisma/client";
 import { prisma } from "../../../lib/prisma.js";
 
 export const profileRole = {

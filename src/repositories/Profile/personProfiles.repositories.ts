@@ -1,4 +1,4 @@
-import type { person_profiles } from "../../../generated/prisma/index.js";
+import type { person_profiles } from "@prisma/client";
 import { prisma } from "../../../lib/prisma.js";
 
 export const person_profilesRepository = {

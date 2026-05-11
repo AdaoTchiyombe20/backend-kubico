@@ -1,4 +1,4 @@
-import type { DocType, profile_data } from "../../../generated/prisma/index.js";
+import type { DocType, profile_data } from "@prisma/client";
 import { prisma } from "../../../lib/prisma.js";
 
 export const profileMediaRepository = {

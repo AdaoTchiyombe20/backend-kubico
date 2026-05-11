@@ -7,7 +7,7 @@ import { comparePassword, hashPassword } from "../utils/hash.js";
 import { profileRole } from "../repositories/Profile/profileRole.repositories.js";
 import { authRepositories } from "../repositories/auth/auth.repositories.js";
 import { adminRepository } from "../repositories/admin/admin.respositories.js";
-import type { AccessLevel } from "../../generated/prisma/index.js";
+import type { AccessLevel } from "@prisma/client";
 import { sendVerificationEmail } from "./mail.services.js";
 import jwt from "jsonwebtoken";
 

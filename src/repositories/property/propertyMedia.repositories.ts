@@ -1,5 +1,5 @@
 import { prisma } from "../../../lib/prisma.js";
-import { type propertyMedia, type MediaTypes } from "../../../generated/prisma/index.js";
+import { type propertyMedia, type MediaTypes } from "@prisma/client";
 
 export const propertyMediaRepository = {
     createPropertyMedia: async(property_id: number, url: string, type: MediaTypes,public_id: string, order:number, ): Promise<propertyMedia> => {

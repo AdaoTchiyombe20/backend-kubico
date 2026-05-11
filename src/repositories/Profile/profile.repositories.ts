@@ -1,5 +1,5 @@
 import {prisma} from "../../../lib/prisma.js"
-import {ProfileType, type profiles } from '../../../generated/prisma/index.js'
+import {ProfileType, type profiles } from '@prisma/client'
 
 export const profileRepository = {
     createProfile: async(user_id: number, typeOfUser: ProfileType ): Promise<profiles> => {

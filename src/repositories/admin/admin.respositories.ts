@@ -1,4 +1,4 @@
-import {AccessLevel, type admins } from "../../../generated/prisma/index.js";
+import {AccessLevel, type admins } from "@prisma/client";
 import { prisma } from "../../../lib/prisma.js";
 
 export const adminRepository = { 

@@ -10,7 +10,7 @@ import { profileRole } from "../repositories/Profile/profileRole.repositories.js
 import { userRepository } from "../repositories/auth/user.repositories.js";
 import { sendVerificationEmail } from "./mail.services.js";
 import { profileRepository } from "../repositories/Profile/profile.repositories.js";
-import type { ProfileType } from "../../generated/prisma/index.js";
+import type { ProfileType } from "@prisma/client";
 import { AuthError } from "@supabase/supabase-js";
 import { supabaseAdmin } from "../../lib/supabase.js";
 
