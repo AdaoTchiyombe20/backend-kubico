@@ -4,7 +4,7 @@ import { person_profilesRepository } from "../repositories/Profile/personProfile
 import { profileMediaRepository } from "../repositories/Profile/profileMedia.repositories.js";
 import { companyProfileRepository } from "../repositories/Profile/companyProfile.repositories.js";
 import { profileRepository } from "../repositories/Profile/profile.repositories.js";
-import type { DocType } from "../../generated/prisma/index.js";
+import type { DocType } from "@prisma/client";
 
 const validateUniqueData = async (fields: { type: DocType; value: string; label: string }[]) => {
   for (const { type, value, label } of fields) {

@@ -1,5 +1,5 @@
 import { prisma } from "../../../lib/prisma.js";
-import { type propertyHistory, propertySelingStatus} from "../../../generated/prisma/index.js";
+import { type propertyHistory, propertySelingStatus} from "@prisma/client";
 
 export const historyPropertyRepository = {
     findAll: async(id_property:number, limit: number, cursor: number):Promise<propertyHistory[]|[]>=>{

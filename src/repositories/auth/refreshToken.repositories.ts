@@ -1,6 +1,6 @@
 import { prisma } from "../../../lib/prisma.js";
 import { AppError } from "../../errors/App.Errors.js";
-import type { refresh_tokens } from "../../../generated/prisma/index.js";
+import type { refresh_tokens } from "@prisma/client";
 export const refreshTokenUser = {
   findRefreshToken: async (token: string) => {
     return await prisma.refresh_tokens.findUnique({

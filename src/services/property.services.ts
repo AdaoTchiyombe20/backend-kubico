@@ -1,5 +1,5 @@
 import { is } from "zod/locales";
-import type { CompartmentsTypes, ListingStatus, Property_purchase, PropertyStatus, propertySelingStatus, TypeProperties } from "../../generated/prisma/index.js";
+import type { CompartmentsTypes, ListingStatus, Property_purchase, PropertyStatus, propertySelingStatus, TypeProperties } from "@prisma/client";
 import type { UpdatePropertyInfoDTO } from "../dto/property.dto.js";
 import { AppError } from "../errors/App.Errors.js";
 import { deleteTempFile, uploadToCloudinary } from "../middlewares/multer.middleware.js";

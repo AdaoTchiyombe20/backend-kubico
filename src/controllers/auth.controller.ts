@@ -4,7 +4,7 @@ import { AppError } from "../errors/App.Errors.js";
 import { authServices } from "../services/auth.services.js";
 import { getUserId, type GetUserIdDTO } from "../dto/user.dto.js";
 import { setCookie } from "../utils/cookies.js";
-import type { ProfileType } from "../../generated/prisma/index.js";
+import type { ProfileType } from "@prisma/client";
 import { createAdmin, type AdminLoginDTO, type createAdminDTO, loginAdmin} from "../dto/admin.dto.js";
 import { adminService } from "../services/admin.services.js";
 

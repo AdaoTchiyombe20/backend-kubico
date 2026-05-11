@@ -1,5 +1,5 @@
 import { prisma } from "../../../lib/prisma.js";
-import { ListingStatus, type propertyListing } from "../../../generated/prisma/index.js";
+import { ListingStatus, type propertyListing } from "@prisma/client";
 
 export const propertyListingRepository = {
   createListing: async (
