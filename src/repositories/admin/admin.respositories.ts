@@ -8,7 +8,7 @@ export const adminRepository = {
                 profile_role_id,
                 user_id,
                 adminsName,
-                accessLevel,
+                access_level: accessLevel,
                 deleted_at: null
             }
         })
