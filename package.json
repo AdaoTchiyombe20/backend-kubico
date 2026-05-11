@@ -3,10 +3,14 @@
   "version": "1.0.0",
   "description": "API Backend para Kubico - Sistema de gestão imobiliária",
   "main": "server.js",
+  "prisma": {
+  "seed": "tsx prisma/seed.ts"
+},
 "scripts": {
   "start": "node dist/server.js",
   "dev": "nodemon --exec tsx server.ts",
-  "build": "prisma generate && tsc",
+  "build": "prisma generate && prisma migrate deploy && tsx prisma/seed.ts && tsc",
+   "seed": "tsx prisma/seed.ts",
   "prisma:migrate": "prisma migrate deploy"
 },
   "repository": {
