@@ -1,4 +1,6 @@
-import type { CompartmentsTypes, Property_purchase, PropertyStatus, propertySelingStatus, TypeProperties } from "../../generated/prisma/index.js";
+import { is } from "zod/locales";
+import type { CompartmentsTypes, ListingStatus, Property_purchase, PropertyStatus, propertySelingStatus, TypeProperties } from "../../generated/prisma/index.js";
+import type { UpdatePropertyInfoDTO } from "../dto/property.dto.js";
 import { AppError } from "../errors/App.Errors.js";
 import { deleteTempFile, uploadToCloudinary } from "../middlewares/multer.middleware.js";
 import { profileRole } from "../repositories/Profile/profileRole.repositories.js";
@@ -7,6 +9,8 @@ import { propertyRepository } from "../repositories/property/properties.reposito
 import { propertyCompartmentsRepository } from "../repositories/property/propertyCompartments.repositories.js";
 import { propertyLocalizationRepository } from "../repositories/property/propertyLocalization.repositories.js";
 import { propertyMediaRepository } from "../repositories/property/propertyMedia.repositories.js";
+import { propertyListingRepository } from "../repositories/property/propertyListing.repositories.js";
+import cloudinary from "../config/cloudinary.js";
 import pLimit from "p-limit";
 
 type MediaType = "IMAGEM" | "VIDEO";
@@ -21,9 +25,131 @@ const resolveMediaType = (mimetype: string): MediaType => {
   return "VIDEO";
 };
 
-const limit = pLimit(3); 
+const deleteFromCloudinary = async (publicId: string, resourceType: "image" | "video" = "image"): Promise<void> => {
+  await cloudinary.uploader.destroy(publicId, { resource_type: resourceType });
+};
+
+const limiter = pLimit(3);
 
 export const propertyService = {
+  findAll: async (limit: number, cursor: number) => {
+    const properties = await propertyRepository.findAll(limit, cursor);
+    const hasNextPage = properties.length > limit;
+    const paginatedProperties = hasNextPage ? properties.slice(0, -1) : properties;
+    const nextCursor = hasNextPage
+      ? paginatedProperties[paginatedProperties.length - 1]!.id
+      : null;
+    return { properties: paginatedProperties, cursor: nextCursor };
+  },
+
+  findUserProperties: async (profileId: number, limit: number, cursor: number) => {
+    const ownerRole = await profileRole.findProfileRoleByRole(profileId, 2);
+    if (!ownerRole) throw new AppError("Owner not found!", 404);
+
+    const properties = await propertyRepository.findAllUserProperties(ownerRole.id, limit, cursor);
+    const hasNextPage = properties.length > limit;
+    const paginatedProperties = hasNextPage ? properties.slice(0, -1) : properties;
+    const nextCursor = hasNextPage
+      ? paginatedProperties[paginatedProperties.length - 1]!.id
+      : null;
+    return { properties: paginatedProperties, cursor: nextCursor };
+  },
+
+  publishProperty: async (profileId: number, propertyId: number) => {
+    const ownerRole = await profileRole.findProfileRoleByRole(profileId, 2);
+    if (!ownerRole) throw new AppError("Owner não encontrado!", 404);
+
+    const property = await propertyRepository.findUniqueUserProperty(ownerRole.id, propertyId);
+    if (!property) throw new AppError("Imóvel não encontrado!", 404);
+
+    if (property.status_property === "PUBLICADO")
+      throw new AppError("Imóvel já está publicado!", 400);
+
+    if (property.status_property === "EM_ANALISE")
+      throw new AppError("Imóvel está em análise e não pode ser publicado!", 400);
+
+    // Verifica se tem media e localização antes de publicar
+    const medias = await propertyMediaRepository.findAllPropertyMedia(propertyId);
+    if (medias.length === 0)
+      throw new AppError("Imóvel precisa de pelo menos uma imagem para ser publicado!", 400);
+
+    const localization = await propertyLocalizationRepository.findPropertyLocalization(propertyId);
+    if (!localization)
+      throw new AppError("Imóvel precisa de localização para ser publicado!", 400);
+
+    await propertyRepository.updatePropertyStatus(propertyId, "PUBLICADO");
+
+    await propertyListingRepository.createListing(propertyId, "DISPONIVEL");
+
+    await historyPropertyRepository.createHistoryProperty(
+      ownerRole.id,
+      propertyId,
+      "DISPONIVEL",
+      "DISPONIVEL",
+    );
+
+    return { message: "Imóvel publicado com sucesso!" };
+  },
+
+  unpublishProperty: async (profileId: number, propertyId: number) => {
+    const ownerRole = await profileRole.findProfileRoleByRole(profileId, 2);
+    if (!ownerRole) throw new AppError("Owner não encontrado!", 404);
+
+    const property = await propertyRepository.findUniqueUserProperty(ownerRole.id, propertyId);
+    if (!property) throw new AppError("Imóvel não encontrado!", 404);
+
+    if (property.status_property === "NAO_PUBLICADO")
+      throw new AppError("Imóvel já está despublicado!", 400);
+
+    if (property.status_property === "EM_ANALISE")
+      throw new AppError("Imóvel está em análise!", 400);
+
+    const activeListing = await propertyListingRepository.findActiveListing(propertyId);
+    if (!activeListing) throw new AppError("Listagem activa não encontrada!", 404);
+
+    await propertyListingRepository.delistProperty(activeListing.id);
+
+    await propertyRepository.updatePropertyStatus(propertyId, "NAO_PUBLICADO");
+
+    await historyPropertyRepository.createHistoryProperty(
+      ownerRole.id,
+      propertyId,
+      "DISPONIVEL",
+      "CANCELADO",
+    );
+
+    return { message: "Imóvel despublicado com sucesso!" };
+  },
+
+  deleteProperty: async (profileId: number, propertyId: number) => {
+    const ownerRole = await profileRole.findProfileRoleByRole(profileId, 2);
+    if (!ownerRole) throw new AppError("Owner não encontrado!", 404);
+
+    const property = await propertyRepository.findUniqueUserProperty(ownerRole.id, propertyId);
+    if (!property) throw new AppError("Imóvel não encontrado!", 404);
+
+    // Apaga todas as medias do Cloudinary antes de apagar do DB
+    const medias = await propertyMediaRepository.findAllPropertyMedia(propertyId);
+
+    if (medias.length > 0) {
+      await Promise.allSettled(
+        medias.map((media) =>
+          limiter(() =>
+            deleteFromCloudinary(
+              media.public_id,
+              media.type === "VIDEO" ? "video" : "image",
+            ),
+          ),
+        ),
+      );
+    }
+
+    // O Cascade trata o resto (media, compartments, localization, listing, history)
+    await propertyRepository.deleteProperty(propertyId);
+
+    return { message: "Imóvel apagado com sucesso!" };
+  },
+
   createProperty: async (
     data: {
       profile_id: number;
@@ -32,6 +158,7 @@ export const propertyService = {
       type_of_property: TypeProperties;
       description: string;
       price: number;
+      is_negotiable: boolean;
       total_area: number | undefined;
       address_info: string;
       neighborhood: string;
@@ -43,7 +170,6 @@ export const propertyService = {
     files: { [fieldName: string]: Express.Multer.File[] },
   ) => {
     const status_property = "NAO_PUBLICADO" as PropertyStatus;
-    const propertySelingStatus = "DISPONIVEL" as propertySelingStatus;
     const ownerRole = await profileRole.findProfileRoleByRole(data.profile_id, 2);
     if (!ownerRole) throw new AppError("Owner not found!", 404);
 
@@ -54,52 +180,33 @@ export const propertyService = {
       data.type_of_property,
       data.description,
       status_property,
-      propertySelingStatus,
+      data.is_negotiable,
       data.price,
       data.total_area,
     );
-    console.log("Propriedade criada com ID:", property.id);
 
     const markAsPropertyStatus = async (newStatus: PropertyStatus) => {
-    await propertyRepository.updatePropertyStatus(property.id, newStatus);
-  };
-    const markAsPropertyHistoryStatus = async (newStatus: propertySelingStatus) => {
-    await historyPropertyRepository.createHistoryProperty(
-      ownerRole.id,
-      property.id,
-      propertySelingStatus,   // last = estado em que entrou neste fluxo
-      newStatus,
-    );
-  };
+      await propertyRepository.updatePropertyStatus(property.id, newStatus);
+    };
 
- const compartmentResults = await Promise.allSettled(
-    data.compartments.map((compartment) =>
-      propertyCompartmentsRepository.createPropertyCompartments(
-        property.id,
-        compartment.type.toUpperCase() as CompartmentsTypes,
-        compartment.quantity,
+    const compartmentResults = await Promise.allSettled(
+      data.compartments.map((compartment) =>
+        propertyCompartmentsRepository.createPropertyCompartments(
+          property.id,
+          compartment.type.toUpperCase() as CompartmentsTypes,
+          compartment.quantity,
+        ),
       ),
-    ),
-  );
-
-  const compartmentErrors = compartmentResults.filter((r) => r.status === "rejected");
-  if (compartmentErrors.length > 0) {
-    // Falha parcial ou total — propriedade ficou incompleta, precisa de revisão
-    await markAsPropertyStatus("EM_ANALISE");
-    const reasons = compartmentErrors
-      .map((r) =>
-        r.status === "rejected"
-          ? r.reason instanceof Error
-            ? r.reason.message
-            : String(r.reason)
-          : "",
-      )
-      .join(" | ");
-    throw new AppError(
-      `Falha ao salvar ${compartmentErrors.length} compartimento(s). Propriedade marcada como EM_ANALISE. Detalhes: ${reasons}`,
-      500,
     );
-  }
+
+    const compartmentErrors = compartmentResults.filter((r) => r.status === "rejected");
+    if (compartmentErrors.length > 0) {
+      await markAsPropertyStatus("EM_ANALISE");
+      const reasons = compartmentErrors
+        .map((r) => (r.status === "rejected" ? (r.reason instanceof Error ? r.reason.message : String(r.reason)) : ""))
+        .join(" | ");
+      throw new AppError(`Falha ao salvar ${compartmentErrors.length} compartimento(s). Propriedade marcada como EM_ANALISE. Detalhes: ${reasons}`, 500);
+    }
 
     const allFiles = Object.entries(files).flatMap(([fieldname, fieldFiles]) =>
       fieldFiles.map((file) => ({ fieldname, file })),
@@ -107,143 +214,248 @@ export const propertyService = {
 
     const orphanedCloudinaryIds: string[] = [];
 
-  const results = await Promise.allSettled(
-    allFiles.map(({ fieldname, file }) =>
-      limit(async () => {
-        try {
-          const resourceType = resolveResourceType(file.mimetype);
-          const mediaType = resolveMediaType(file.mimetype);
-
-          const result = await uploadToCloudinary(
-            file.path,
-            `properties/${property.id}/documents`,
-            resourceType,
-          );
-
-          console.log(`Upload bem-sucedido para "${fieldname}":`, result);
-
+    const results = await Promise.allSettled(
+      allFiles.map(({ fieldname, file }) =>
+        limiter(async () => {
           try {
-            await propertyMediaRepository.createPropertyMedia(
-              property.id,
-              result.secure_url,
-              mediaType,
-              result.public_id,
-              0,
-            );
-          } catch (dbError) {
-            // Cloudinary OK, DB falhou → regista para limpeza posterior
-            orphanedCloudinaryIds.push(result.public_id);
-            const message =
-              dbError instanceof Error ? dbError.message : String(dbError);
-            throw new AppError(
-              `Upload OK mas falha ao registar no DB para "${fieldname}": ${message}`,
-              500,
-            );
+            const resourceType = resolveResourceType(file.mimetype);
+            const mediaType = resolveMediaType(file.mimetype);
+
+            const result = await uploadToCloudinary(file.path, `properties/${property.id}`, resourceType);
+
+            try {
+              await propertyMediaRepository.createPropertyMedia(
+                property.id,
+                result.secure_url,
+                mediaType,
+                result.public_id,
+                0,
+              );
+            } catch (dbError) {
+              orphanedCloudinaryIds.push(result.public_id);
+              const message = dbError instanceof Error ? dbError.message : String(dbError);
+              throw new AppError(`Upload OK mas falha ao registar no DB para "${fieldname}": ${message}`, 500);
+            }
+
+            return { fieldname, url: result.secure_url, public_id: result.public_id };
+          } catch (error) {
+            if (error instanceof AppError) throw error;
+            const message = error instanceof Error ? error.message : String(error);
+            throw new AppError(`Erro ao enviar "${fieldname}": ${message}`, 500);
+          } finally {
+            await deleteTempFile(file.path);
           }
-
-          return { fieldname, url: result.secure_url, public_id: result.public_id };
-        } catch (error) {
-          if (error instanceof AppError) throw error;
-          const message = error instanceof Error ? error.message : String(error);
-          throw new AppError(`Erro ao enviar "${fieldname}": ${message}`, 500);
-        } finally {
-          await deleteTempFile(file.path);
-        }
-      }),
-    ),
-  );
-
-   if (orphanedCloudinaryIds.length > 0) {
-    console.warn(
-      `Limpando ${orphanedCloudinaryIds.length} ficheiro(s) órfão(s) no Cloudinary:`,
-      orphanedCloudinaryIds,
+        }),
+      ),
     );
-    await Promise.allSettled(
-      orphanedCloudinaryIds.map((publicId) => deleteFromCloudinary(publicId)),
-    );
-  }
 
-  const uploaded: Record<string, string> = {};
-  const mediaErrors: string[] = [];
-
-  for (const result of results) {
-    if (result.status === "fulfilled") {
-      uploaded[result.value.fieldname] = result.value.url;
-    } else {
-      const message =
-        result.reason instanceof AppError
-          ? result.reason.message
-          : String(result.reason);
-      mediaErrors.push(message);
-    }
-  }
-
-  if (mediaErrors.length > 0) {
-    await markAsPropertyStatus("EM_ANALISE");
-    throw new AppError(
-      `Falha no upload de ${mediaErrors.length} ficheiro(s). Propriedade marcada como EM_ANALISE. Detalhes: ${mediaErrors.join(" | ")}`,
-      500,
-    );
-  }
-
-  if (data.latitude && data.longitude) {
-    try {
-      await propertyLocalizationRepository.createPropertyLocalization(
-        property.id,
-        data.latitude,
-        data.longitude,
-        data.address_info,
-        data.neighborhood,
-        data.municipality,
+    if (orphanedCloudinaryIds.length > 0) {
+      await Promise.allSettled(
+        orphanedCloudinaryIds.map((publicId) => deleteFromCloudinary(publicId)),
       );
-    } catch (locError) {
-      // Propriedade e media existem, mas sem coordenadas não pode ser publicada
+    }
+
+    const uploaded: Record<string, string> = {};
+    const mediaErrors: string[] = [];
+
+    for (const result of results) {
+      if (result.status === "fulfilled") {
+        uploaded[result.value.fieldname] = result.value.url;
+      } else {
+        const message = result.reason instanceof AppError ? result.reason.message : String(result.reason);
+        mediaErrors.push(message);
+      }
+    }
+
+    if (mediaErrors.length > 0) {
       await markAsPropertyStatus("EM_ANALISE");
-      const message = locError instanceof Error ? locError.message : String(locError);
-      throw new AppError(
-        `Falha ao salvar localização. Propriedade marcada como EM_ANALISE. Detalhes: ${message}`,
-        500,
-      );
+      throw new AppError(`Falha no upload de ${mediaErrors.length} ficheiro(s). Propriedade marcada como EM_ANALISE. Detalhes: ${mediaErrors.join(" | ")}`, 500);
     }
-  }
+
+    if (data.latitude && data.longitude) {
+      try {
+        await propertyLocalizationRepository.createPropertyLocalization(
+          property.id,
+          data.latitude,
+          data.longitude,
+          data.address_info,
+          data.neighborhood,
+          data.municipality,
+        );
+      } catch (locError) {
+        await markAsPropertyStatus("EM_ANALISE");
+        const message = locError instanceof Error ? locError.message : String(locError);
+        throw new AppError(`Falha ao salvar localização. Propriedade marcada como EM_ANALISE. Detalhes: ${message}`, 500);
+      }
+    }
 
     await historyPropertyRepository.createHistoryProperty(
-    ownerRole.id,
-    property.id,
-    "DISPONIVEL",
-    "DISPONIVEL",
-  );
+      ownerRole.id,
+      property.id,
+      "DISPONIVEL",
+      "DISPONIVEL",
+    );
 
-  return uploaded;
+    return uploaded;
   },
-  findAll: async (limit: number, cursor: number) => {
-    const properties = await propertyRepository.findAll(limit, cursor);
-    const hasNextPage = properties.length > limit;
-    const paginatedProperties = hasNextPage ? properties.slice(0, -1) : properties;
-    const nextCursor = hasNextPage ? paginatedProperties[paginatedProperties.length - 1]!.id : null;
 
-    return { properties: paginatedProperties, cursor: nextCursor };
-  },
-  findUserProperties: async (profileId: number, limit: number, cursor: number) => {
-    const ownerRole = await profileRole.findProfileRoleByRole(profileId, 2);
-    if (!ownerRole) throw new AppError("Owner not found!", 404);
-    
-    const properties = await propertyRepository.findAllUserProperties(ownerRole.id, limit, cursor);
-    const hasNextPage = properties.length > limit;
-    const paginatedProperties = hasNextPage ? properties.slice(0, -1) : properties;
-    const nextCursor = hasNextPage ? paginatedProperties[paginatedProperties.length - 1]!.id : null;
+  updatePropertyInfo: async (profile_id: number, property_id: number, data: UpdatePropertyInfoDTO) => {
+    const ownerRole = await profileRole.findProfileRoleByRole(profile_id, 2);
+    if (!ownerRole) throw new AppError("Owner não encontrado!", 404);
 
-    return { properties: paginatedProperties, cursor: nextCursor };
+    const property = await propertyRepository.findUniqueUserProperty(ownerRole.id, property_id);
+    if (!property) throw new AppError("Imóvel não encontrado!", 404);
+
+    const { title, type_purchase, type_of_property, description, price, total_area, is_negotiable, address_info, neighborhood, municipality, compartments } = data;
+
+    const updatedProperty = await propertyRepository.updatePropertyInfo(property_id, {
+      title,
+      type_property_purchase: type_purchase,
+      type_of_property,
+      description,
+      is_negotiable,
+      price,
+      total_area,
+    });
+    if (!updatedProperty) throw new AppError("Falha ao actualizar imóvel!", 500);
+
+    if (address_info || neighborhood || municipality) {
+      await propertyLocalizationRepository.updatePropertyLocalization(property_id, {
+        address_info,
+        neighborhood,
+        municipality,
+      });
+    }
+
+    if (compartments && compartments.length > 0) {
+      const updateCompartments = await Promise.allSettled(
+        compartments.map((compartment) =>
+          propertyCompartmentsRepository.updatePropertyCompartments(property_id, {
+            type: compartment.type.toUpperCase() as CompartmentsTypes,
+            quantity: compartment.quantity,
+          }),
+        ),
+      );
+
+      if (updateCompartments.some((r) => r.status === "rejected")) {
+        await propertyRepository.updatePropertyStatus(property_id, "EM_ANALISE");
+        throw new AppError("Falha ao actualizar compartimentos. Imóvel marcado como EM_ANALISE.", 500);
+      }
+    }
+
+    return updatedProperty;
   },
-  publishProperty :async (profileId: number, propertyId: number) => {
-    const owerRole = await profileRole.findProfileRoleByRole(profileId, 2);
-    if(!owerRole) throw new AppError("Owner not found!", 404);
-    const property = await propertyRepository.findUniqueUserProperty(owerRole.id, propertyId);
-    if(!property) throw new AppError("Property not found!", 404);
-    if(property.status_property === "PUBLICADO") throw new AppError("Property is already active!", 400);
-  }
+
+  updatePropertyMedia: async (
+    profile_id: number,
+    property_id: number,
+    mediaId: number,
+    file: Express.Multer.File,
+  ) => {
+    const ownerRole = await profileRole.findProfileRoleByRole(profile_id, 2);
+    if (!ownerRole) throw new AppError("Owner não encontrado!", 404);
+
+    const property = await propertyRepository.findUniqueUserProperty(ownerRole.id, property_id);
+    if (!property) throw new AppError("Imóvel não encontrado!", 404);
+
+    const existingMedia = await propertyMediaRepository.findPropertyMediaById(mediaId, property_id);
+    if (!existingMedia) throw new AppError("Media não encontrada!", 404);
+
+    // 1. Apaga do Cloudinary primeiro
+    const resourceType = existingMedia.type === "VIDEO" ? "video" : "image";
+    await deleteFromCloudinary(existingMedia.public_id, resourceType);
+
+    // 2. Upload do novo ficheiro
+    let uploadResult;
+    try {
+      const newResourceType = resolveResourceType(file.mimetype);
+      uploadResult = await uploadToCloudinary(
+        file.path,
+        `properties/${property_id}`,
+        newResourceType,
+      );
+    } finally {
+      await deleteTempFile(file.path);
+    }
+
+    // 3. Actualiza o registo no DB
+    const newMediaType = resolveMediaType(file.mimetype);
+    const updated = await propertyMediaRepository.updatePropertyMedia(
+      mediaId,
+      uploadResult.secure_url,
+      newMediaType,
+      uploadResult.public_id,
+    );
+
+    return updated;
+  },
+
+  deletePropertyMedia: async (
+    profile_id: number,
+    property_id: number,
+    mediaId: number,
+  ) => {
+    const ownerRole = await profileRole.findProfileRoleByRole(profile_id, 2);
+    if (!ownerRole) throw new AppError("Owner não encontrado!", 404);
+
+    const property = await propertyRepository.findUniqueUserProperty(ownerRole.id, property_id);
+    if (!property) throw new AppError("Imóvel não encontrado!", 404);
+
+    const existingMedia = await propertyMediaRepository.findPropertyMediaById(mediaId, property_id);
+    if (!existingMedia) throw new AppError("Media não encontrada!", 404);
+
+    // Garante que o imóvel fica com pelo menos 1 media
+    const allMedias = await propertyMediaRepository.findAllPropertyMedia(property_id);
+    if (allMedias.length <= 1)
+      throw new AppError("O imóvel precisa de pelo menos uma imagem. Adicione outra antes de remover esta.", 400);
+
+    const resourceType = existingMedia.type === "VIDEO" ? "video" : "image";
+    await deleteFromCloudinary(existingMedia.public_id, resourceType);
+
+    await propertyMediaRepository.deletePropertyMedia(mediaId);
+
+    return { message: "Media removida com sucesso!" };
+  },
+
+  addPropertyMedia: async (
+    profile_id: number,
+    property_id: number,
+    file: Express.Multer.File,
+  ) => {
+    const ownerRole = await profileRole.findProfileRoleByRole(profile_id, 2);
+    if (!ownerRole) throw new AppError("Owner não encontrado!", 404);
+
+    const property = await propertyRepository.findUniqueUserProperty(ownerRole.id, property_id);
+    if (!property) throw new AppError("Imóvel não encontrado!", 404);
+
+    const resourceType = resolveResourceType(file.mimetype);
+    const mediaType = resolveMediaType(file.mimetype);
+
+    // Limita a 1 vídeo por imóvel
+    if (mediaType === "VIDEO") {
+      const existingVideos = await propertyMediaRepository.findPropertyMediaByType(property_id, "VIDEO");
+      if (existingVideos.length >= 1)
+        throw new AppError("Já existe um vídeo para este imóvel. Substitua o existente.", 400);
+    }
+
+    let uploadResult;
+    try {
+      uploadResult = await uploadToCloudinary(file.path, `properties/${property_id}`, resourceType);
+    } finally {
+      await deleteTempFile(file.path);
+    }
+
+    const allMedias = await propertyMediaRepository.findAllPropertyMedia(property_id);
+    const nextOrder = allMedias.length > 0 ? Math.max(...allMedias.map((m) => m.order)) + 1 : 0;
+
+    const media = await propertyMediaRepository.createPropertyMedia(
+      property_id,
+      uploadResult.secure_url,
+      mediaType,
+      uploadResult.public_id,
+      nextOrder,
+    );
+
+    return media;
+  },
 };
-
-function deleteFromCloudinary(publicId: string): any {
-  throw new Error("Function not implemented.");
-}

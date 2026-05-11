@@ -12,7 +12,52 @@ export const propertyMediaRepository = {
                 order
             }       
         })
-    }
+    }, 
+    findAllPropertyMedia: async(property_id: number): Promise<propertyMedia[]|[]> => {
+        return prisma.propertyMedia.findMany({
+            where: { property_id },
+            orderBy: { order: 'asc' }
+        })||[]
+    },
+    deletePropertyMedia: async(id: number): Promise<propertyMedia> => {
+        return prisma.propertyMedia.delete({
+            where: { id }
+        })
+    },
+    findPropertyMediaByType: async(property_id: number, type: MediaTypes): Promise<propertyMedia[]|[]> => {
+      return prisma.propertyMedia.findMany({
+        where: { property_id, type },
+        orderBy: { order: 'asc' }
+      })||[]
+    },
+    insertMedia: async(property_id: number, url: string, type: MediaTypes, public_id: string, order: number): Promise<propertyMedia> => {
+        return prisma.propertyMedia.create({
+            data: {
+                property_id,
+                url,
+                type,
+                public_id,
+                order
+            }
+        })
+    },
+    findPropertyMediaById: async (id: number, property_id: number): Promise<propertyMedia | null> => {
+  return prisma.propertyMedia.findFirst({
+    where: { id, property_id },
+  });
+},
+
+updatePropertyMedia: async (
+  id: number,
+  url: string,
+  type: MediaTypes,
+  public_id: string,
+): Promise<propertyMedia> => {
+  return prisma.propertyMedia.update({
+    where: { id },
+    data: { url, type, public_id },
+  });
+},
 }
 
 //===================================================================================

@@ -10,5 +10,20 @@ export const propertyCompartmentsRepository = {
                 quantity
             }
         })         
-    }   
+    },
+    updatePropertyCompartments: async(id: number, data: {type: CompartmentsTypes | undefined, quantity: number | undefined}): Promise<void> => {
+        const cleanData = Object.fromEntries(
+            Object.entries(data).filter(([_, value]) => value !== undefined)
+        ) as {type?: CompartmentsTypes, quantity?: number};
+        
+        await prisma.propertyCompartments.update({
+            where: { id },
+            data: cleanData
+        })         
+    },
+    findPropertyCompartments: async(property_id: number) => {
+        return await prisma.propertyCompartments.findMany({
+            where: { property_id }
+        })         
+    }
 }

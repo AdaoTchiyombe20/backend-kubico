@@ -135,7 +135,7 @@ export const authController = {
 
       return res.send("Email verificado com sucesso");
     }catch(error){
-      next(error)
+        next(error)
     }
   },
   sendMailVerification: async(req: Request, res: Response,next: NextFunction)=> {

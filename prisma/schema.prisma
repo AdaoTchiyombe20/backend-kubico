@@ -102,8 +102,10 @@ model profile_roles {
   @@unique([profile_id, role_id], name: "profile_id_role_id")
   properties properties[] 
   property_history propertyHistory[]
-  negociations negociation[]
   negotiationEvents negotiationEvent[]
+
+  client negotiation[] @relation(name: "NegotiationClient")
+  owner negotiation[] @relation(name: "NegotiationOwner")
 }
 
 model admins {
@@ -157,7 +159,6 @@ model properties {
   type_of_property TypeProperties
   description String
   status_property PropertyStatus
-  seling_status propertySelingStatus
   is_negotiable Boolean @default(false)
   create_at DateTime @default(now())
   price Decimal
@@ -199,7 +200,7 @@ model propertyMedia{
 
 model propertyLocalization {
   id Int @id @default(autoincrement())
-  property_id Int 
+  property_id Int @unique
   latitude Decimal
   longitude Decimal
   address_info String
@@ -218,41 +219,46 @@ model propertyCompartments {
   property properties @relation(fields: [property_id], references: [id],onDelete: Cascade)
 }
 
-model propertyListing{
-  id Int @id @default(autoincrement())
+model propertyListing {
+  id          Int       @id @default(autoincrement())
   property_id Int
-  listed_at DateTime @default(now())
+  listed_at   DateTime  @default(now())
   delisted_at DateTime?
-  status ListingStatus
+  status      ListingStatus
 
-  property properties @relation(fields: [property_id], references: [id], onDelete: Cascade)
-  negociation negociation[]
-  
+  @@index([property_id])
+  @@index([property_id, delisted_at])
+
+  property    properties   @relation(fields: [property_id], references: [id], onDelete: Cascade)
+  negotiation negotiation[]
 }
 
-model negociation {
+model negotiation {
   id Int @id @default(autoincrement())
   property_listing_id Int
   client_id Int
+  owner_id  Int 
   proposed_price Decimal
   accepted_value Decimal?
-  status NegociationStatus @default(PENDING)
+  status NegotiationStatus @default(PENDING)
   created_at DateTime @default(now())
 
+
   property_listing propertyListing @relation(fields: [property_listing_id], references: [id], onDelete: Cascade)
-  profile_roles profile_roles @relation(fields: [client_id], references: [id], onDelete: Cascade)
+  client profile_roles @relation(name: "NegotiationClient", fields: [client_id], references: [id], onDelete: Cascade)
+  owner profile_roles @relation(name: "NegotiationOwner", fields: [owner_id], references: [id])
   negotiationEvents negotiationEvent[]
 }
 
 model negotiationEvent {
   id Int @id @default(autoincrement())
-  nogiciation_id Int
+  negotiation_id Int
   profile_role_id Int
-  event_type NegociationEventType
+  event_type NegotiationEventType
   event_description String
   event_date DateTime @default(now())
 
-  negociation negociation @relation(fields: [nogiciation_id], references: [id], onDelete: Cascade)
+  negotiation negotiation @relation(fields: [negotiation_id], references: [id], onDelete: Cascade)
   profile_roles profile_roles @relation(fields: [profile_role_id], references: [id], onDelete: Cascade)
 }
 
@@ -355,14 +361,14 @@ enum PropertyMediaStatus {
   PENDING
 }
 
-enum NegociationStatus {
+enum NegotiationStatus {
   PENDING
   ACCEPTED
   REJECTED
   CANCELLED
 }
 
-enum NegociationEventType {
+enum NegotiationEventType {
   PROPOSAL
   ACCEPTANCE
   REJECTION

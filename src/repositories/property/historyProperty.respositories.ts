@@ -4,14 +4,14 @@ import { type propertyHistory, propertySelingStatus} from "../../../generated/pr
 export const historyPropertyRepository = {
     findAll: async(id_property:number, limit: number, cursor: number):Promise<propertyHistory[]|[]>=>{
         return prisma.propertyHistory.findMany({
-    where: { id_property },
-    take: limit + 1,
-    ...(cursor && {
-        cursor: { id: cursor },
-        skip: 1, 
-    }),
-    orderBy: { id: 'asc' },
-    })||[]
+            where: { id_property },
+            take: limit + 1,
+            ...(cursor && {
+                cursor: { id: cursor },
+                skip: 1, 
+            }),
+            orderBy: { id: 'asc' },
+            })||[]
     },
     createHistoryProperty: async(id_owner: number, id_property: number, last_status: propertySelingStatus, new_status: propertySelingStatus, ):Promise<propertyHistory> => {
         return prisma.propertyHistory.create({
