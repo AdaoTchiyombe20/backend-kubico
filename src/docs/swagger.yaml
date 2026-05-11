@@ -285,6 +285,140 @@ components:
               type: string
               example: Rua das Acácias, nº 12
 
+    CreatePropertyForm:
+      type: object
+      required: [title, description, address_info, neighborhood, municipality, price, type_purchase, type_of_property, compartments]
+      properties:
+        title:
+          type: string
+          example: Apartamento T3 em Talatona
+        description:
+          type: string
+          example: Apartamento espaçoso com 3 quartos e varanda
+        address_info:
+          type: string
+          example: Rua das Acácias, nº 12
+        neighborhood:
+          type: string
+          example: Talatona
+        municipality:
+          type: string
+          example: Luanda
+        price:
+          type: number
+          example: 150000
+        is_negotiable:
+          type: boolean
+          example: false
+        type_purchase:
+          type: string
+          enum: [RENT, SALE]
+          example: RENT
+        type_of_property:
+          type: string
+          enum: [APARTMENT, HOUSE, COMMERCIAL, LAND]
+          example: APARTMENT
+        compartments:
+          type: string
+          description: JSON array como string, ex: [{"type":"BEDROOM","quantity":3}]
+        total_area:
+          type: number
+          example: 120
+        latitude:
+          type: number
+          example: -8.839
+        longitude:
+          type: number
+          example: 13.289
+        images:
+          type: array
+          items:
+            type: string
+            format: binary
+        video:
+          type: string
+          format: binary
+
+    UpdatePropertyInfoRequest:
+      type: object
+      properties:
+        title:
+          type: string
+          example: Apartamento T3 em Talatona
+        description:
+          type: string
+          example: Apartamento espaçoso com 3 quartos e varanda
+        address_info:
+          type: string
+          example: Rua das Acácias, nº 12
+        neighborhood:
+          type: string
+          example: Talatona
+        municipality:
+          type: string
+          example: Luanda
+        price:
+          type: number
+          example: 150000
+        is_negotiable:
+          type: boolean
+          example: false
+        type_purchase:
+          type: string
+          enum: [RENT, SALE]
+          example: RENT
+        type_of_property:
+          type: string
+          enum: [APARTMENT, HOUSE, COMMERCIAL, LAND]
+          example: APARTMENT
+        compartments:
+          type: string
+          description: JSON array como string, ex: [{"type":"BEDROOM","quantity":3}]
+        total_area:
+          type: number
+          example: 120
+
+    IndividualOwnerProfileRequest:
+      type: object
+      required: [ownerName, phone, bi, nif, bankAccount, dateOfBirth]
+      properties:
+        ownerName:
+          type: string
+          example: João Silva
+        phone:
+          type: string
+          example: "923456789"
+        bi:
+          type: string
+          example: "12345678901234"
+        nif:
+          type: string
+          example: "123456"
+        bankAccount:
+          type: string
+          example: "123456789012345678901"
+        dateOfBirth:
+          type: string
+          format: date
+          example: 1990-01-01
+
+    CompanyOwnerProfileRequest:
+      type: object
+      required: [nameOfCompany, phone, nif, bankAccount]
+      properties:
+        nameOfCompany:
+          type: string
+          example: Empresa XYZ
+        phone:
+          type: string
+          example: "923456789"
+        nif:
+          type: string
+          example: "123456"
+        bankAccount:
+          type: string
+          example: "123456789012345678901"
+
     # ─── Listings ────────────────────────────────────────────
     Listing:
       type: object
@@ -567,24 +701,22 @@ paths:
     get:
       tags: [Authentication]
       summary: Logout
-      description: Invalida a sessão actual (refresh token)
+      description: Invalida a sessão actual usando o refresh token da cookie.
       operationId: logout
-      security:
-        - bearerAuth: []
+      security: []
       responses:
         '200':
           description: Logout bem-sucedido
         '401':
-          description: Token inválido ou expirado
+          description: Refresh token inválido ou expirado
 
   /auth/refresh:
     get:
       tags: [Authentication]
       summary: Renovar access token
-      description: Revoga a sessão actual e gera um novo par de tokens
+      description: Gera um novo par de tokens usando o refresh token na cookie.
       operationId: refresh
-      security:
-        - bearerAuth: []
+      security: []
       responses:
         '200':
           description: Tokens renovados com sucesso
@@ -613,6 +745,53 @@ paths:
           description: Email verificado com sucesso
         '400':
           description: Token inválido ou expirado
+
+  /auth/send-verify-mail:
+    get:
+      tags: [Authentication]
+      summary: Enviar email de verificação
+      description: Solicita reenvio do email de verificação. Na implementação atual, depende da identificação do utilizador via refresh cookie.
+      operationId: sendVerifyMail
+      security: []
+      responses:
+        '200':
+          description: Email de verificação enviado
+        '400':
+          description: Dados inválidos ou utilizador não autenticado
+
+  /auth/create-admin:
+    post:
+      tags: [Authentication]
+      summary: Criar administrador
+      description: Cria um administrador com acesso administrativo.
+      operationId: createAdmin
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [adminsName, email, password, accessLevel]
+              properties:
+                adminsName:
+                  type: string
+                  example: Admin Kubico
+                email:
+                  type: string
+                  format: email
+                  example: admin@kubico.com
+                password:
+                  type: string
+                  example: strongPassword123
+                accessLevel:
+                  type: string
+                  example: ADMIN
+      responses:
+        '201':
+          description: Administrador criado com sucesso
+        '400':
+          description: Dados inválidos
 
   # ═══════════════════════════════════════════════════════════
   # USERS
@@ -653,149 +832,48 @@ paths:
         '401':
           description: Não autorizado
 
-    get:
-      tags: [User Management (Admin)]
-      summary: Listar todos os utilizadores
-      description: Requer role ADMIN
-      operationId: getAllUsers
-      security:
-        - bearerAuth: []
-      parameters:
-        - name: page
-          in: query
-          schema:
-            type: integer
-            default: 1
-        - name: limit
-          in: query
-          schema:
-            type: integer
-            default: 20
-        - name: role
-          in: query
-          schema:
-            type: string
-            enum: [ADMIN, NORMAL, CLIENT, OWNER]
-      responses:
-        '200':
-          description: Lista de utilizadores
-          content:
-            application/json:
-              schema:
-                type: array
-                items:
-                  $ref: '#/components/schemas/User'
-        '403':
-          description: Acesso restrito a admins
-
-  /users/{id}:
-    get:
-      tags: [User Management (Admin)]
-      summary: Buscar utilizador por ID
-      description: Requer role ADMIN
-      operationId: findUserById
-      security:
-        - bearerAuth: []
-      parameters:
-        - name: id
-          in: path
-          required: true
-          schema:
-            type: integer
-      responses:
-        '200':
-          description: Utilizador encontrado
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/User'
-        '404':
-          description: Utilizador não encontrado
-
   # ═══════════════════════════════════════════════════════════
   # ROLE VERIFICATION
   # ═══════════════════════════════════════════════════════════
-  /users/verify/individual-client:
+  /profile/individual-owner:
     post:
       tags: [Role Verification]
-      summary: Verificação de cliente individual
-      description: Submete documentos para verificação como cliente pessoa física. Requer autenticação.
-      operationId: verifyIndividualClient
+      summary: Criar proposta de verificação para proprietário individual
+      description: Envia os dados de proprietário individual para verificação.
+      operationId: createOwnerIndividual
       security:
         - bearerAuth: []
       requestBody:
         required: true
         content:
-          multipart/form-data:
+          application/json:
             schema:
-              $ref: '#/components/schemas/IndividualClientVerification'
+              $ref: '#/components/schemas/IndividualOwnerProfileRequest'
       responses:
         '201':
-          description: Documentos submetidos, verificação em análise
+          description: Proprietário individual cadastrado, aguardando verificação
         '400':
-          description: Ficheiros em falta ou inválidos
-        '409':
-          description: Verificação já submetida
+          description: Dados inválidos
 
-  /users/verify/company-client:
+  /profile/company-owner:
     post:
       tags: [Role Verification]
-      summary: Verificação de cliente empresa
-      description: Submete documentos para verificação como cliente pessoa jurídica
-      operationId: verifyCompanyClient
+      summary: Criar proposta de verificação para proprietário empresa
+      description: Envia os dados de proprietário empresa para verificação.
+      operationId: createOwnerCompany
       security:
         - bearerAuth: []
       requestBody:
         required: true
         content:
-          multipart/form-data:
+          application/json:
             schema:
-              $ref: '#/components/schemas/CompanyClientVerification'
+              $ref: '#/components/schemas/CompanyOwnerProfileRequest'
       responses:
         '201':
-          description: Documentos submetidos, verificação em análise
+          description: Proprietário empresa cadastrado, aguardando verificação
         '400':
-          description: Ficheiros em falta ou inválidos
-
-  /users/verify/individual-owner:
-    post:
-      tags: [Role Verification]
-      summary: Verificação de proprietário individual
-      description: Submete documentos para verificação como proprietário pessoa física
-      operationId: verifyIndividualOwner
-      security:
-        - bearerAuth: []
-      requestBody:
-        required: true
-        content:
-          multipart/form-data:
-            schema:
-              $ref: '#/components/schemas/IndividualOwnerVerification'
-      responses:
-        '201':
-          description: Documentos submetidos, verificação em análise
-        '400':
-          description: Ficheiros em falta ou inválidos
-
-  /users/verify/company-owner:
-    post:
-      tags: [Role Verification]
-      summary: Verificação de proprietário empresa
-      description: Submete documentos para verificação como proprietário pessoa jurídica
-      operationId: verifyCompanyOwner
-      security:
-        - bearerAuth: []
-      requestBody:
-        required: true
-        content:
-          multipart/form-data:
-            schema:
-              $ref: '#/components/schemas/CompanyOwnerVerification'
-      responses:
-        '201':
-          description: Documentos submetidos, verificação em análise
-        '400':
-          description: Ficheiros em falta ou inválidos
+          description: Dados inválidos
 
   # ═══════════════════════════════════════════════════════════
   # ROLE MANAGEMENT
@@ -843,47 +921,21 @@ paths:
     get:
       tags: [Properties]
       summary: Listar imóveis
-      description: Lista imóveis aprovados com filtros opcionais. Público.
+      description: Lista os imóveis disponíveis para o utilizador autentificado com role ADMIN ou OWNER.
       operationId: listProperties
-      security: []
+      security:
+        - bearerAuth: []
       parameters:
-        - name: purpose
-          in: query
-          schema:
-            type: string
-            enum: [RENT, SALE]
-        - name: type
-          in: query
-          schema:
-            type: string
-            enum: [APARTMENT, HOUSE, COMMERCIAL, LAND]
-        - name: province
-          in: query
-          schema:
-            type: string
-            example: Luanda
-        - name: minPrice
-          in: query
-          schema:
-            type: number
-        - name: maxPrice
-          in: query
-          schema:
-            type: number
-        - name: bedrooms
-          in: query
-          schema:
-            type: integer
-        - name: page
-          in: query
-          schema:
-            type: integer
-            default: 1
         - name: limit
           in: query
           schema:
             type: integer
             default: 20
+        - name: cursor
+          in: query
+          schema:
+            type: integer
+            default: 0
       responses:
         '200':
           description: Lista de imóveis
@@ -892,64 +944,85 @@ paths:
               schema:
                 type: object
                 properties:
-                  data:
+                  success:
+                    type: boolean
+                  cursor:
+                    type: integer
+                  properties:
                     type: array
                     items:
                       $ref: '#/components/schemas/Property'
-                  total:
-                    type: integer
-                  page:
-                    type: integer
-                  totalPages:
-                    type: integer
 
     post:
       tags: [Properties]
       summary: Cadastrar imóvel
-      description: Cria um novo imóvel. Requer role OWNER e verificação aprovada.
+      description: Cria um novo imóvel. Requer role ADMIN ou OWNER.
       operationId: createProperty
       security:
         - bearerAuth: []
       requestBody:
         required: true
         content:
-          application/json:
+          multipart/form-data:
             schema:
-              $ref: '#/components/schemas/CreatePropertyRequest'
+              $ref: '#/components/schemas/CreatePropertyForm'
       responses:
         '201':
           description: Imóvel criado com sucesso
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/Property'
-        '403':
-          description: Requer role OWNER verificado
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  property:
+                    $ref: '#/components/schemas/Property'
+        '400':
+          description: Dados inválidos ou ficheiros obrigatórios em falta
 
-  /properties/my-properties:
+  /properties/owner:
     get:
       tags: [Properties]
-      summary: Meus imóveis
-      description: Lista os imóveis do owner autenticado
-      operationId: getMyProperties
+      summary: Listar imóveis do owner autenticado
+      operationId: findUserProperties
       security:
         - bearerAuth: []
+      parameters:
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            default: 20
+        - name: cursor
+          in: query
+          schema:
+            type: integer
+            default: 0
       responses:
         '200':
           description: Lista de imóveis do owner
           content:
             application/json:
               schema:
-                type: array
-                items:
-                  $ref: '#/components/schemas/Property'
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  cursor:
+                    type: integer
+                  properties:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Property'
 
-  /properties/{id}:
-    get:
+  /properties/publish/{id}:
+    post:
       tags: [Properties]
-      summary: Detalhe de imóvel
-      operationId: getProperty
-      security: []
+      summary: Publicar imóvel
+      operationId: publishProperty
+      security:
+        - bearerAuth: []
       parameters:
         - name: id
           in: path
@@ -958,19 +1031,30 @@ paths:
             type: integer
       responses:
         '200':
-          description: Imóvel encontrado
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/Property'
-        '404':
-          description: Imóvel não encontrado
+          description: Imóvel publicado
 
-    put:
+  /properties/unpublish/{id}:
+    post:
       tags: [Properties]
-      summary: Atualizar imóvel
-      description: Requer ser o owner do imóvel
-      operationId: updateProperty
+      summary: Despublicar imóvel
+      operationId: unpublishProperty
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: Imóvel despublicado
+
+  /properties/{id}/info:
+    patch:
+      tags: [Properties]
+      summary: Atualizar informações do imóvel
+      operationId: updatePropertyInfo
       security:
         - bearerAuth: []
       parameters:
@@ -984,15 +1068,94 @@ paths:
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/CreatePropertyRequest'
+              $ref: '#/components/schemas/UpdatePropertyInfoRequest'
       responses:
         '200':
-          description: Imóvel atualizado
-        '403':
-          description: Sem permissão para editar este imóvel
-        '404':
-          description: Imóvel não encontrado
+          description: Informações do imóvel atualizadas
 
+  /properties/{id}/media:
+    post:
+      tags: [Properties]
+      summary: Adicionar media ao imóvel
+      operationId: addPropertyMedia
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              required: [file]
+              properties:
+                file:
+                  type: string
+                  format: binary
+      responses:
+        '201':
+          description: Media adicionada com sucesso
+
+  /properties/{id}/media/{mediaId}:
+    patch:
+      tags: [Properties]
+      summary: Atualizar media do imóvel
+      operationId: updatePropertyMedia
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+        - name: mediaId
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              required: [file]
+              properties:
+                file:
+                  type: string
+                  format: binary
+      responses:
+        '200':
+          description: Media atualizada com sucesso
+
+    delete:
+      tags: [Properties]
+      summary: Remover media do imóvel
+      operationId: deletePropertyMedia
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+        - name: mediaId
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: Media removida com sucesso
+
+  /properties/{id}:
     delete:
       tags: [Properties]
       summary: Remover imóvel
@@ -1008,38 +1171,6 @@ paths:
       responses:
         '200':
           description: Imóvel removido
-        '403':
-          description: Sem permissão
-
-  /properties/{id}/images:
-    post:
-      tags: [Properties]
-      summary: Adicionar fotos ao imóvel
-      operationId: uploadPropertyImages
-      security:
-        - bearerAuth: []
-      parameters:
-        - name: id
-          in: path
-          required: true
-          schema:
-            type: integer
-      requestBody:
-        required: true
-        content:
-          multipart/form-data:
-            schema:
-              type: object
-              properties:
-                images:
-                  type: array
-                  items:
-                    type: string
-                    format: binary
-                  description: Máximo 10 imagens
-      responses:
-        '200':
-          description: Imagens adicionadas com sucesso
 
   # ═══════════════════════════════════════════════════════════
   # LISTINGS

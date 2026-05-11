@@ -8,6 +8,7 @@ import fs from 'fs'
 import path from "path";
 const app = express();
 
+app.set('trust proxy', 1)
 app.use(globalRateLimiting)
 
 app.use("/docs", swaggerRoutes);
