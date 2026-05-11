@@ -7,10 +7,10 @@
   "seed": "tsx prisma/seed.ts"
 },
 "scripts": {
-  "start": "node dist/server.js",
+  "build": "prisma generate && tsc",
+  "start": "prisma migrate deploy && tsx prisma/seed.ts && node dist/server.js",
   "dev": "nodemon --exec tsx server.ts",
-  "build": "prisma generate && prisma migrate deploy && tsx prisma/seed.ts && tsc",
-   "seed": "tsx prisma/seed.ts",
+  "seed": "tsx prisma/seed.ts",
   "prisma:migrate": "prisma migrate deploy"
 },
   "repository": {
