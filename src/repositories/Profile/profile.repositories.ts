@@ -27,5 +27,13 @@ export const profileRepository = {
         return prisma.profiles.delete({
             where: {user_id}
         })
+    },
+    findByIdAnfType: async(id: number, type: ProfileType): Promise<profiles | null> => {
+        return prisma.profiles.findUnique({
+            where: {
+                id,
+                type
+            }
+        })
     }
 }

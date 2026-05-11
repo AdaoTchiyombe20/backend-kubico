@@ -1,6 +1,7 @@
 import { type Request,type Response,type NextFunction } from "express";
 import { AppError } from "../errors/App.Errors.js";
 import z from 'zod'
+import multer from "multer";
 
 export const errorHandler = ( error: Error, req: Request, res: Response, next: NextFunction) =>{
     if(error instanceof AppError){
@@ -16,6 +17,11 @@ export const errorHandler = ( error: Error, req: Request, res: Response, next: N
             error: 'Dados inválidos',
             details: error.issues
         })
+    }
+
+    if (error instanceof multer.MulterError) {
+        if (error.code === "LIMIT_FILE_SIZE")
+            return res.status(400).json({ message: "Ficheiro demasiado grande" });
     }
 
     console.error('Erro não tratado:', error);

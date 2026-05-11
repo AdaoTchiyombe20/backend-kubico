@@ -6,7 +6,7 @@ import { assumeRolesServices } from "../services/assumeRoles.services.js"
 export const assumeRolesController = {
     assumeClient: async(req: Request, res: Response, next: NextFunction) => {
         try{
-            const data : GetUserIdDTO = getUserId.parse({id: req.user!.sub})
+            const data : GetUserIdDTO = getUserId.parse({id: req.accessUser!.sub})
             await assumeRolesServices.client(data.id)
             res.status(200).json({
                 success: true,
@@ -18,7 +18,7 @@ export const assumeRolesController = {
     },
     assumeOwner: async(req: Request, res: Response, next: NextFunction) => {
        try{
-            const data : GetUserIdDTO = getUserId.parse({id: req.user!.sub})
+            const data : GetUserIdDTO = getUserId.parse({id: req.accessUser!.sub})
             await assumeRolesServices.owner(data.id)
             res.status(200).json({
                 success: true,
