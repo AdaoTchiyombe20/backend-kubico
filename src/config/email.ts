@@ -1,14 +1,14 @@
 import "dotenv/config";
-import { env } from "prisma/config";
+import { ENV } from "../config/env.js";
 
 export const emailConfig = {
-  host: env("EMAIL_HOST"),
-  port: Number(env("EMAIL_PORT")),
+  host: ENV.EMAIL_HOST,
+  port: Number(ENV.EMAIL_PORT),
   secure: false,
   auth: {
-    user: env("EMAIL_USER"),
-    pass: env("EMAIL_PASS"),
+    user: ENV.EMAIL_USER,
+    pass: ENV.EMAIL_PASS,
   },
 };
 
-export const EMAIL_FROM = `Kubiko <${env("EMAIL_USER")}>`;
+export const EMAIL_FROM = `Kubiko <${ENV.EMAIL_USER}>`;

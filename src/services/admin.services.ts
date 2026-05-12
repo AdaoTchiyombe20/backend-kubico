@@ -1,5 +1,5 @@
 import "dotenv/config";
-import { env } from "prisma/config";
+import { ENV } from "../config/env.js";
 import { profileRepository } from "../repositories/Profile/profile.repositories.js";
 import { AppError } from "../errors/App.Errors.js";
 import { userRepository } from "../repositories/auth/user.repositories.js";
@@ -53,7 +53,7 @@ export const adminService = {
           iat: Math.floor(Date.now() / 1000),
           aud: email,
         },
-        env("JWT_SECRET"),
+        ENV.JWT_SECRET,
         {
           expiresIn: "15m",
         },

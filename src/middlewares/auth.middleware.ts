@@ -2,7 +2,7 @@ import type { Request, Response, NextFunction } from "express";
 import jwt from "jsonwebtoken";
 import { AppError } from "../errors/App.Errors.js";
 import "dotenv/config";
-import { env } from "prisma/config";
+import { ENV } from "../config/env.js";
 import { refreshTokenUser } from "../repositories/auth/refreshToken.repositories.js";
 import type { JwtPayload } from "jsonwebtoken";
 
@@ -40,7 +40,7 @@ export const authorizeRefreshTokenMiddleware = async (
 
     const decoded = jwt.verify(
       token,
-      env("JWT_REFRESH_SECRET"),
+      ENV.JWT_REFRESH_SECRET,
     ) as TokenPayload;
 
     req.refreshUser = decoded;
@@ -69,7 +69,7 @@ export const UnauthorizeRefreshTokenMiddleware = async (
 
     const decoded = jwt.verify(
       token,
-      env("JWT_REFRESH_SECRET"),
+      ENV.JWT_REFRESH_SECRET,
     ) as TokenPayload;
 
     const tokenExists = await refreshTokenUser.findRefreshToken(token);
@@ -112,7 +112,7 @@ export const authorizeNormalAccessTokenMiddleware = async (
 
     if (!accessToken) throw new AppError("Access token Inválido!", 401);
 
-    const decoded = jwt.verify(accessToken, env("JWT_SECRET"));
+    const decoded = jwt.verify(accessToken, ENV.JWT_SECRET);
 
     if (typeof decoded !== "object" || decoded === null) {
       throw new AppError("Token inválido", 401);
