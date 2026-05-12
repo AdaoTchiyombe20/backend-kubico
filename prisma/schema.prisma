@@ -15,7 +15,7 @@ model users {
   email          String    @unique
   password       String
   status         UserStatus @default(ACTIVE)
-  email_verified Boolean   @default(true)
+  email_verified Boolean   @default(false)
   last_access    DateTime?
   date_register  DateTime  @default(now())
 
