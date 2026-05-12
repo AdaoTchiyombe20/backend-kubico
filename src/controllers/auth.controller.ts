@@ -131,9 +131,10 @@ export const authController = {
       if (!token) 
         return new AppError('Token não fornecido', 400)
       
-      await authServices.verifyEmail(token);
+      const result = await authServices.verifyEmail(token);
 
-      return res.send("Email verificado com sucesso");
+      return res.json({ message: result.message,success: true });
+      
     }catch(error){
         next(error)
     }
