@@ -7,7 +7,7 @@ export const authRepositories = {
       data: {
         email: data.email,
         password: data.password,
-        email_verified: false,
+        email_verified: true,
         last_access: null,
         date_register: new Date(),
       },
