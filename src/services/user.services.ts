@@ -1,5 +1,5 @@
 import "dotenv/config";
-import { env } from "prisma/config";
+import { ENV } from "../config/env.js";
 import jwt from "jsonwebtoken";
 import { AppError } from "../errors/App.Errors.js";
 import { userRepository } from "../repositories/auth/user.repositories.js";
@@ -65,7 +65,7 @@ export const userService = {
           iat: Math.floor(Date.now() / 1000),
           aud: existingUser.email,
         },
-        env("JWT_SECRET"),
+        ENV.JWT_SECRET,
         {
           expiresIn: "15m",
         },

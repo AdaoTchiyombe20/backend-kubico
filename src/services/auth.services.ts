@@ -1,5 +1,5 @@
 import "dotenv/config";
-import { env } from "prisma/config";
+import { ENV } from "../config/env.js";
 import type { AuthLoginDTO } from "../dto/auth.dto.js";
 import jwt from "jsonwebtoken";
 import { AppError } from "../errors/App.Errors.js";
@@ -41,7 +41,7 @@ export const authServices = {
         {
           sub: user.id,
         },
-        env("JWT_REFRESH_SECRET"),
+        ENV.JWT_REFRESH_SECRET,
         { expiresIn: "7d" },
       );
 
@@ -52,7 +52,7 @@ export const authServices = {
           iat: Math.floor(Date.now() / 1000),
           type: profile.type,
         },
-        env("JWT_SECRET"),
+        ENV.JWT_SECRET,
         { expiresIn: "15m" },
       );
 
@@ -63,7 +63,7 @@ export const authServices = {
           iat: Math.floor(Date.now() / 1000),
           aud: user.email,
         },
-        env("JWT_SECRET"),
+        ENV.JWT_SECRET,
         {
           expiresIn: "15m",
         },
@@ -115,7 +115,7 @@ export const authServices = {
         {
           sub: user.id,
         },
-        env("JWT_REFRESH_SECRET"),
+        ENV.JWT_REFRESH_SECRET,
         { expiresIn: "7d" },
       );
 
@@ -126,7 +126,7 @@ export const authServices = {
           iat: Math.floor(Date.now() / 1000),
           type: profile.type,
         },
-        env("JWT_SECRET"),
+        ENV.JWT_SECRET,
         { expiresIn: "15m" },
       );
 
@@ -220,7 +220,7 @@ export const authServices = {
         {
           sub: user.id,
         },
-        env("JWT_REFRESH_SECRET"),
+        ENV.JWT_REFRESH_SECRET,
         { expiresIn: "7d" },
       );
 
@@ -243,7 +243,7 @@ export const authServices = {
           iat: Math.floor(Date.now() / 1000),
           type: profile.type,
         },
-        env("JWT_SECRET"),
+        ENV.JWT_SECRET,
         { expiresIn: "15m" },
       );
 
@@ -275,7 +275,7 @@ export const authServices = {
           iat: Math.floor(Date.now() / 1000),
           aud: findUser!.email,
         },
-        env("JWT_SECRET"),
+        ENV.JWT_SECRET,
         {
           expiresIn: "15m",
         },

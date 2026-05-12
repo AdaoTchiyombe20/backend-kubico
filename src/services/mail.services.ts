@@ -1,12 +1,12 @@
 import "dotenv/config";
 import nodemailer from "nodemailer";
-import { env } from "prisma/config";
+import { ENV } from "../config/env.js";
 import { emailConfig, EMAIL_FROM } from "../config/email.js";
 
 const transporter = nodemailer.createTransport(emailConfig);
 
 export async function sendVerificationEmail(to: string, token: string) {
-  const link = `${env("APP_URL")}/api/auth/verify-email?token=${token}`;
+  const link = `${ENV.APP_URL}/api/auth/verify-email?token=${token}`;
 
   return transporter.sendMail({
     from: EMAIL_FROM,
