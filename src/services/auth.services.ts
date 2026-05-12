@@ -1,7 +1,7 @@
 import "dotenv/config";
 import { ENV } from "../config/env.js";
 import type { AuthLoginDTO } from "../dto/auth.dto.js";
-import jwt from "jsonwebtoken";
+import jwt, { type JwtPayload } from "jsonwebtoken";
 import { AppError } from "../errors/App.Errors.js";
 import { hashPassword, comparePassword } from "../utils/hash.js";
 import { authRepositories } from "../repositories/auth/auth.repositories.js";
@@ -88,7 +88,7 @@ export const authServices = {
         message: "Cliente criado com sucesso!",
       };
     } catch (error) {
-      throw new AppError(`Erro ao fazer o signUp: ${error}`, 400);
+        throw new AppError(`Erro ao fazer o signUp: ${error}`, 400);
     }
   },
   login: async (data: AuthLoginDTO) => {
@@ -171,7 +171,7 @@ export const authServices = {
   },
   verifyEmail: async (token: string) => {
     try {
-      const tokenVerification = jwt.decode(token);
+      const tokenVerification = jwt.verify(token, ENV.JWT_SECRET) as JwtPayload;
 
       if (!tokenVerification)
         throw new AppError("Token Invalido ou expirado!", 401);
@@ -181,9 +181,13 @@ export const authServices = {
 
       if (!getUser) throw new AppError("Usuario usuario nao encontrado", 404);
 
-      getUser.email_verified = true;
-
+      if (getUser.email_verified) {
+        throw new AppError("Email já verificado!", 400);
+      }
+      
       await userRepository.update(getUser.id, { email_verified: true });
+      return { message: "Email verificado com sucesso!" };
+    
     } catch (error) {
       throw new AppError(`Erro ao verificar o email: ${error}`, 400);
     }
@@ -287,7 +291,7 @@ export const authServices = {
         throw new AppError("Email ja verificado!", 400);
       }
     } catch (error) {
-      throw new AppError("Erro: ao enviar o email de verificação", 400);
+      throw new AppError(`Erro ao enviar o email de verificação: ${error}`, 400);
     }
   },
 };

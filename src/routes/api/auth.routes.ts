@@ -10,7 +10,7 @@ authRouter.post('/login', UnauthorizeRefreshTokenMiddleware, authController.logi
 authRouter.get('/logout', authorizeRefreshTokenMiddleware, authController.logout)
 authRouter.get('/refresh',authorizeRefreshTokenMiddleware, authController.refresh)
 authRouter.get("/verify-email", authController.verifyEmailController);
-authRouter.get("/send-verify-mail", authController.sendMailVerification);
+authRouter.get("/send-verify-mail", authorizeRefreshTokenMiddleware, authController.sendMailVerification);
 
 //admin
 //auth
