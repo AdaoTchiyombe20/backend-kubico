@@ -63,6 +63,7 @@ export const authController = {
               res.status(201).json({
                 success: true,
                 user: user.user,
+                message: "Usuario criado com sucesso!",
                 accessToken: user.accessToken
               });
             } catch (err) {
