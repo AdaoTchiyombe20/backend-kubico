@@ -11,12 +11,12 @@ info:
     > - ❌ **Não implementado** — Definido no contrato mas ainda não criado
   contact:
     name: Kubico Support
-    email: support@kubico.com
+    email: adaotchiyombe@gmail.com
 
 servers:
-  - url: http://localhost:3000/api
+  - url: http://localhost:4000/api
     description: Development server
-  - url: https://api.kubico.com/api
+  - url: https://backend-kubico-production.up.railway.app/api
     description: Production server
 
 components:
