@@ -20,7 +20,7 @@ interface AccessTokenPayload {
 declare global {
   namespace Express {
     interface Request {
-      refreshUser?: TokenPayload 
+      refreshUser?: TokenPayload;
       accessUser?: AccessTokenPayload;
     }
   }
@@ -35,25 +35,22 @@ export const authorizeRefreshTokenMiddleware = async (
     let token = req.cookies.refreshToken;
 
     if (!token) {
-      throw new AppError("Refresh Token não fornecido!", 401);
+      return next(new AppError("Refresh Token não fornecido!", 401));
     }
 
-    const decoded = jwt.verify(
-      token,
-      ENV.JWT_REFRESH_SECRET,
-    ) as TokenPayload;
+    const decoded = jwt.verify(token, ENV.JWT_REFRESH_SECRET) as TokenPayload;
 
     req.refreshUser = decoded;
 
     next();
   } catch (error) {
     if (error instanceof jwt.JsonWebTokenError) {
-      throw new AppError("Token inválido!", 401);
+      return next(new AppError("Token inválido!", 401));
     }
     if (error instanceof jwt.TokenExpiredError) {
-      throw new AppError("Token expirado!", 401);
+      return next(new AppError("Token expirado!", 401));
     }
-    throw error;
+    return next(error);
   }
 };
 
@@ -67,10 +64,7 @@ export const UnauthorizeRefreshTokenMiddleware = async (
 
     if (!token) return next();
 
-    const decoded = jwt.verify(
-      token,
-      ENV.JWT_REFRESH_SECRET,
-    ) as TokenPayload;
+    const decoded = jwt.verify(token, ENV.JWT_REFRESH_SECRET) as TokenPayload;
 
     const tokenExists = await refreshTokenUser.findRefreshToken(token);
 
@@ -84,7 +78,7 @@ export const UnauthorizeRefreshTokenMiddleware = async (
       return next();
     }
 
-    throw new AppError("Você já está autenticado!", 400);
+    return next(new AppError("Você já está autenticado!", 400));
   } catch (err) {
     if (
       err instanceof jwt.JsonWebTokenError ||
@@ -106,16 +100,16 @@ export const authorizeNormalAccessTokenMiddleware = async (
     const headersToken = req.headers.authorization;
 
     if (!headersToken || !headersToken.startsWith("Bearer "))
-      throw new AppError("Access Token não fornecido!", 401);
+      return next(new AppError("Access Token não fornecido!", 401));
 
     const accessToken = headersToken.split(" ")[1];
 
-    if (!accessToken) throw new AppError("Access token Inválido!", 401);
+    if (!accessToken) return next(new AppError("Access token Inválido!", 401));
 
     const decoded = jwt.verify(accessToken, ENV.JWT_SECRET);
 
     if (typeof decoded !== "object" || decoded === null) {
-      throw new AppError("Token inválido", 401);
+      return next(new AppError("Token inválido", 401));
     }
 
     const payload = decoded as JwtPayload;
@@ -127,7 +121,7 @@ export const authorizeNormalAccessTokenMiddleware = async (
       payload.iat === undefined ||
       payload.exp === undefined
     ) {
-      throw new AppError("Token payload incompleto", 401);
+      return next(new AppError("Token payload incompleto", 401));
     }
 
     const accessPayload: AccessTokenPayload = {
@@ -142,28 +136,35 @@ export const authorizeNormalAccessTokenMiddleware = async (
     next();
   } catch (error) {
     if (error instanceof jwt.JsonWebTokenError) {
-      throw new AppError("Token inválido!", 401);
+      return next(new AppError("Token inválido!", 401));
     }
     if (error instanceof jwt.TokenExpiredError) {
-      throw new AppError("Token expirado!", 401);
+      return next(new AppError("Token expirado!", 401));
     }
-    throw error;
+    return next(error);
   }
 };
 
 export function authorizeRoleAcessTokenMiddleware(allowedRole: string[]) {
   return (req: Request, res: Response, next: NextFunction) => {
-    if (!req.accessUser || !("role" in req.accessUser)) {
-      throw new AppError("Role não encontrada", 400);
+    try {
+      if (!req.accessUser || !("role" in req.accessUser)) {
+        return next(new AppError("Role não encontrada", 400));
+      }
+
+      const userRole = req.accessUser?.role;
+
+      if (!userRole) return next(new AppError("Roles não encontradas", 403));
+
+      const hasPermission = allowedRole.some((role) =>
+        userRole.includes(role.toUpperCase()),
+      );
+
+      if (!hasPermission) return next(new AppError("Acesso negado", 403));
+
+      next();
+    } catch (err) {
+      next(err);
     }
-    const userRole = req.accessUser?.role;
-
-    if (!userRole) throw new AppError("Roles nao encontradas", 403);
-
-    const hasPermission = allowedRole.some((role) => userRole.includes(role.toUpperCase()));
-
-    if (!hasPermission) throw new AppError("Acesso negado", 403);
-
-    next();
   };
 }

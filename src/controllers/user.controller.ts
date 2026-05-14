@@ -1,6 +1,5 @@
 import {updateUserPassword, type UpdateUserPassworsDTO, getUserId,type GetUserIdDTO,type UserUpdateEmailDTO,updateEmail, 
 } from "../dto/user.dto.js";
-import { AppError } from "../errors/App.Errors.js";
 import { userService } from "../services/user.services.js";
 import { type NextFunction, type Request, type Response } from "express";
 
@@ -14,7 +13,7 @@ const userController = {
             message: "Usario Apagado!"
         })
     }catch (err) {
-      throw new AppError(`Erro ao apagar usuario ${err}`, 400);
+      next(err);
     }
   }, 
   updatePassword: async(req: Request, res: Response, next : NextFunction) => {
@@ -34,7 +33,7 @@ const userController = {
   },
   updateEmail: async(req:Request, res: Response, next : NextFunction) => {
     try{
-      const data: GetUserIdDTO = getUserId.parse(req.refreshUser!.sub)
+      const data: GetUserIdDTO = getUserId.parse({id: req.refreshUser!.sub})
       const {email}: UserUpdateEmailDTO = updateEmail.parse({email: req.body.email})
       const user = await userService.updateEmail(data.id, email)
       res.json({
