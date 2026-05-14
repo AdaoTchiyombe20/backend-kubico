@@ -4,15 +4,15 @@
   "description": "API Backend para Kubico - Sistema de gestão imobiliária",
   "main": "server.js",
   "prisma": {
-  "seed": "tsx prisma/seed.ts"
-},
-"scripts": {
-  "build": "prisma generate && tsc",
-  "start": "prisma migrate deploy && node dist/server.js",
-  "dev": "nodemon --exec tsx server.ts",
-  "seed": "tsx prisma/seed.ts",
-  "prisma:migrate": "prisma migrate deploy"
-},
+    "seed": "tsx prisma/seed.ts"
+  },
+  "scripts": {
+    "build": "prisma generate && tsc",
+    "start": "prisma migrate deploy && node dist/server.js",
+    "dev": "nodemon --exec tsx server.ts",
+    "seed": "tsx prisma/seed.ts",
+    "prisma:migrate": "prisma migrate deploy"
+  },
   "repository": {
     "type": "git",
     "url": "git+https://github.com/AdaoTchiyombe20/backend-kubico.git"
@@ -38,6 +38,7 @@
   "devDependencies": {
     "@types/bcrypt": "^6.0.0",
     "@types/cookie-parser": "^1.4.10",
+    "@types/cors": "^2.8.19",
     "@types/express": "^5.0.6",
     "@types/jsonwebtoken": "^9.0.10",
     "@types/multer": "^2.0.0",
@@ -51,13 +52,13 @@
     "typescript": "^5.9.3"
   },
   "dependencies": {
-    "prisma": "^7.7.0",
     "@prisma/adapter-pg": "^7.7.0",
     "@prisma/client": "^7.7.0",
     "@supabase/supabase-js": "^2.105.3",
     "bcrypt": "^6.0.0",
     "cloudinary": "^2.9.0",
     "cookie-parser": "^1.4.7",
+    "cors": "^2.8.6",
     "dotenv": "^17.4.1",
     "express": "^5.2.1",
     "express-rate-limit": "^8.2.1",
@@ -66,6 +67,7 @@
     "nodemailer": "^8.0.4",
     "p-limit": "^4.0.0",
     "pg": "^8.20.0",
+    "prisma": "^7.7.0",
     "swagger-ui-express": "^5.0.1",
     "yamljs": "^0.3.0",
     "zod": "^4.3.5"

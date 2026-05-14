@@ -6,7 +6,32 @@ import { swaggerRoutes } from "./routes/infra/swagger.routes.js";
 import { globalRateLimiting } from "../lib/ratelimiting.js";
 import fs from 'fs'
 import path from "path";
+import cors from "cors";
+
 const app = express();
+
+const allowedOrigins = [
+  "http://localhost:5173",
+  "http://localhost:4000",
+  // adiciona o teu domínio de produção aqui quando necessário
+  // "https://teu-frontend.com"
+];
+
+app.use(
+  cors({
+    origin: (origin, callback) => {
+      if (!origin || allowedOrigins.includes(origin)) {
+        callback(null, true);
+      } else {
+        callback(new Error("Origem não permitida pelo CORS"));
+      }
+    },
+    credentials: true,
+    allowedHeaders: ["Content-Type", "Authorization"],
+    exposedHeaders: ["Authorization"],
+    methods: ["GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"],
+  })
+);
 
 app.set('trust proxy', 1)
 app.use(globalRateLimiting)
