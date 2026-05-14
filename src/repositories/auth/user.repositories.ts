@@ -49,7 +49,7 @@ updateStatus: async(id:number, status:boolean,last_access: any): Promise<void> =
       where: { id: id },
       data: { 
         email: email,
-        email_verified: false
+        email_verified: true
       },
     });
   },
