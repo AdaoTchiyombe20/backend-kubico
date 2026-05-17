@@ -11,16 +11,14 @@ import cors from "cors";
 const app = express();
 
 const allowedOrigins = [
-  "http://localhost:5173",
-  "http://localhost:4000",
-  // adiciona o teu domínio de produção aqui quando necessário
-  // "https://teu-frontend.com"
+  { origin: "http://localhost:5173" },
+  { origin: "http://localhost:4000" },
 ];
 
 app.use(
   cors({
     origin: (origin, callback) => {
-      if (!origin || allowedOrigins.includes(origin)) {
+      if (!origin || allowedOrigins.some((o) => o.origin === origin)) {
         callback(null, true);
       } else {
         callback(new Error("Origem não permitida pelo CORS"));
