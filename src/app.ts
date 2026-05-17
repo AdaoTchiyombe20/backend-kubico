@@ -11,17 +11,21 @@ import cors from "cors";
 const app = express();
 
 const allowedOrigins = [
-  { origin: "http://localhost:5173" },
-  { origin: "http://localhost:4000" },
+  "http://localhost:5173",
+  "http://localhost:4000",
+  "https://backend-kubico-production.up.railway.app", // ← adiciona o teu domínio de produção
 ];
 
 app.use(
   cors({
     origin: (origin, callback) => {
-      if (!origin || allowedOrigins.some((o) => o.origin === origin)) {
+      // Permite requests sem origin (curl, Postman, mobile apps)
+      if (!origin) return callback(null, true);
+      
+      if (allowedOrigins.includes(origin)) {
         callback(null, true);
       } else {
-        callback(new Error("Origem não permitida pelo CORS"));
+        callback(null, false); // ← rejeita silenciosamente, não lança Error
       }
     },
     credentials: true,
