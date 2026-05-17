@@ -200,8 +200,8 @@ model propertyMedia{
 model propertyLocalization {
   id Int @id @default(autoincrement())
   property_id Int @unique
-  latitude Decimal
-  longitude Decimal
+  latitude Decimal?
+  longitude Decimal?
   address_info String
   neighborhood String
   municipality String

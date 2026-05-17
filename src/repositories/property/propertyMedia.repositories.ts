@@ -58,7 +58,34 @@ updatePropertyMedia: async (
     data: { url, type, public_id },
   });
 },
-}
+createPropertyMediaWithNextOrder: async (
+    property_id: number,
+    url: string,
+    type: MediaTypes,
+    public_id: string,
+  ): Promise<propertyMedia> => {
+    // Usar transação para garantir ordem sequencial
+    return await prisma.$transaction(async (tx) => {
+      // Buscar máxima ordem dentro da transação (garante locking)
+      const maxOrderResult = await tx.propertyMedia.aggregate({
+        where: { property_id },
+        _max: { order: true },
+      });
+      
+      const nextOrder = (maxOrderResult._max.order ?? -1) + 1;
+      
+      return await tx.propertyMedia.create({
+        data: {
+          property_id,
+          url,
+          type,
+          public_id,
+          order: nextOrder,
+        },
+      });
+    });
+  },
+};
 
 //===================================================================================
 /* 

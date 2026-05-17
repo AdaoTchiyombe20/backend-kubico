@@ -8,6 +8,26 @@ const compartmentSchema = z.object({
   quantity: z.number().int().positive("A quantidade deve ser um valor positivo"),
 });
 
+
+export const rawSearchFiltersSchema = z.object({
+  type_purchase: z.string().optional(),
+  type_of_property: z.string().optional(),
+  neighborhood: z.string().optional(),
+  municipality: z.string().optional(),
+  min_price: z.string().optional(),
+  max_price: z.string().optional(),
+});
+
+export const parsedSearchFiltersSchema = z.object({
+  type_purchase: z.nativeEnum(Property_purchase).optional(),
+  type_of_property: z.nativeEnum(TypeProperties).optional(),
+  neighborhood: z.string().optional(),
+  municipality: z.string().optional(),
+  min_price: z.number().optional(),
+  max_price: z.number().optional(),
+});
+
+
 export const createPropertySchema = z.object({
   title:            z.string().min(1, "O título é obrigatório"),
   description:      z.string().min(1, "A descrição é obrigatória"),
@@ -89,7 +109,19 @@ export const updatePropertyInfo = z.object({
                          z.number()
                           .positive("A área total deve ser um valor positivo")
                        ).optional(),
+  latitude:         z.string()
+                        .transform(val => Number(val))
+                        .pipe(
+                          z.number()
+                        ).optional(),
+  longitude:        z.string()
+                         .transform(val => Number(val))
+                         .pipe(
+                           z.number()
+                         ).optional(),
 })
 
 export type CreatePropertyDTO = z.infer<typeof createPropertySchema>;
-export type UpdatePropertyInfoDTO = z.infer<typeof  updatePropertyInfo>
+export type UpdatePropertyInfoDTO = z.infer<typeof updatePropertyInfo>;
+export type RawSearchFilters = z.infer<typeof rawSearchFiltersSchema>;
+export type ParsedSearchFilters = z.infer<typeof parsedSearchFiltersSchema>;

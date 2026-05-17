@@ -72,7 +72,7 @@ export const propertyRepository = {
     },
     updatePropertyInfo: async(propertyId: number, data: {title: string | undefined, type_property_purchase: Property_purchase| undefined, type_of_property: TypeProperties|undefined, description: string|undefined, is_negotiable: boolean|undefined, price: number|undefined, total_area: number | undefined}): Promise<properties|null> => {
     const cleanData = Object.fromEntries(
-            Object.entries(data).filter(([_, value]) => value !== undefined)
+            Object.entries(data).filter(([_, value]) => value !== undefined && value !== null)
         ) as Prisma.propertiesUpdateInput;
 
     return prisma.properties.update({
