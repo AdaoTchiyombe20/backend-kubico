@@ -1,8 +1,17 @@
-import { is } from "zod/locales";
-import type { CompartmentsTypes, ListingStatus, Property_purchase, PropertyStatus, propertySelingStatus, TypeProperties } from "@prisma/client";
+import { type properties } from "@prisma/client";
+import { prisma } from "../../lib/prisma.js";
+import type {
+  CompartmentsTypes,
+  ListingStatus,
+  Property_purchase,
+  PropertyStatus,
+  propertySelingStatus,
+  TypeProperties,
+} from "@prisma/client";
+import { parseTypeProperties, parsePropertyPurchase } from "../utils/enumValidators.js";
 import type { UpdatePropertyInfoDTO } from "../dto/property.dto.js";
 import { AppError } from "../errors/App.Errors.js";
-import { deleteTempFile, uploadToCloudinary } from "../middlewares/multer.middleware.js";
+import { deleteTempFile } from "../middlewares/multer.middleware.js";
 import { profileRole } from "../repositories/Profile/profileRole.repositories.js";
 import { historyPropertyRepository } from "../repositories/property/historyProperty.respositories.js";
 import { propertyRepository } from "../repositories/property/properties.repositories.js";
@@ -10,24 +19,19 @@ import { propertyCompartmentsRepository } from "../repositories/property/propert
 import { propertyLocalizationRepository } from "../repositories/property/propertyLocalization.repositories.js";
 import { propertyMediaRepository } from "../repositories/property/propertyMedia.repositories.js";
 import { propertyListingRepository } from "../repositories/property/propertyListing.repositories.js";
-import cloudinary from "../config/cloudinary.js";
+import type { RawSearchFilters, ParsedSearchFilters } from "../dto/property.dto.js";
 import pLimit from "p-limit";
 
-type MediaType = "IMAGEM" | "VIDEO";
-
-const resolveResourceType = (mimetype: string): "image" | "video" => {
-  if (mimetype.startsWith("image/")) return "image";
-  return "video";
-};
-
-const resolveMediaType = (mimetype: string): MediaType => {
-  if (mimetype.startsWith("image/")) return "IMAGEM";
-  return "VIDEO";
-};
-
-const deleteFromCloudinary = async (publicId: string, resourceType: "image" | "video" = "image"): Promise<void> => {
-  await cloudinary.uploader.destroy(publicId, { resource_type: resourceType });
-};
+// ✅ IMPORT dos utilitários de Cloudinary (centralizados)
+import {
+  uploadFilesToCloudinary,
+  cleanupCloudinaryFiles,
+  deleteTempFiles,
+  resolveResourceType,
+  resolveMediaType,
+  deleteFromCloudinary,
+  uploadToCloudinary,
+} from "../utils/cloudinary.utils.js";
 
 const limiter = pLimit(3);
 
@@ -85,7 +89,7 @@ export const propertyService = {
       ownerRole.id,
       propertyId,
       "DISPONIVEL",
-      "DISPONIVEL",
+      "DISPONIVEL"
     );
 
     return { message: "Imóvel publicado com sucesso!" };
@@ -115,10 +119,241 @@ export const propertyService = {
       ownerRole.id,
       propertyId,
       "DISPONIVEL",
-      "CANCELADO",
+      "CANCELADO"
     );
 
     return { message: "Imóvel despublicado com sucesso!" };
+  },
+
+  findAllListings: async (limit: number, cursor: number) => {
+    try {
+      const listings = await propertyListingRepository.findAllListings(limit, cursor);
+      const hasNextPage = listings.length > limit;
+      const paginated = hasNextPage ? listings.slice(0, -1) : listings;
+      return {
+        properties: paginated,
+        cursor: hasNextPage ? paginated[paginated.length - 1]!.id : null,
+      };
+    } catch (error) {
+      if (error instanceof AppError) throw error;
+      throw new AppError(
+        "Erro ao buscar listagens: " + (error instanceof Error ? error.message : String(error)),
+        500
+      );
+    }
+  },
+
+  findListingById: async (listingId: number) => {
+    try {
+      const listing = await propertyListingRepository.findListingById(listingId);
+      if (!listing) throw new AppError("Listagem não encontrada!", 404);
+      return listing;
+    } catch (error) {
+      if (error instanceof AppError) throw error;
+      throw new AppError(
+        "Erro ao buscar listagem: " + (error instanceof Error ? error.message : String(error)),
+        500
+      );
+    }
+  },
+
+  searchListings: async (filters: RawSearchFilters, limit: number, cursor: number) => {
+    try {
+      const parsedFilters: ParsedSearchFilters = {
+        type_of_property: filters.type_of_property
+          ? parseTypeProperties(filters.type_of_property)
+          : undefined,
+        type_purchase: filters.type_purchase
+          ? parsePropertyPurchase(filters.type_purchase)
+          : undefined,
+        neighborhood: filters.neighborhood?.trim(),
+        municipality: filters.municipality?.trim(),
+        min_price: filters.min_price !== undefined ? Number(filters.min_price) : undefined,
+        max_price: filters.max_price !== undefined ? Number(filters.max_price) : undefined,
+      };
+
+      // Validation
+      if (parsedFilters.min_price !== undefined && isNaN(parsedFilters.min_price))
+        throw new AppError("Preço mínimo inválido!", 400);
+
+      if (parsedFilters.max_price !== undefined && isNaN(parsedFilters.max_price))
+        throw new AppError("Preço máximo inválido!", 400);
+
+      if (
+        parsedFilters.min_price !== undefined &&
+        parsedFilters.max_price !== undefined &&
+        parsedFilters.min_price > parsedFilters.max_price
+      )
+        throw new AppError("Preço mínimo não pode ser maior que o preço máximo!", 400);
+
+      const listings = await propertyListingRepository.searchListings(
+        parsedFilters,
+        limit,
+        cursor
+      );
+      const hasNextPage = listings.length > limit;
+      const paginated = hasNextPage ? listings.slice(0, -1) : listings;
+
+      return {
+        properties: paginated,
+        cursor: hasNextPage ? paginated[paginated.length - 1]!.id : null,
+      };
+    } catch (error) {
+      if (error instanceof AppError) throw error;
+      throw new AppError(
+        "Erro ao buscar listagens: " + (error instanceof Error ? error.message : String(error)),
+        500
+      );
+    }
+  },
+
+  // ════════════════════════════════════════════════════════════════════════════
+  // ✅ CREATE PROPERTY - SOLUÇÃO CORRIGIDA
+  // ════════════════════════════════════════════════════════════════════════════
+  createProperty: async (
+    data: {
+      profile_id: number;
+      title: string;
+      type_purchase: Property_purchase;
+      type_of_property: TypeProperties;
+      description: string;
+      price: number;
+      is_negotiable: boolean;
+      total_area: number | undefined;
+      address_info: string;
+      neighborhood: string;
+      municipality: string;
+      compartments: { type: string; quantity: number }[];
+      latitude: number | null;
+      longitude: number | null;
+    },
+    files: { [fieldName: string]: Express.Multer.File[] }
+  ) => {
+    // ✅ PASSO 0: Validações iniciais
+    if (files.images === undefined || files.images.length === 0) {
+      throw new AppError("Pelo menos uma imagem é obrigatória!", 400);
+    }
+
+    const status_property = "NAO_PUBLICADO" as PropertyStatus;
+    const ownerRole = await profileRole.findProfileRoleByRole(data.profile_id, 2);
+    if (!ownerRole) throw new AppError("Owner not found!", 404);
+
+    // ✅ PASSO 1: Upload para Cloudinary ANTES de qualquer DB operation
+    let uploadResults;
+
+    try {
+      uploadResults = await uploadFilesToCloudinary(files, "properties");
+    } finally {
+      // Deletar ficheiros temporários IMEDIATAMENTE após upload
+      // Isto garante que mesmo se algo falhar depois, os temps já foram limpos
+      await deleteTempFiles(files);
+    }
+
+    // Se houve erros no upload, limpar Cloudinary e falhar
+    if (uploadResults.errors.length > 0) {
+      await cleanupCloudinaryFiles(uploadResults.uploadedFiles);
+      throw new AppError(
+        `Falha no upload de ${uploadResults.errors.length} ficheiro(s): ${uploadResults.errors.join(" | ")}`,
+        500
+      );
+    }
+
+    // ✅ PASSO 2: UMA TRANSAÇÃO que cria TUDO
+    let property: properties;
+    try {
+      property = await prisma.$transaction(async (tx) => {
+        // Criar propriedade
+        const newProperty = await tx.properties.create({
+          data: {
+            id_owner: ownerRole.id,
+            title: data.title,
+            type_property_purchase: data.type_purchase,
+            type_of_property: data.type_of_property,
+            description: data.description,
+            status_property,
+            is_negotiable: data.is_negotiable,
+            price: data.price,
+            total_area: data.total_area || null,
+          },
+        });
+
+        // Criar compartimentos (SEM DUPLICAÇÃO)
+        if (data.compartments.length > 0) {
+          await Promise.all(
+            data.compartments.map((compartment) =>
+              tx.propertyCompartments.create({
+                data: {
+                  property_id: newProperty.id,
+                  type: compartment.type.toUpperCase() as CompartmentsTypes,
+                  quantity: compartment.quantity,
+                },
+              })
+            )
+          );
+        }
+
+        // Criar localização (SEM DUPLICAÇÃO)
+        await tx.propertyLocalization.create({
+          data: {
+            property_id: newProperty.id,
+            latitude: data.latitude,
+            longitude: data.longitude,
+            address_info: data.address_info,
+            neighborhood: data.neighborhood,
+            municipality: data.municipality,
+          },
+        });
+
+        // Criar histórico (SEM DUPLICAÇÃO)
+        await tx.propertyHistory.create({
+          data: {
+            id_owner: ownerRole.id,
+            id_property: newProperty.id,
+            last_status: "DISPONIVEL" as propertySelingStatus,
+            new_status: "DISPONIVEL" as propertySelingStatus,
+          },
+        });
+
+        // ✅ REGISTAR MEDIA FILES DENTRO DA TRANSAÇÃO!
+        // Isto é CRÍTICO - se falhar aqui, tudo é revertido
+        if (uploadResults.uploadedFiles.length > 0) {
+          await Promise.all(
+            uploadResults.uploadedFiles.map((media) =>
+              tx.propertyMedia.create({
+                data: {
+                  property_id: newProperty.id,
+                  url: media.url,
+                  type: media.mediaType,
+                  public_id: media.public_id,
+                  order: 0,
+                },
+              })
+            )
+          );
+        }
+
+        return newProperty;
+      });
+    } catch (error) {
+      // ✅ Se algo falhar na transação, limpar TODOS os uploads do Cloudinary
+      await cleanupCloudinaryFiles(uploadResults.uploadedFiles);
+
+      if (error instanceof AppError) throw error;
+      throw new AppError(
+        "Falha ao criar propriedade: " + (error instanceof Error ? error.message : String(error)),
+        500
+      );
+    }
+
+    // ✅ PASSO 3: Preparar resposta com URLs dos ficheiros
+    const uploaded: Record<string, string> = {};
+    uploadResults.uploadedFiles.forEach((media) => {
+      if (!uploaded[media.fieldname]) {
+        uploaded[media.fieldname] = media.url;
+      }
+    });
+
+    return uploaded;
   },
 
   deleteProperty: async (profileId: number, propertyId: number) => {
@@ -137,10 +372,10 @@ export const propertyService = {
           limiter(() =>
             deleteFromCloudinary(
               media.public_id,
-              media.type === "VIDEO" ? "video" : "image",
-            ),
-          ),
-        ),
+              media.type === "VIDEO" ? "video" : "image"
+            )
+          )
+        )
       );
     }
 
@@ -150,163 +385,35 @@ export const propertyService = {
     return { message: "Imóvel apagado com sucesso!" };
   },
 
-  createProperty: async (
-    data: {
-      profile_id: number;
-      title: string;
-      type_purchase: Property_purchase;
-      type_of_property: TypeProperties;
-      description: string;
-      price: number;
-      is_negotiable: boolean;
-      total_area: number | undefined;
-      address_info: string;
-      neighborhood: string;
-      municipality: string;
-      compartments: { type: string; quantity: number }[];
-      latitude: number | undefined;
-      longitude: number | undefined;
-    },
-    files: { [fieldName: string]: Express.Multer.File[] },
+  updatePropertyInfo: async (
+    profile_id: number,
+    property_id: number,
+    data: UpdatePropertyInfoDTO
   ) => {
-    const status_property = "NAO_PUBLICADO" as PropertyStatus;
-    const ownerRole = await profileRole.findProfileRoleByRole(data.profile_id, 2);
-    if (!ownerRole) throw new AppError("Owner not found!", 404);
-
-    const property = await propertyRepository.createProperty(
-      ownerRole.id,
-      data.title,
-      data.type_purchase,
-      data.type_of_property,
-      data.description,
-      status_property,
-      data.is_negotiable,
-      data.price,
-      data.total_area,
-    );
-
-    const markAsPropertyStatus = async (newStatus: PropertyStatus) => {
-      await propertyRepository.updatePropertyStatus(property.id, newStatus);
-    };
-
-    const compartmentResults = await Promise.allSettled(
-      data.compartments.map((compartment) =>
-        propertyCompartmentsRepository.createPropertyCompartments(
-          property.id,
-          compartment.type.toUpperCase() as CompartmentsTypes,
-          compartment.quantity,
-        ),
-      ),
-    );
-
-    const compartmentErrors = compartmentResults.filter((r) => r.status === "rejected");
-    if (compartmentErrors.length > 0) {
-      await markAsPropertyStatus("EM_ANALISE");
-      const reasons = compartmentErrors
-        .map((r) => (r.status === "rejected" ? (r.reason instanceof Error ? r.reason.message : String(r.reason)) : ""))
-        .join(" | ");
-      throw new AppError(`Falha ao salvar ${compartmentErrors.length} compartimento(s). Propriedade marcada como EM_ANALISE. Detalhes: ${reasons}`, 500);
+    if (Object.values(data).every((v) => v === undefined || v === null)) {
+      throw new AppError("Nenhum dado fornecido para atualização!", 400);
     }
-
-    const allFiles = Object.entries(files).flatMap(([fieldname, fieldFiles]) =>
-      fieldFiles.map((file) => ({ fieldname, file })),
-    );
-
-    const orphanedCloudinaryIds: string[] = [];
-
-    const results = await Promise.allSettled(
-      allFiles.map(({ fieldname, file }) =>
-        limiter(async () => {
-          try {
-            const resourceType = resolveResourceType(file.mimetype);
-            const mediaType = resolveMediaType(file.mimetype);
-
-            const result = await uploadToCloudinary(file.path, `properties/${property.id}`, resourceType);
-
-            try {
-              await propertyMediaRepository.createPropertyMedia(
-                property.id,
-                result.secure_url,
-                mediaType,
-                result.public_id,
-                0,
-              );
-            } catch (dbError) {
-              orphanedCloudinaryIds.push(result.public_id);
-              const message = dbError instanceof Error ? dbError.message : String(dbError);
-              throw new AppError(`Upload OK mas falha ao registar no DB para "${fieldname}": ${message}`, 500);
-            }
-
-            return { fieldname, url: result.secure_url, public_id: result.public_id };
-          } catch (error) {
-            if (error instanceof AppError) throw error;
-            const message = error instanceof Error ? error.message : String(error);
-            throw new AppError(`Erro ao enviar "${fieldname}": ${message}`, 500);
-          } finally {
-            await deleteTempFile(file.path);
-          }
-        }),
-      ),
-    );
-
-    if (orphanedCloudinaryIds.length > 0) {
-      await Promise.allSettled(
-        orphanedCloudinaryIds.map((publicId) => deleteFromCloudinary(publicId)),
-      );
-    }
-
-    const uploaded: Record<string, string> = {};
-    const mediaErrors: string[] = [];
-
-    for (const result of results) {
-      if (result.status === "fulfilled") {
-        uploaded[result.value.fieldname] = result.value.url;
-      } else {
-        const message = result.reason instanceof AppError ? result.reason.message : String(result.reason);
-        mediaErrors.push(message);
-      }
-    }
-
-    if (mediaErrors.length > 0) {
-      await markAsPropertyStatus("EM_ANALISE");
-      throw new AppError(`Falha no upload de ${mediaErrors.length} ficheiro(s). Propriedade marcada como EM_ANALISE. Detalhes: ${mediaErrors.join(" | ")}`, 500);
-    }
-
-    if (data.latitude && data.longitude) {
-      try {
-        await propertyLocalizationRepository.createPropertyLocalization(
-          property.id,
-          data.latitude,
-          data.longitude,
-          data.address_info,
-          data.neighborhood,
-          data.municipality,
-        );
-      } catch (locError) {
-        await markAsPropertyStatus("EM_ANALISE");
-        const message = locError instanceof Error ? locError.message : String(locError);
-        throw new AppError(`Falha ao salvar localização. Propriedade marcada como EM_ANALISE. Detalhes: ${message}`, 500);
-      }
-    }
-
-    await historyPropertyRepository.createHistoryProperty(
-      ownerRole.id,
-      property.id,
-      "DISPONIVEL",
-      "DISPONIVEL",
-    );
-
-    return uploaded;
-  },
-
-  updatePropertyInfo: async (profile_id: number, property_id: number, data: UpdatePropertyInfoDTO) => {
     const ownerRole = await profileRole.findProfileRoleByRole(profile_id, 2);
     if (!ownerRole) throw new AppError("Owner não encontrado!", 404);
 
     const property = await propertyRepository.findUniqueUserProperty(ownerRole.id, property_id);
     if (!property) throw new AppError("Imóvel não encontrado!", 404);
 
-    const { title, type_purchase, type_of_property, description, price, total_area, is_negotiable, address_info, neighborhood, municipality, compartments } = data;
+    const {
+      title,
+      type_purchase,
+      type_of_property,
+      description,
+      price,
+      total_area,
+      is_negotiable,
+      address_info,
+      neighborhood,
+      municipality,
+      compartments,
+      latitude,
+      longitude,
+    } = data;
 
     const updatedProperty = await propertyRepository.updatePropertyInfo(property_id, {
       title,
@@ -319,27 +426,50 @@ export const propertyService = {
     });
     if (!updatedProperty) throw new AppError("Falha ao actualizar imóvel!", 500);
 
-    if (address_info || neighborhood || municipality) {
+    if (address_info || neighborhood || municipality || latitude || longitude) {
       await propertyLocalizationRepository.updatePropertyLocalization(property_id, {
         address_info,
         neighborhood,
         municipality,
+        latitude: latitude ?? null,
+        longitude: longitude ?? null,
       });
     }
 
     if (compartments && compartments.length > 0) {
-      const updateCompartments = await Promise.allSettled(
-        compartments.map((compartment) =>
-          propertyCompartmentsRepository.updatePropertyCompartments(property_id, {
-            type: compartment.type.toUpperCase() as CompartmentsTypes,
-            quantity: compartment.quantity,
-          }),
-        ),
+      const existingCompartments =
+        await propertyCompartmentsRepository.findPropertyCompartments(property_id);
+
+      const updateResults = await Promise.allSettled(
+        compartments.map(async (newCompartment, index) => {
+          const existingId = existingCompartments.find(
+            (c) => c.type === newCompartment.type.toUpperCase()
+          );
+
+          if (!existingId) {
+            // Se não existe, criar novo
+            return await propertyCompartmentsRepository.createPropertyCompartments(
+              property_id,
+              newCompartment.type.toUpperCase() as CompartmentsTypes,
+              newCompartment.quantity
+            );
+          }
+
+          // Atualizar existente com ID correto
+          return await propertyCompartmentsRepository.updatePropertyCompartments(existingId.id, {
+            type: newCompartment.type.toUpperCase() as CompartmentsTypes,
+            quantity: newCompartment.quantity,
+          });
+        })
       );
 
-      if (updateCompartments.some((r) => r.status === "rejected")) {
+      const failedUpdates = updateResults.filter((r) => r.status === "rejected");
+      if (failedUpdates.length > 0) {
         await propertyRepository.updatePropertyStatus(property_id, "EM_ANALISE");
-        throw new AppError("Falha ao actualizar compartimentos. Imóvel marcado como EM_ANALISE.", 500);
+        throw new AppError(
+          "Falha ao actualizar compartimentos. Imóvel marcado como EM_ANALISE.",
+          500
+        );
       }
     }
 
@@ -350,7 +480,7 @@ export const propertyService = {
     profile_id: number,
     property_id: number,
     mediaId: number,
-    file: Express.Multer.File,
+    file: Express.Multer.File
   ) => {
     const ownerRole = await profileRole.findProfileRoleByRole(profile_id, 2);
     if (!ownerRole) throw new AppError("Owner não encontrado!", 404);
@@ -358,7 +488,10 @@ export const propertyService = {
     const property = await propertyRepository.findUniqueUserProperty(ownerRole.id, property_id);
     if (!property) throw new AppError("Imóvel não encontrado!", 404);
 
-    const existingMedia = await propertyMediaRepository.findPropertyMediaById(mediaId, property_id);
+    const existingMedia = await propertyMediaRepository.findPropertyMediaById(
+      mediaId,
+      property_id
+    );
     if (!existingMedia) throw new AppError("Media não encontrada!", 404);
 
     // 1. Apaga do Cloudinary primeiro
@@ -372,7 +505,7 @@ export const propertyService = {
       uploadResult = await uploadToCloudinary(
         file.path,
         `properties/${property_id}`,
-        newResourceType,
+        newResourceType
       );
     } finally {
       await deleteTempFile(file.path);
@@ -384,7 +517,7 @@ export const propertyService = {
       mediaId,
       uploadResult.secure_url,
       newMediaType,
-      uploadResult.public_id,
+      uploadResult.public_id
     );
 
     return updated;
@@ -393,7 +526,7 @@ export const propertyService = {
   deletePropertyMedia: async (
     profile_id: number,
     property_id: number,
-    mediaId: number,
+    mediaId: number
   ) => {
     const ownerRole = await profileRole.findProfileRoleByRole(profile_id, 2);
     if (!ownerRole) throw new AppError("Owner não encontrado!", 404);
@@ -401,13 +534,19 @@ export const propertyService = {
     const property = await propertyRepository.findUniqueUserProperty(ownerRole.id, property_id);
     if (!property) throw new AppError("Imóvel não encontrado!", 404);
 
-    const existingMedia = await propertyMediaRepository.findPropertyMediaById(mediaId, property_id);
+    const existingMedia = await propertyMediaRepository.findPropertyMediaById(
+      mediaId,
+      property_id
+    );
     if (!existingMedia) throw new AppError("Media não encontrada!", 404);
 
     // Garante que o imóvel fica com pelo menos 1 media
     const allMedias = await propertyMediaRepository.findAllPropertyMedia(property_id);
     if (allMedias.length <= 1)
-      throw new AppError("O imóvel precisa de pelo menos uma imagem. Adicione outra antes de remover esta.", 400);
+      throw new AppError(
+        "O imóvel precisa de pelo menos uma imagem. Adicione outra antes de remover esta.",
+        400
+      );
 
     const resourceType = existingMedia.type === "VIDEO" ? "video" : "image";
     await deleteFromCloudinary(existingMedia.public_id, resourceType);
@@ -420,7 +559,7 @@ export const propertyService = {
   addPropertyMedia: async (
     profile_id: number,
     property_id: number,
-    file: Express.Multer.File,
+    file: Express.Multer.File
   ) => {
     const ownerRole = await profileRole.findProfileRoleByRole(profile_id, 2);
     if (!ownerRole) throw new AppError("Owner não encontrado!", 404);
@@ -433,27 +572,33 @@ export const propertyService = {
 
     // Limita a 1 vídeo por imóvel
     if (mediaType === "VIDEO") {
-      const existingVideos = await propertyMediaRepository.findPropertyMediaByType(property_id, "VIDEO");
+      const existingVideos = await propertyMediaRepository.findPropertyMediaByType(
+        property_id,
+        "VIDEO"
+      );
       if (existingVideos.length >= 1)
-        throw new AppError("Já existe um vídeo para este imóvel. Substitua o existente.", 400);
+        throw new AppError(
+          "Já existe um vídeo para este imóvel. Substitua o existente.",
+          400
+        );
     }
 
     let uploadResult;
     try {
-      uploadResult = await uploadToCloudinary(file.path, `properties/${property_id}`, resourceType);
+      uploadResult = await uploadToCloudinary(
+        file.path,
+        `properties/${property_id}`,
+        resourceType
+      );
     } finally {
       await deleteTempFile(file.path);
     }
 
-    const allMedias = await propertyMediaRepository.findAllPropertyMedia(property_id);
-    const nextOrder = allMedias.length > 0 ? Math.max(...allMedias.map((m) => m.order)) + 1 : 0;
-
-    const media = await propertyMediaRepository.createPropertyMedia(
+    const media = await propertyMediaRepository.createPropertyMediaWithNextOrder(
       property_id,
       uploadResult.secure_url,
       mediaType,
-      uploadResult.public_id,
-      nextOrder,
+      uploadResult.public_id
     );
 
     return media;

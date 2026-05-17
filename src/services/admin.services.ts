@@ -10,6 +10,7 @@ import { adminRepository } from "../repositories/admin/admin.respositories.js";
 import type { AccessLevel } from "@prisma/client";
 import { sendVerificationEmail } from "./mail.services.js";
 import jwt from "jsonwebtoken";
+import { refreshTokenUser } from "../repositories/auth/refreshToken.repositories.js";
 
 export const adminService = {
   //auth
@@ -58,7 +59,41 @@ export const adminService = {
           expiresIn: "15m",
         },
       );
-      await sendVerificationEmail(email, emailVerificatioTonken);
+      
+
+      const refreshToken = jwt.sign(
+              {
+                sub: createuser.id,
+              },
+              ENV.JWT_REFRESH_SECRET,
+              { expiresIn: "7d" },
+            );
+      
+      const accessToken = jwt.sign(
+        {
+          sub: createAdminProfile.id,
+          role: "CLIENT",
+          iat: Math.floor(Date.now() / 1000),
+          type: createAdminProfile.type,
+        },
+        ENV.JWT_SECRET,
+        { expiresIn: "15m" },
+      );
+
+      const expiresAt = new Date();
+      expiresAt.setDate(expiresAt.getDate() + 7);
+
+      await refreshTokenUser.saveRefreshToken({
+        refreshToken,
+        userId: createuser.id,
+        expiresAt: expiresAt,
+      });
+       if (!createuser.email_verified)
+        await sendVerificationEmail(createuser.email, emailVerificatioTonken);
+
+
+      return { accessToken, refreshToken, message: "Admin criado com sucesso!" };
+
     } catch (error) {
       throw new AppError(`Error: ${error}`);
     }
@@ -69,18 +104,51 @@ export const adminService = {
 
       if (!findEmail) throw new AppError("User not Found", 404);
 
+      if (!findEmail.email_verified) throw new AppError("Valide o seu email", 400);
+
       const findProfileById = await profileRepository.findByUserId(
         findEmail.id,
       );
 
-      if (!findProfileById) throw new AppError("Profile not Found", 404);
+      if (!findProfileById) throw new AppError("Profile not Found!", 404);
 
       const verifyAdmin = await profileRole.findProfileRoleByRole(
         findProfileById.id,
         3,
       );
 
+      if(!verifyAdmin) throw new AppError("Admin not found!", 404)
+      if(verifyAdmin?.status !== "APPROVED") throw new AppError("Admin nao aprovado!", 403)
+
       const verifiyPassword = comparePassword(password, findEmail!.password);
+
+      if (!verifiyPassword) throw new AppError("Wrong password!", 401);
+
+      const refreshToken = jwt.sign(
+        {
+          sub: findEmail.id,
+        },
+        ENV.JWT_REFRESH_SECRET,
+        { expiresIn: "7d" },
+      );
+      const accessToken = jwt.sign(
+        {
+          sub: findProfileById.id,
+          role: "ADMIN",
+          iat: Math.floor(Date.now() / 1000),
+          type: findProfileById.type,
+        },
+        ENV.JWT_SECRET,
+        { expiresIn: "15m" },
+      );
+      const expiresAt = new Date();
+      expiresAt.setDate(expiresAt.getDate() + 7);
+      await refreshTokenUser.saveRefreshToken({
+        refreshToken,
+        userId: findEmail.id,
+        expiresAt: expiresAt,
+      });
+      return { accessToken, refreshToken, message: "Admin com sessao iniciada!" };
     } catch (error) {
       throw new AppError(`Erro ao entrar como admin: ${error}`, 400);
     }

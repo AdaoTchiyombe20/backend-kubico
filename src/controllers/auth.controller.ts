@@ -16,11 +16,16 @@ export const authController = {
           const data: createAdminDTO = createAdmin.parse({adminsName: req.body.adminsName, email: req.body.email, password: req.body.password, accessLevel: req.body.accessLevel.toUpperCase()})
           const {adminsName,email,password, accessLevel} = data
   
-          await adminService.createAdmin(adminsName,email, password, accessLevel)
-  
+          const result = await adminService.createAdmin(adminsName,email, password, accessLevel)
+          
+        res.set('Access-Control-Expose-Headers', 'Authorization');
+        res.set('Authorization', `Bearer ${result.accessToken}`);
+        
+        setCookie(res, "refreshToken", result.refreshToken)
+
           res.json({
             success: true,
-            message: 'Admin Criado!'
+            ...result
           })
   
         }catch(error){
@@ -30,13 +35,18 @@ export const authController = {
       loginAdmin: async(req:Request, res: Response, next: NextFunction)=> {
         try{
           const data: AdminLoginDTO = loginAdmin.parse(req.body)
-          const {userName, password} = data
+          const {email, password} = data
   
-          await adminService.login(userName, password)
-  
+          const result = await adminService.login(email, password)
+          
+        res.set('Access-Control-Expose-Headers', 'Authorization');
+        res.set('Authorization', `Bearer ${result.accessToken}`);
+        
+        setCookie(res, "refreshToken", result.refreshToken)
+
           res.status(200).json({
             success: true,
-            message:'Admin com sessao iniciada'
+            ...result
           })
         }catch(error){
           next(error)

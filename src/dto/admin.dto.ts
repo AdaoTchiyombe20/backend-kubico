@@ -8,7 +8,7 @@ export const createAdmin = z.object({
 })
 
 export const loginAdmin = z.object({
-    userName: z.string('Only String').min(3,'Min 3 characters'),
+    email: z.string('Only String').email('Email invalido!'),
     password: z.string('Only String').min(6,'Min 6 characters')
 })
 

@@ -88,6 +88,7 @@ export const authServices = {
         message: "Cliente criado com sucesso!",
       };
     } catch (error) {
+        if (error instanceof AppError) throw error; // re-lança sem alterar
         throw new AppError(`Erro ao fazer o signUp: ${error}`, 400);
     }
   },
@@ -96,20 +97,20 @@ export const authServices = {
       const { email, password } = data;
       const user = await authRepositories.findByEmail(email);
 
-      if (!user) throw new AppError("Usuario nao encontrado!!", 404);
+      if (!user) throw new AppError("User not found!!", 404);
 
       const verfiryUserPassword = await comparePassword(
         password,
         user.password,
       );
 
-      if (!verfiryUserPassword) throw new AppError("senha incorreta!!", 401);
+      if (!verfiryUserPassword) throw new AppError("wrong password!", 401);
 
       if (!user.email_verified) throw new AppError("Valide o seu email", 400);
 
       const profile = await profileRepository.findByUserId(user.id);
 
-      if (!profile) throw new AppError("Profile nao encontrado!", 400);
+      if (!profile) throw new AppError("Profile not found!!", 404);
 
       const refreshToken = jwt.sign(
         {
@@ -151,7 +152,8 @@ export const authServices = {
         accessToken,
       };
     } catch (error) {
-      throw new AppError(`Erro ao fazer login: ${error}`, 400);
+        if (error instanceof AppError) throw error; // re-lança sem alterar
+        throw new AppError(`Erro ao fazer login: ${error}`, 400);
     }
   },
   logout: async (refreshToken: string) => {

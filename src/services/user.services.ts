@@ -71,7 +71,7 @@ export const userService = {
         },
       );
 
-      await sendVerificationEmail(updatingEmail!.email, verifyEmailToken);
+      /* await sendVerificationEmail(updatingEmail!.email, verifyEmailToken); */
     } catch (error) {
       throw new AppError(`Erro: ${error}`, 400);
     }

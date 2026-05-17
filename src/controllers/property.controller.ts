@@ -2,6 +2,8 @@ import type { Request, Response, NextFunction } from "express";
 import { type CreatePropertyDTO, createPropertySchema, updatePropertyInfo, type UpdatePropertyInfoDTO } from "../dto/property.dto.js";
 import { propertyService } from "../services/property.services.js";
 import { AppError } from "../errors/App.Errors.js";
+import { type RawSearchFilters } from "../dto/property.dto.js";
+import { QueryValidator } from "../utils/queryValidators.js";
 
 export const propertyController = {
   findAll: async (req: Request, res: Response, next: NextFunction) => {
@@ -86,7 +88,7 @@ export const propertyController = {
       const { title, description, address_info, type_purchase, neighborhood, municipality, price, is_negotiable, total_area, type_of_property, compartments, latitude, longitude } = data;
 
       const createProperty = await propertyService.createProperty(
-        { profile_id: Number(profileId), title, type_purchase, type_of_property, description, price, is_negotiable, total_area, address_info, neighborhood, municipality, compartments, latitude, longitude },
+        { profile_id: Number(profileId), title, type_purchase, type_of_property, description, price, is_negotiable, total_area, address_info, neighborhood, municipality, compartments, latitude:latitude ?? null, longitude: longitude ?? null },
         files,
       );
 
@@ -96,6 +98,63 @@ export const propertyController = {
     }
   },
 
+  findAllListings: async (req: Request, res: Response, next: NextFunction) => {
+    try {
+      const limit = req.query.limit || 20;
+      const lastPropertyId = req.query.cursor || 0;
+      if (Array.isArray(limit)) throw new AppError("Valor inválido!", 400);
+      if (Array.isArray(lastPropertyId)) throw new AppError("Valor inválido!", 400);
+
+      const properties = await propertyService.findAllListings(Number(limit), Number(lastPropertyId));
+
+      res.json({
+        success: true,
+        cursor: properties.cursor,
+        properties: properties.properties,
+      });
+    } catch (error) {
+      next(error);
+    }
+  },
+
+  findListingById: async (req: Request, res: Response, next: NextFunction) => {
+    try {
+      const propertyId = req.params.id;
+      const property = await propertyService.findListingById(Number(propertyId));
+
+      res.json({ success: true, property });
+    } catch (error) {
+      next(error);
+    } 
+  },
+
+  searchListings: async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    const { type_purchase, type_of_property, neighborhood, municipality, min_price, max_price } = req.query;
+    
+    const filters: RawSearchFilters = {
+      type_purchase: QueryValidator.ensureSingleString(type_purchase, 'type_purchase'),
+      type_of_property: QueryValidator.ensureSingleString(type_of_property, 'type_of_property'),
+      neighborhood: QueryValidator.ensureSingleString(neighborhood, 'neighborhood'),
+      municipality: QueryValidator.ensureSingleString(municipality, 'municipality'),
+      min_price: QueryValidator.ensureSingleString(min_price, 'min_price'),
+      max_price: QueryValidator.ensureSingleString(max_price, 'max_price'),
+    };
+
+    const limit = QueryValidator.ensurePositiveNumber(req.query.limit, 'limit') || 20;
+    const lastPropertyId = QueryValidator.ensurePositiveNumber(req.query.cursor, 'cursor') || 0;
+
+    const properties = await propertyService.searchListings(filters, limit, lastPropertyId);
+
+    res.json({
+      success: true,
+      cursor: properties.cursor,
+      properties: properties.properties,
+    });
+  } catch (error) {
+    next(error);
+  }
+},
   updatePropertyInfo: async (req: Request, res: Response, next: NextFunction) => {
     try {
       const profileId = req.accessUser?.sub;

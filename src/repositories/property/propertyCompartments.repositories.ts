@@ -1,4 +1,4 @@
-import type { CompartmentsTypes } from "@prisma/client"
+import type { CompartmentsTypes, propertyCompartments } from "@prisma/client"
 import { prisma } from "../../../lib/prisma.js"
 
 export const propertyCompartmentsRepository = {
@@ -11,15 +11,15 @@ export const propertyCompartmentsRepository = {
             }
         })         
     },
-    updatePropertyCompartments: async(id: number, data: {type: CompartmentsTypes | undefined, quantity: number | undefined}): Promise<void> => {
+    updatePropertyCompartments: async(compartmentId: number, data: {type?: CompartmentsTypes, quantity?: number}):Promise<propertyCompartments> => {
         const cleanData = Object.fromEntries(
             Object.entries(data).filter(([_, value]) => value !== undefined)
-        ) as {type?: CompartmentsTypes, quantity?: number};
+            ) as {type?: CompartmentsTypes, quantity?: number};
         
-        await prisma.propertyCompartments.update({
-            where: { id },
+        return prisma.propertyCompartments.update({
+            where: { id: compartmentId },
             data: cleanData
-        })         
+            });
     },
     findPropertyCompartments: async(property_id: number) => {
         return await prisma.propertyCompartments.findMany({

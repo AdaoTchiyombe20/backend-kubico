@@ -6,9 +6,10 @@ const { uploadImagesAndVideo, uploadImg, uploadVideo } = multerUploads;
 
 const propertyRoute = Router();
 
+//crud de imóveis
 propertyRoute.get("/", propertyController.findAll);
 propertyRoute.get("/owner", propertyController.findUserProperties);
-
+propertyRoute.delete("/:id", propertyController.deleteProperty);
 propertyRoute.post(
   "/",
   uploadImagesAndVideo.fields([
@@ -17,26 +18,25 @@ propertyRoute.post(
   ]),
   propertyController.createProperty,
 );
-
-propertyRoute.post("/publish/:id", propertyController.publishProperty);
-propertyRoute.post("/unpublish/:id", propertyController.unPublishProperty);
-
 propertyRoute.patch("/:id/info", propertyController.updatePropertyInfo);
-
 propertyRoute.patch(
   "/:id/media/:mediaId",
   uploadImagesAndVideo.single("file"),
   propertyController.updatePropertyMedia,
 );
-
 propertyRoute.post(
   "/:id/media",
   uploadImagesAndVideo.single("file"),
   propertyController.addPropertyMedia,
 );
-
 propertyRoute.delete("/:id/media/:mediaId", propertyController.deletePropertyMedia);
 
-propertyRoute.delete("/:id", propertyController.deleteProperty);
+//publicação de imóveis
+propertyRoute.get("/listings", propertyController.findAllListings);
+propertyRoute.get("/listings/:id", propertyController.findListingById);
+propertyRoute.get("/listings/search", propertyController.searchListings);
+propertyRoute.post("/publish/:id", propertyController.publishProperty);
+propertyRoute.post("/unpublish/:id", propertyController.unPublishProperty);
+
 
 export { propertyRoute };

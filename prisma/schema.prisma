@@ -152,24 +152,32 @@ model emailVerification {
 
 model properties {
   id Int @id @default(autoincrement())
-  id_owner Int 
+  id_owner Int
   title String
   type_property_purchase Property_purchase
   type_of_property TypeProperties
   description String
   status_property PropertyStatus
   is_negotiable Boolean @default(false)
-  create_at DateTime @default(now())
-  price Decimal
+  price Int
   total_area Int?
+  created_at DateTime @default(now())
+  updated_at DateTime @updatedAt
+  deleted_at DateTime? // ✅ NOVO: soft delete
 
   owner profile_roles @relation(fields: [id_owner],references: [id], onDelete: Cascade)
-  
-  property_history propertyHistory[]
-  property_medias propertyMedia[]
-  property_localization propertyLocalization[]
+
+  property_localization propertyLocalization?
   property_compartments propertyCompartments[]
+  property_medias propertyMedia[]
   property_listing propertyListing[]
+  property_history propertyHistory[]
+
+  // ✅ Índices
+  @@unique([id_owner, id]) // Garantir que usuário só acessa suas propriedades
+  @@index([status_property]) // Queries por status
+  @@index([created_at]) // Ordenação por data
+  @@index([deleted_at]) // Soft deletes
 }
 
 model propertyHistory {
@@ -183,6 +191,10 @@ model propertyHistory {
 
   owner profile_roles @relation(fields: [id_owner], references: [id], onDelete: Cascade)
   property properties @relation(fields: [id_property], references: [id], onDelete: Cascade)
+
+   // ✅ Índices para auditoria
+  @@index([id_property, started_at]) // Timeline de uma propriedade
+  @@index([id_owner, started_at]) // Timeline de um usuário
 }
 
 model propertyMedia{ 
@@ -191,22 +203,29 @@ model propertyMedia{
   type MediaTypes
   url String
   order Int
-  public_id String
+  public_id String @unique
   uploaded_at DateTime @default(now())
 
   property properties @relation(fields: [property_id], references: [id], onDelete: Cascade)
+
+  @@index([property_id, type]) // Queries por tipo de media
+  @@index([uploaded_at]) // Limpeza de arquivos temporários
 }
 
 model propertyLocalization {
   id Int @id @default(autoincrement())
   property_id Int @unique
-  latitude Decimal
-  longitude Decimal
+  latitude Decimal?
+  longitude Decimal?
   address_info String
   neighborhood String
   municipality String
 
   property properties @relation(fields: [property_id], references: [id],onDelete: Cascade)
+
+  // ✅ Índices para busca geográfica
+  @@index([municipality, neighborhood])
+  @@index([latitude, longitude]) // Se usar query de proximidade no futuro
 }
 
 model propertyCompartments {
@@ -216,6 +235,9 @@ model propertyCompartments {
   type  CompartmentsTypes
 
   property properties @relation(fields: [property_id], references: [id],onDelete: Cascade)
+
+  // ✅ Índices
+  @@index([property_id])
 }
 
 model propertyListing {
@@ -225,11 +247,15 @@ model propertyListing {
   delisted_at DateTime?
   status      ListingStatus
 
-  @@index([property_id])
-  @@index([property_id, delisted_at])
-
   property    properties   @relation(fields: [property_id], references: [id], onDelete: Cascade)
   negotiation negotiation[]
+
+  // ✅ Índices críticos para busca
+  @@index([property_id])
+  @@index([property_id, delisted_at])
+  @@index([status, delisted_at, id]) // Compound index para searchListings
+  @@index([listed_at]) // Ordenação temporal
+  @@index([delisted_at]) // Filtro soft-delete
 }
 
 model negotiation {
