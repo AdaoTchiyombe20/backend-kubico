@@ -3,7 +3,6 @@ import z, {string} from 'zod'
 export const signup = z.object({
         email : z.string("Apenas String!!").email('Email Invalido!'),
         password : z.string("Apenas String!!").min(6),
-        /* typeOfUser: z.enum(["INDIVIDUAL", "COMPANY"], 'Dado inválido! São apenas permitidos 2 tipos de dados para type of user: INDIVIDUAL e COMPANY!') */
 })
 
 export const login = z.object({

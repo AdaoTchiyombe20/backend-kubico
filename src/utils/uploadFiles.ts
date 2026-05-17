@@ -1,5 +1,6 @@
 import { AppError } from "../errors/App.Errors.js";
-import { uploadToCloudinary, deleteTempFile } from "../middlewares/multer.middleware.js";
+import { deleteTempFile } from "../middlewares/multer.middleware.js";
+import { uploadToCloudinary } from "./cloudinary.utils.js";
 
 type MulterFiles =
   | { [fieldname: string]: Express.Multer.File[] }
@@ -22,10 +23,12 @@ export const uploadFiles = async (
 
   const results = await Promise.all(
     fileArray.map(async (file) => {
-      const resourceType =
-        file.mimetype.startsWith("video/") ? "video"
-        : file.mimetype === "application/pdf" ? "raw"
-        : "image";
+      const resourceType: "image" | "video" | undefined =
+        file.mimetype.startsWith("video/")
+          ? "video"
+          : file.mimetype === "application/pdf"
+          ? undefined
+          : "image";
 
       try {
         const data = await uploadToCloudinary(file.path, folder, resourceType);
