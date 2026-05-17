@@ -1,12 +1,10 @@
 import multer from "multer";
 import type { Request } from "express";
 import { AppError } from "../errors/App.Errors.js";
-import { Readable } from "stream";
 import fs from "fs";
 import fsPromises from "fs/promises";
 import path from "path";
 import crypto from "crypto";
-import cloudinary from "../config/cloudinary.js";
 
 // ─── Garantir diretório temporário ───────────────────────────────────────────
 /* fs.mkdirSync("uploads/tmp", { recursive: true }); */
@@ -20,11 +18,24 @@ const LIMITS = {
 };
 
 const ALLOWED_DOCUMENT_FIELDS = new Set([
-   "profile_photo","contrato_venda", "contrato_arrendamento", 
+  "profile_photo",
+  "contrato_venda",
+  "contrato_arrendamento",
 ]);
 
-const IMAGE_MIME_TYPES = new Set(["image/png", "image/jpeg", "image/jpg", "image/webp"]);
-const VIDEO_MIME_TYPES = new Set(["video/mp4", "video/mkv", "video/mov", "video/avi", "video/webm"]);
+const IMAGE_MIME_TYPES = new Set([
+  "image/png",
+  "image/jpeg",
+  "image/jpg",
+  "image/webp",
+]);
+const VIDEO_MIME_TYPES = new Set([
+  "video/mp4",
+  "video/mkv",
+  "video/mov",
+  "video/avi",
+  "video/webm",
+]);
 const PDF_MIME_TYPE = "application/pdf";
 
 const isPdf = (mime: string) => mime === PDF_MIME_TYPE;
@@ -43,44 +54,9 @@ const diskStorage = multer.diskStorage({
 // ─── Buffer para todos ───────────────────────────────────────────
 const bufferStorage = multer.memoryStorage();
 
-// ─── Upload para Cloudinary (stream a partir do disco) ────────────────────────
-type CloudinaryUploadResult = {
-  public_id: string;
-  secure_url: string;
-  resource_type: string;
-  bytes: number;
-  format: string;
-};
-
-export const uploadToCloudinary = async (
-  filePath: string,
-  folder: string,
-  resourceType: "image" | "video" | "raw" = "image",
-): Promise<CloudinaryUploadResult> => {
-  return new Promise((resolve, reject) => {
-    const uploadStream = cloudinary.uploader.upload_stream(
-      {
-        folder,
-        resource_type: resourceType,
-        ...(resourceType === "video" && { chunk_size: 10 * MB }),
-      },
-      (error: any, result: any) => {
-        if (error) return reject(new AppError(`Erro ao fazer upload: ${error.message}`, 500));
-        resolve(result as CloudinaryUploadResult);
-      },
-    );
-    fs.createReadStream(filePath).pipe(uploadStream);
-  });
-};
-
-// Apaga o ficheiro temporário após upload
-export const deleteTempFile = async (filePath: string): Promise<void> => {
-  try {
-    await fsPromises.unlink(filePath);
-  } catch {
-    // Ficheiro já apagado ou não encontrado — ignorar silenciosamente
-  }
-};
+// ✅ Função importada do cloudinary.utils foi removida (usar a do utils!)
+// Veja: src/utils/cloudinary.utils.ts
+export { deleteTempFile } from "../utils/cloudinary.utils.js";
 
 // ─── File filters ─────────────────────────────────────────────────────────────
 const profileFileFilter = (_req: Request, file: Express.Multer.File, cb: any) => {
@@ -110,7 +86,6 @@ const imageOrVideoFilter = (_req: Request, file: Express.Multer.File, cb: any) =
   cb(new AppError("Apenas imagens ou vídeos são permitidos", 400));
 };
 
-
 // ─── Multer exports ───────────────────────────────────────────────────────────
 export const multerUploads = {
   uploadFilesFromProfile: multer({
@@ -138,8 +113,8 @@ export const multerUploads = {
   }),
 
   uploadImagesAndVideo: multer({
-  storage: diskStorage,
-  limits: { fileSize: LIMITS.video }, 
-  fileFilter: imageOrVideoFilter,
-}),
+    storage: diskStorage,
+    limits: { fileSize: LIMITS.video },
+    fileFilter: imageOrVideoFilter,
+  }),
 };

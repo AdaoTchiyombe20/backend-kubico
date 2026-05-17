@@ -208,7 +208,6 @@ model propertyMedia{
 
   property properties @relation(fields: [property_id], references: [id], onDelete: Cascade)
 
-  @@unique([property_id, order]) // Garantir ordem sequencial e única
   @@index([property_id, type]) // Queries por tipo de media
   @@index([uploaded_at]) // Limpeza de arquivos temporários
 }

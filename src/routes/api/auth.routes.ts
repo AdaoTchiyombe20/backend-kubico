@@ -14,6 +14,6 @@ authRouter.get("/send-verify-mail", authorizeRefreshTokenMiddleware, authControl
 
 //admin
 //auth
-authRouter.post('/create-admin', authController.createAdmin)
-authRouter.post('/login', authController.login)
+authRouter.post('/create-admin', loginRateLimiting, UnauthorizeRefreshTokenMiddleware, authController.createAdmin)
+authRouter.post('/login-admin',UnauthorizeRefreshTokenMiddleware, authController.loginAdmin)
 export {authRouter}
