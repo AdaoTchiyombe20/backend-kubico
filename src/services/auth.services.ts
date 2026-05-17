@@ -88,8 +88,9 @@ export const authServices = {
         message: "Cliente criado com sucesso!",
       };
     } catch (error) {
-        if (error instanceof AppError) throw error; // re-lança sem alterar
-        throw new AppError(`Erro ao fazer o signUp: ${error}`, 400);
+         console.error("SIGNUP ERROR DETALHADO:", error); // ← vai aparecer nos logs Railway
+    if (error instanceof AppError) throw error;
+    throw new AppError(`Erro ao fazer o signUp: ${error}`, 500);
     }
   },
   login: async (data: AuthLoginDTO) => {
@@ -152,8 +153,9 @@ export const authServices = {
         accessToken,
       };
     } catch (error) {
-        if (error instanceof AppError) throw error; // re-lança sem alterar
-        throw new AppError(`Erro ao fazer login: ${error}`, 400);
+         console.error("SIGNUP ERROR DETALHADO:", error); // ← vai aparecer nos logs Railway
+    if (error instanceof AppError) throw error;
+    throw new AppError(`Erro ao fazer o signUp: ${error}`, 500);
     }
   },
   logout: async (refreshToken: string) => {
