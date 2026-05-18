@@ -35,7 +35,7 @@ export const propertyListingRepository = {
         status: ListingStatus.DISPONIVEL,
         ...(cursor > 0 && { id: { gt: cursor } }),
       },
-      include: { property: true },
+      include: { property: true, propertyMedia: true, propertyLocalization: true, propertyCompartments: true },
       orderBy: { id: "asc" },
       take: limit + 1,
     });
@@ -47,7 +47,7 @@ export const propertyListingRepository = {
         id: listingId,
         delisted_at: null,
       },
-      include: { property: true },
+      include: { property: true, propertyMedia: true, propertyLocalization: true, propertyCompartments: true },
     });
   },
 
@@ -63,25 +63,11 @@ export const propertyListingRepository = {
         ...(cursor > 0 && { id: { gt: cursor } }),
         property: {
           ...(filters.type_of_property && {
-            type_of_property: filters.type_of_property
+            type_of_property: filters.type_of_property,
           }),
 
           ...(filters.type_purchase && {
-            type_property_purchase: filters.type_purchase
-          }),
-
-          ...(filters.neighborhood && {
-            neighborhood: {
-              contains: filters.neighborhood,
-              mode: "insensitive",
-            },
-          }),
-
-          ...(filters.municipality && {
-            municipality: {
-              contains: filters.municipality,
-              mode: "insensitive",
-            },
+            type_property_purchase: filters.type_purchase,
           }),
 
           ...(filters.min_price !== undefined ||
@@ -98,9 +84,33 @@ export const propertyListingRepository = {
                 },
               }
             : {}),
+
+          ...((filters.neighborhood || filters.municipality) && {
+            property_localization: {
+              is: {
+                ...(filters.neighborhood && {
+                  neighborhood: {
+                    contains: filters.neighborhood,
+                    mode: "insensitive",
+                  },
+                }),
+
+                ...(filters.municipality && {
+                  municipality: {
+                    contains: filters.municipality,
+                    mode: "insensitive",
+                  },
+                }),
+              },
+            },
+          }),
         },
       },
-      include: { property: true },
+      include: { property: true,
+        propertyMedia: true,
+        propertyLocalization: true,
+        propertyCompartments: true
+       },
       orderBy: { id: "asc" },
       take: limit + 1,
     });
