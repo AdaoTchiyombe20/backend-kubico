@@ -18,7 +18,7 @@ export const authServices = {
       const userEmail = email.trim();
       const existingEmail = await authRepositories.findByEmail(userEmail);
 
-      if (existingEmail) throw new AppError("Email já cadastrado!!", 400);
+      if (existingEmail) throw new AppError("Email já cadastrado!", 400);
 
       const passwordHash = await hashPassword(password);
 
@@ -88,7 +88,6 @@ export const authServices = {
         message: "Cliente criado com sucesso!",
       };
     } catch (error) {
-         console.error("SIGNUP ERROR DETALHADO:", error); // ← vai aparecer nos logs Railway
     if (error instanceof AppError) throw error;
     throw new AppError(`Erro ao fazer o signUp: ${error}`, 500);
     }
@@ -98,20 +97,20 @@ export const authServices = {
       const { email, password } = data;
       const user = await authRepositories.findByEmail(email);
 
-      if (!user) throw new AppError("User not found!!", 404);
+      if (!user) throw new AppError("User not found!", 404);
 
       const verfiryUserPassword = await comparePassword(
         password,
         user.password,
       );
 
-      if (!verfiryUserPassword) throw new AppError("wrong password!", 401);
+      if (!verfiryUserPassword) throw new AppError("Dados Incorretos!", 401);
 
       if (!user.email_verified) throw new AppError("Valide o seu email", 400);
 
       const profile = await profileRepository.findByUserId(user.id);
 
-      if (!profile) throw new AppError("Profile not found!!", 404);
+      if (!profile) throw new AppError("Usuário não encontrado!", 404);
 
       const refreshToken = jwt.sign(
         {
@@ -153,7 +152,6 @@ export const authServices = {
         accessToken,
       };
     } catch (error) {
-         console.error("SIGNUP ERROR DETALHADO:", error); // ← vai aparecer nos logs Railway
     if (error instanceof AppError) throw error;
     throw new AppError(`Erro ao fazer o signUp: ${error}`, 500);
     }

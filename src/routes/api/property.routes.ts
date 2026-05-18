@@ -33,8 +33,8 @@ propertyRoute.delete("/:id/media/:mediaId", propertyController.deletePropertyMed
 
 //publicação de imóveis
 propertyRoute.get("/listings", propertyController.findAllListings);
-propertyRoute.get("/listings/:id", propertyController.findListingById);
 propertyRoute.get("/listings/search", propertyController.searchListings);
+propertyRoute.get("/listings/:id", propertyController.findListingById);
 propertyRoute.post("/publish/:id", propertyController.publishProperty);
 propertyRoute.post("/unpublish/:id", propertyController.unPublishProperty);
 

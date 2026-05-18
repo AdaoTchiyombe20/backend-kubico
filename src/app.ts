@@ -13,19 +13,18 @@ const app = express();
 const allowedOrigins = [
   "http://localhost:5173",
   "http://localhost:4000",
-  "https://backend-kubico-production.up.railway.app", // ← adiciona o teu domínio de produção
+  "https://backend-kubico-production.up.railway.app", 
 ];
 
 app.use(
   cors({
     origin: (origin, callback) => {
-      // Permite requests sem origin (curl, Postman, mobile apps)
       if (!origin) return callback(null, true);
       
       if (allowedOrigins.includes(origin)) {
         callback(null, true);
       } else {
-        callback(null, false); // ← rejeita silenciosamente, não lança Error
+        callback(null, false); 
       }
     },
     credentials: true,

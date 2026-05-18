@@ -62,20 +62,42 @@ export const propertyListingRepository = {
         status: ListingStatus.DISPONIVEL,
         ...(cursor > 0 && { id: { gt: cursor } }),
         property: {
-          ...(filters.type_of_property && { type_of_property: filters.type_of_property }),
-          ...(filters.type_purchase && { type_purchase: filters.type_purchase }),
+          ...(filters.type_of_property && {
+            type_of_property: filters.type_of_property
+          }),
+
+          ...(filters.type_purchase && {
+            type_property_purchase: filters.type_purchase
+          }),
+
           ...(filters.neighborhood && {
-            neighborhood: { contains: filters.neighborhood, mode: "insensitive" },
-          }),
-          ...(filters.municipality && {
-            municipality: { contains: filters.municipality, mode: "insensitive" },
-          }),
-          ...(filters.min_price !== undefined || filters.max_price !== undefined ? {
-            price: {
-              ...(filters.min_price !== undefined && { gte: filters.min_price }),
-              ...(filters.max_price !== undefined && { lte: filters.max_price }),
+            neighborhood: {
+              contains: filters.neighborhood,
+              mode: "insensitive",
             },
-          } : {}),
+          }),
+
+          ...(filters.municipality && {
+            municipality: {
+              contains: filters.municipality,
+              mode: "insensitive",
+            },
+          }),
+
+          ...(filters.min_price !== undefined ||
+          filters.max_price !== undefined
+            ? {
+                price: {
+                  ...(filters.min_price !== undefined && {
+                    gte: filters.min_price,
+                  }),
+
+                  ...(filters.max_price !== undefined && {
+                    lte: filters.max_price,
+                  }),
+                },
+              }
+            : {}),
         },
       },
       include: { property: true },
