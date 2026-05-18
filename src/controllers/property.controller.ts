@@ -119,8 +119,13 @@ export const propertyController = {
 
   findListingById: async (req: Request, res: Response, next: NextFunction) => {
     try {
-      const propertyId = req.params.id;
-      const property = await propertyService.findListingById(Number(propertyId));
+      const propertyId = Number(req.params.id);
+
+      if (isNaN(propertyId) || propertyId <= 0) {
+        throw new AppError("ID inválido!", 400);
+}
+
+      const property = await propertyService.findListingById(propertyId);
 
       res.json({ success: true, property });
     } catch (error) {
