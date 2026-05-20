@@ -19,15 +19,10 @@ const allowedOrigins = [
 app.use(
   cors({
     origin: (origin, callback) => {
-      console.log('🔍 Origin recebido:', origin); // ← Adicione isto
-      if (!origin) return callback(null, true);
+      console.log('🔍 Origin recebido:', origin);
       
-      if (allowedOrigins.includes(origin)) {
-        callback(null, true);
-      } else {
-        console.log('❌ Origin rejeitado:', origin); // ← E isto
-        callback(null, false); 
-      }
+      // ✅ Temporariamente, permite tudo
+      callback(null, true);
     },
     credentials: true,
     allowedHeaders: ["Content-Type", "Authorization"],
