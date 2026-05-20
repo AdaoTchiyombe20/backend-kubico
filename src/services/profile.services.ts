@@ -21,12 +21,11 @@ export const profileService = {
       birth_date: Date;
       phone: string;
       bi: string;
-      nif: string;
       bank_account: string;
     },
   ) => {
     try {
-      const { full_name, birth_date, phone, bi, nif, bank_account } = data;
+      const { full_name, birth_date, phone, bi, bank_account } = data;
 
       const existingProfile = await profileRepository.findByIdAnfType(user_id, 'INDIVIDUAL');
       if (!existingProfile) throw new AppError("Perfil Individual Inexistente!", 400);
@@ -42,14 +41,12 @@ export const profileService = {
       // ✅ phone agora validado aqui também
       await validateUniqueData([
         { type: "BI",             value: bi,           label: "BI"           },
-        { type: "NIF",            value: nif,          label: "NIF"          },
         { type: "PHONE",          value: phone,        label: "Telefone"     },
         { type: "CONTA_BANCARIA", value: bank_account, label: "Conta Bancária" },
       ]);
 
       await person_profilesRepository.createBase(profile_id, { full_name, birth_date });
       await profileMediaRepository.insertMedia(profile_id, "BI",             bi);
-      await profileMediaRepository.insertMedia(profile_id, "NIF",            nif);
       await profileMediaRepository.insertMedia(profile_id, "PHONE",          phone);
       await profileMediaRepository.insertMedia(profile_id, "CONTA_BANCARIA", bank_account);
       await profileRole.updateAllProfileRolesStatus(profile_id, false);

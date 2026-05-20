@@ -20,7 +20,6 @@ export const profileController = {
         birth_date:new Date(data.dateOfBirth),
         phone: data.phone,
         bi: data.bi,
-        nif: data.nif,
         bank_account: data.bankAccount,
       });
 

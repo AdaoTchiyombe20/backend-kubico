@@ -124,6 +124,9 @@ export const authController = {
         const {id}: GetUserIdDTO = getUserId.parse({id: req.refreshUser!.sub})
         const refreshToken = req.cookies.refreshToken
         const refreshAcess = await authServices.refresh(id, refreshToken)
+
+         res.set('Access-Control-Expose-Headers', 'Authorization');
+        res.set('Authorization', `Bearer ${refreshAcess.accessToken}`);
         setCookie(res, "refreshToken", refreshAcess.refreshToken)
         
         res.status(200).json({

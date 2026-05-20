@@ -1,4 +1,4 @@
-import { type properties, Property_purchase, PropertyStatus, propertySelingStatus, TypeProperties, Prisma } from "@prisma/client";
+import { type properties, Property_purchase, PropertyStatus, TypeProperties, Prisma } from "@prisma/client";
 import { prisma } from "../../../lib/prisma.js";
 
 export const propertyRepository = {
@@ -14,6 +14,18 @@ export const propertyRepository = {
                 is_negotiable,
                 price,
                 total_area: total_area?total_area: null
+            }
+        })
+    },
+    findUniquePropertyById: async(property_id: number): Promise<properties|null>=>{
+        return prisma.properties.findUnique({
+            where: { id: property_id },
+            include: {
+                    property_localization: true,
+                    property_compartments: true,
+                    property_medias: true,
+                    property_listing: true,
+                    property_history: true,
             }
         })
     },
