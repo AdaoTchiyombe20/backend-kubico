@@ -48,7 +48,7 @@ export const authServices = {
       const accessToken = jwt.sign(
         {
           sub: profile.id,
-          role: "CLIENT",
+          role: "OWNER",
           iat: Math.floor(Date.now() / 1000),
           type: profile.type,
         },
@@ -97,7 +97,7 @@ export const authServices = {
       const { email, password } = data;
       const user = await authRepositories.findByEmail(email);
 
-      if (!user) throw new AppError("User not found!", 404);
+      if (!user) throw new AppError("Usuario não encontrado!", 404);
 
       const verfiryUserPassword = await comparePassword(
         password,

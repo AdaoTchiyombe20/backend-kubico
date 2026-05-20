@@ -35,7 +35,15 @@ export const propertyListingRepository = {
         status: ListingStatus.DISPONIVEL,
         ...(cursor > 0 && { id: { gt: cursor } }),
       },
-      include: { property: true, propertyMedia: true, propertyLocalization: true, propertyCompartments: true },
+      include: {
+        property: {
+          include: {
+            property_medias: true,
+            property_localization: true,
+            property_compartments: true,
+          },
+        },
+      },
       orderBy: { id: "asc" },
       take: limit + 1,
     });
@@ -47,7 +55,15 @@ export const propertyListingRepository = {
         id: listingId,
         delisted_at: null,
       },
-      include: { property: true, propertyMedia: true, propertyLocalization: true, propertyCompartments: true },
+      include: {
+        property: {
+          include: {
+            property_medias: true,
+            property_localization: true,
+            property_compartments: true,
+          },
+        },
+      },
     });
   },
 
@@ -106,11 +122,15 @@ export const propertyListingRepository = {
           }),
         },
       },
-      include: { property: true,
-        propertyMedia: true,
-        propertyLocalization: true,
-        propertyCompartments: true
-       },
+      include: {
+        property: {
+          include: {
+            property_medias: true,
+            property_localization: true,
+            property_compartments: true,
+          },
+        },
+      },
       orderBy: { id: "asc" },
       take: limit + 1,
     });

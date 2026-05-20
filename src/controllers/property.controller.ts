@@ -49,7 +49,12 @@ export const propertyController = {
   publishProperty: async (req: Request, res: Response, next: NextFunction) => {
     try {
       const profileId = req.accessUser?.sub;
-      const propertyId = req.params.id;
+      const propertyId = Number(req.params.id);
+
+      if (isNaN(propertyId) || propertyId <= 0) {
+        throw new AppError("ID inválido!", 400);
+      }
+      
       if (!profileId) throw new AppError("Perfil não encontrado!", 404);
 
       const result = await propertyService.publishProperty(Number(profileId), Number(propertyId));
@@ -63,7 +68,12 @@ export const propertyController = {
   unPublishProperty: async (req: Request, res: Response, next: NextFunction) => {
     try {
       const profileId = req.accessUser?.sub;
-      const propertyId = req.params.id;
+      const propertyId = Number(req.params.id);
+
+      if (isNaN(propertyId) || propertyId <= 0) {
+        throw new AppError("ID inválido!", 400);
+      }
+      
       if (!profileId) throw new AppError("Perfil não encontrado!", 404);
 
       const result = await propertyService.unpublishProperty(Number(profileId), Number(propertyId));
@@ -163,7 +173,12 @@ export const propertyController = {
   updatePropertyInfo: async (req: Request, res: Response, next: NextFunction) => {
     try {
       const profileId = req.accessUser?.sub;
-      const propertyId = req.params.id;
+      const propertyId = Number(req.params.id);
+
+      if (isNaN(propertyId) || propertyId <= 0) {
+        throw new AppError("ID inválido!", 400);
+      }
+      
       if (!profileId) throw new AppError("Perfil não encontrado!", 404);
 
       const data: UpdatePropertyInfoDTO = updatePropertyInfo.parse({ ...req.body });
@@ -182,7 +197,12 @@ export const propertyController = {
   updatePropertyMedia: async (req: Request, res: Response, next: NextFunction) => {
     try {
       const profileId = req.accessUser?.sub;
-      const propertyId = req.params.id;
+      const propertyId = Number(req.params.id);
+
+      if (isNaN(propertyId) || propertyId <= 0) {
+        throw new AppError("ID inválido!", 400);
+      }
+      
       const mediaId = req.params.mediaId;
       if (!profileId) throw new AppError("Perfil não encontrado!", 404);
 
@@ -209,7 +229,12 @@ export const propertyController = {
   deletePropertyMedia: async (req: Request, res: Response, next: NextFunction) => {
     try {
       const profileId = req.accessUser?.sub;
-      const propertyId = req.params.id;
+      const propertyId = Number(req.params.id);
+
+      if (isNaN(propertyId) || propertyId <= 0) {
+        throw new AppError("ID inválido!", 400);
+      }
+      
       const mediaId = req.params.mediaId;
       if (!profileId) throw new AppError("Perfil não encontrado!", 404);
 
@@ -228,7 +253,12 @@ export const propertyController = {
   addPropertyMedia: async (req: Request, res: Response, next: NextFunction) => {
     try {
       const profileId = req.accessUser?.sub;
-      const propertyId = req.params.id;
+      const propertyId = Number(req.params.id);
+
+      if (isNaN(propertyId) || propertyId <= 0) {
+        throw new AppError("ID inválido!", 400);
+      }
+      
       if (!profileId) throw new AppError("Perfil não encontrado!", 404);
 
       const file = req.file;
@@ -253,14 +283,73 @@ export const propertyController = {
   deleteProperty: async (req: Request, res: Response, next: NextFunction) => {
     try {
       const profileId = req.accessUser?.sub;
-      const propertyId = req.params.id;
+      const propertyId = Number(req.params.id);
+
+      if (isNaN(propertyId) || propertyId <= 0) {
+        throw new AppError("ID inválido!", 400);
+      }
+      
       if (!profileId) throw new AppError("Perfil não encontrado!", 404);
 
       const result = await propertyService.deleteProperty(Number(profileId), Number(propertyId));
-
+    
       res.json({ success: true, ...result });
     } catch (error) {
       next(error);
     }
   },
-};
+  addToFavorites: async (req: Request, res: Response, next: NextFunction) => {
+    try{ 
+      const profileId = req.accessUser?.sub;
+      const property_id = Number(req.params.id);
+
+      if (isNaN(property_id) || property_id <= 0) {
+        throw new AppError("ID inválido!", 400);
+      }
+
+      if (!profileId) throw new AppError("Perfil não encontrado!", 404);
+      console.log("Profile ID:", profileId);
+      if (!property_id) throw new AppError("ID da propriedade é obrigatório!", 400);
+      console.log("Property ID:", property_id);
+
+
+      const result = await propertyService.addToFavorites(Number(profileId), Number(property_id));
+      res.json({ success: true, ...result });
+
+    } catch (error) {
+      next(error);
+    }
+  },
+  removeFromFavorites: async (req: Request, res: Response, next: NextFunction) => {
+    try{ 
+      const profileId = req.accessUser?.sub;
+      const property_id = Number(req.params.id);
+
+      if (isNaN(property_id) || property_id <= 0) {
+        throw new AppError("ID inválido!", 400);
+      }
+      
+      if (!profileId) throw new AppError("Perfil não encontrado!", 404);
+      if (!property_id) throw new AppError("ID da propriedade é obrigatório!", 400);
+
+      const result = await propertyService.removeFromFavorites(Number(profileId), Number(property_id));
+      res.json({ success: true, ...result });
+    } catch (error) {
+      next(error);
+    }
+  },
+  getUserFavorites: async (req: Request, res: Response, next: NextFunction) => {
+    try {
+      const profileId = req.accessUser?.sub;
+      const limit = req.query.limit || 20;
+      const lastFavoriteId = req.query.cursor || 0;
+      if (!profileId) throw new AppError("Perfil não encontrado!", 404);
+      if (Array.isArray(limit)) throw new AppError("Valor inválido!", 400);
+      if (Array.isArray(lastFavoriteId)) throw new AppError("Valor inválido!", 400);
+
+      const favorites = await propertyService.getUserFavorites(Number(profileId), Number(limit), Number(lastFavoriteId));
+    } catch (error) {
+      next(error);
+    }
+  }
+}

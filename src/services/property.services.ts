@@ -32,6 +32,7 @@ import {
   deleteFromCloudinary,
   uploadToCloudinary,
 } from "../utils/cloudinary.utils.js";
+import { favPropertyRepository } from "../repositories/property/favProperty.repositories.js";
 
 const limiter = pLimit(3);
 
@@ -603,4 +604,50 @@ export const propertyService = {
 
     return media;
   },
+  addToFavorites: async (ownerId: number, propertyId: number) => {
+    const findOwner = await profileRole.findProfileRoleByRole(ownerId, 2);
+    console.log("findOwner:", findOwner);
+    if (!findOwner) throw new AppError("Owner não encontrado!", 404);
+    const findProperty = await propertyRepository.findUniquePropertyById(propertyId);
+    console.log("findProperty:", findProperty);
+    if (!findProperty) throw new AppError("Imóvel não encontrado!", 404);
+
+    if(findProperty.id_owner === findOwner.id) throw new AppError("Não é possível favoritar seu próprio imóvel!", 400);
+    console.log("Antes de adicionar aos favoritos passou");
+
+    await favPropertyRepository.addFavorite(ownerId, propertyId);
+    console.log("Depois de adicionar aos favoritos passou");
+    return { message: "Imóvel adicionado aos favoritos!" };
+
+  },
+  removeFromFavorites: async (ownerId: number, propertyId: number) => {
+    const findOwner = await profileRole.findProfileRoleByRole(ownerId, 2);
+    if (!findOwner) throw new AppError("Owner não encontrado!", 404);
+    const findProperty = await propertyRepository.findUniquePropertyById(propertyId);
+    if (!findProperty) throw new AppError("Imóvel não encontrado!", 404);
+
+    if(findProperty.id_owner === findOwner.id) throw new AppError("Não é possível adicionar ou remover dos favoritos seu próprio imóvel!", 400);
+
+    await favPropertyRepository.removeFavorite(ownerId, propertyId);
+
+    return { message: "Imóvel removido dos favoritos!" };
+  },
+  getUserFavorites: async (ownerId: number, limit: number, cursor: number) => {
+    if(!limit)
+      limit = 10;
+    if(!cursor)
+      cursor = 0;
+
+    const findOwner = await profileRole.findProfileRoleByRole(ownerId, 2);
+    if (!findOwner) throw new AppError("Owner não encontrado!", 404);
+
+    const favorites = await favPropertyRepository.findUserFavorites(ownerId, limit, cursor);
+    const hasNextPage = favorites.length > limit;
+    const paginated = hasNextPage ? favorites.slice(0, -1) : favorites;
+    return {
+       properties: paginated,
+       cursor: hasNextPage ? paginated[paginated.length - 1]!.id : null,
+    };
+  }
 };
+

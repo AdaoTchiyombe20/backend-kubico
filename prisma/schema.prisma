@@ -102,6 +102,7 @@ model profile_roles {
   properties properties[] 
   property_history propertyHistory[]
   negotiationEvents negotiationEvent[]
+  favorites favorites[]
 
   client negotiation[] @relation(name: "NegotiationClient")
   owner negotiation[] @relation(name: "NegotiationOwner")
@@ -172,6 +173,7 @@ model properties {
   property_medias propertyMedia[]
   property_listing propertyListing[]
   property_history propertyHistory[]
+  favorites favorites[]
 
   // ✅ Índices
   @@unique([id_owner, id]) // Garantir que usuário só acessa suas propriedades
@@ -256,6 +258,21 @@ model propertyListing {
   @@index([status, delisted_at, id]) // Compound index para searchListings
   @@index([listed_at]) // Ordenação temporal
   @@index([delisted_at]) // Filtro soft-delete
+}
+
+model favorites {
+  id Int @id @default(autoincrement())
+  owner_id Int
+  property_id Int
+  created_at DateTime @default(now())
+
+  profile_roles profile_roles @relation(fields: [owner_id], references: [id], onDelete: Cascade)
+  properties properties @relation(fields: [property_id], references: [id], onDelete: Cascade)
+
+  @@index([owner_id]) 
+  @@index([property_id]) 
+  @@index([owner_id, property_id]) 
+  @@unique([owner_id, property_id]) 
 }
 
 model negotiation {
