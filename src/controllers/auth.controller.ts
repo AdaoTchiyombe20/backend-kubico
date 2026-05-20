@@ -125,7 +125,7 @@ export const authController = {
         const refreshToken = req.cookies.refreshToken
         const refreshAcess = await authServices.refresh(id, refreshToken)
 
-         res.set('Access-Control-Expose-Headers', 'Authorization');
+        res.set('Access-Control-Expose-Headers', 'Authorization');
         res.set('Authorization', `Bearer ${refreshAcess.accessToken}`);
         setCookie(res, "refreshToken", refreshAcess.refreshToken)
         
