@@ -40,7 +40,6 @@ export const createIndividualClient = z.object({
     .length(9, "9 caracteres")
     .regex(/^[0-9]+$/, "Apenas números"),
     bi: z.string().length(14, "14 caracteres"),
-    nif: z.string().length(6, "6 caracteres"),
     bankAccount: z.string().length(21, "21 caracteres"),
     dateOfBirth: z
       .string()
