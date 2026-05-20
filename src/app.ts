@@ -19,11 +19,13 @@ const allowedOrigins = [
 app.use(
   cors({
     origin: (origin, callback) => {
+      console.log('🔍 Origin recebido:', origin); // ← Adicione isto
       if (!origin) return callback(null, true);
       
       if (allowedOrigins.includes(origin)) {
         callback(null, true);
       } else {
+        console.log('❌ Origin rejeitado:', origin); // ← E isto
         callback(null, false); 
       }
     },
@@ -36,10 +38,10 @@ app.use(
 
 app.set('trust proxy', 1)
 app.use(globalRateLimiting)
-
-app.use("/docs", swaggerRoutes);
 app.use(cookieParser());
 app.use(express.json());
+
+app.use("/docs", swaggerRoutes);
 app.use("/api", router);
 app.use(errorHandler);
 
