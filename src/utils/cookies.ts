@@ -13,21 +13,15 @@ export function setCookie(
   value: string,
   options: CookieOptions = {}
 ): void {
-  const defaultOptions: CookieOptions = {
-    httpOnly: true,
-    secure: process.env.NODE_ENV === 'production',  // ✅ true em prod, false em dev
-    sameSite: 'lax',
-    maxAge: 7 * 24 * 60 * 60 * 1000, 
-  };
+  const isProduction = process.env.NODE_ENV === "production";
 
-  const finalOptions = { ...defaultOptions, ...options };
-  
-  console.log('🍪 Setando cookie:', { 
-    name, 
-    secure: finalOptions.secure, 
-    sameSite: finalOptions.sameSite,
-    nodeEnv: process.env.NODE_ENV 
-  });
-  
-  res.cookie(name, value, finalOptions);
+res.cookie(name, value, {
+  httpOnly: true,
+  secure: isProduction,
+  sameSite: isProduction
+    ? "none"
+    : "lax",
+  maxAge: 7 * 24 * 60 * 60 * 1000,
+});
+
 }

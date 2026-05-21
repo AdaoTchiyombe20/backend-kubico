@@ -11,29 +11,25 @@ import cors from "cors";
 const app = express();
 
 const allowedOrigins = [
-  "http://localhost:5173",
-  "http://localhost:4000",
-  "https://backend-kubico-production.up.railway.app", 
+  "http://localhost:5173", //frontend local
+  "http://localhost:4000", //backend swagger local
+  "https://backend-kubico-production.up.railway.app", //backend production 
 ];
-
-const isDev = process.env.NODE_ENV !== 'production';
 
 app.use(
   cors({
     origin: (origin, callback) => {
-      if (!origin) return callback(null, true);
-      
-      // Em dev, permite localhost em qualquer porta
-      if (isDev && origin.includes('localhost')) {
+      if (!origin) {
         return callback(null, true);
       }
-      
-      // Em produção, valida a lista
+
       if (allowedOrigins.includes(origin)) {
         return callback(null, true);
       }
-      
-      callback(null, false);
+
+      return callback(
+        new Error("Not allowed by CORS")
+      );
     },
     credentials: true,
     allowedHeaders: ["Content-Type", "Authorization"],
