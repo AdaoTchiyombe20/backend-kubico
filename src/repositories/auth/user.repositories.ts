@@ -70,9 +70,9 @@ updateUserRestrictionHistory: async (id: number, ended_at: Date) => {
     }
   })
 },
-  getCurrentUserRestrictionHistory: async (user_id: number) => {
+  getCurrentUserRestrictionHistory: async (id_owner: number) => {
     return await prisma.userRestrictionsHistory.findFirst({
-      where: { user_id, is_active: true },
+      where: { id_owner, is_active: true },
     })
   },
   updateEmail: async (id: number, email: string): Promise<users|null> => {

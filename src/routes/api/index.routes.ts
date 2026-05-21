@@ -7,20 +7,19 @@ import { verifyProfile } from "./verifyProfile.routes.js";
 import { assumeRole } from "./assumeRole.routes.js";
 import { authorizeRoleAcessTokenMiddleware } from "../../middlewares/auth.middleware.js";
 import { propertyRoute } from "./property.routes.js";
-import {verificationUserBanStatusMiddleware} from "../../middlewares/auth.middleware.js";
 
 const router = Router();
 
 const withRole = (...roles: string[]) => [
   authorizeNormalAccessTokenMiddleware,
   authorizeRoleAcessTokenMiddleware(roles),
-  verificationUserBanStatusMiddleware
+  
 ];
 
 //routes
 router.use("/users", authorizeNormalAccessTokenMiddleware, userRouter)
 router.use("/auth", authRouter)
-router.use("/profile", authorizeNormalAccessTokenMiddleware, verificationUserBanStatusMiddleware, verifyProfile)
+router.use("/profile", authorizeNormalAccessTokenMiddleware, verifyProfile)
 router.use("/admin", withRole("admin"), adminRoute) 
 router.use("/assume-roles",withRole("client", "owner"), assumeRole);
 router.use("/properties", withRole("admin","owner"), propertyRoute)

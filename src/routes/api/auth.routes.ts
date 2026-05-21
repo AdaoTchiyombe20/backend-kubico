@@ -5,8 +5,7 @@ import { Router } from "express";
 import { authController } from "../../controllers/auth.controller.js";
 import { 
   authorizeRefreshTokenMiddleware, 
-  UnauthorizeRefreshTokenMiddleware,
-  verificationUserBanStatusMiddleware
+  UnauthorizeRefreshTokenMiddleware
 } from "../../middlewares/auth.middleware.js"
 import { loginRateLimiting } from "../../../lib/ratelimiting.js";
 
@@ -42,15 +41,13 @@ authRouter.get(
 // Refresh - Requer autenticação e verifica ban
 authRouter.get(
   '/refresh',
-  authorizeRefreshTokenMiddleware, 
-  verificationUserBanStatusMiddleware,
+  authorizeRefreshTokenMiddleware,
   authController.refresh
 )
 
 // Verify Email - Verifica ban
 authRouter.get(
   "/verify-email", 
-  verificationUserBanStatusMiddleware,
   authController.verifyEmailController
 )
 
@@ -58,7 +55,6 @@ authRouter.get(
 authRouter.get(
   "/send-verify-mail", 
   authorizeRefreshTokenMiddleware, 
-  verificationUserBanStatusMiddleware,
   authController.sendMailVerification
 )
 

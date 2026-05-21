@@ -4,17 +4,13 @@ import { AppError } from "../errors/App.Errors.js";
 import "dotenv/config";
 import { ENV } from "../config/env.js";
 import { refreshTokenUser } from "../repositories/auth/refreshToken.repositories.js";
-import { UserBanStatus } from "@prisma/client";
 import type { JwtPayload } from "jsonwebtoken";
-import { userRepository } from "../repositories/auth/user.repositories.js";
 
 interface TokenPayload {
   sub: string;
 }
-
 interface AccessTokenPayload {
   sub: string;
-  profileId: string;
   role: string;
   iat: number;
   type: string;
@@ -33,52 +29,31 @@ declare global {
 export const authorizeRefreshTokenMiddleware = async (
   req: Request,
   res: Response,
-  next: NextFunction
+  next: NextFunction,
 ) => {
   try {
-    const token = req.cookies.refreshToken;
+    let token = req.cookies.refreshToken;
 
     if (!token) {
-      return next(
-        new AppError(
-          "Refresh Token não fornecido!",
-          401
-        )
-      );
+      return next(new AppError("Refresh Token não fornecido!", 401));
     }
 
-    const decoded = jwt.verify(
-      token,
-      ENV.JWT_REFRESH_SECRET
-    ) as JwtPayload;
+    const decoded = jwt.verify(token, ENV.JWT_REFRESH_SECRET) as TokenPayload;
 
-    if (!decoded.sub) {
-      return next(
-        new AppError("Token inválido!", 401)
-      );
-    }
-
-    req.refreshUser = {
-      sub: String(decoded.sub),
-    };
+    req.refreshUser = decoded;
 
     next();
   } catch (error) {
     if (error instanceof jwt.JsonWebTokenError) {
-      return next(
-        new AppError("Token inválido!", 401)
-      );
+      return next(new AppError("Token inválido!", 401));
     }
-
     if (error instanceof jwt.TokenExpiredError) {
-      return next(
-        new AppError("Sessão expirada!", 401)
-      );
+      return next(new AppError("Token expirado!", 401));
     }
-
-    next(error);
+    return next(error);
   }
 };
+
 export const UnauthorizeRefreshTokenMiddleware = async (
   req: Request,
   res: Response,
@@ -89,27 +64,7 @@ export const UnauthorizeRefreshTokenMiddleware = async (
 
     if (!token) return next();
 
-    const decoded = jwt.verify(
-  token,
-  ENV.JWT_REFRESH_SECRET
-) as JwtPayload;
-
-const userId = Number(decoded.sub);
-
-const restriction =
-  await userRepository.getCurrentUserRestrictionHistory(userId);
-
-if (!restriction) {
-  return next(new AppError("Restrição não encontrada", 403));
-}
-
-if (restriction.new_ban_status === "BANNED") {
-  return next(new AppError("Usuário banido!", 403));
-}
-
-if (restriction.new_ban_status === "SUSPENDED") {
-  return next(new AppError("Usuário suspenso!", 403));
-}
+    const decoded = jwt.verify(token, ENV.JWT_REFRESH_SECRET) as TokenPayload;
 
     const tokenExists = await refreshTokenUser.findRefreshToken(token);
 
@@ -171,7 +126,6 @@ export const authorizeNormalAccessTokenMiddleware = async (
 
     const accessPayload: AccessTokenPayload = {
       sub: payload.sub as string,
-      profileId: (payload as any).profileId as string,
       role: payload.role,
       iat: payload.iat,
       type: payload.type,
@@ -185,7 +139,7 @@ export const authorizeNormalAccessTokenMiddleware = async (
       return next(new AppError("Token inválido!", 401));
     }
     if (error instanceof jwt.TokenExpiredError) {
-      return next(new AppError("Sessão expirada!", 401));
+      return next(new AppError("Token expirado!", 401));
     }
     return next(error);
   }
@@ -214,103 +168,3 @@ export function authorizeRoleAcessTokenMiddleware(allowedRole: string[]) {
     }
   };
 }
-
-// ============================================
-// FUNÇÃO PARA REATIVAR USUÁRIO SE SUSPENSÃO EXPIROU
-// ============================================
-const reactivateIfExpired = async (id: number) => {
-  try {
-    if (isNaN(id)) throw new AppError("ID inválido!", 400);
-    if (!id) throw new AppError("ID não fornecido!", 400);
-
-    const profile = await userRepository.findById(id);
-    if (!profile) throw new AppError("Usuario não encontrado!", 404);
-
-    const findUserRestrictionHistory = await userRepository.getCurrentUserRestrictionHistory(profile.id);
-    if (!findUserRestrictionHistory) throw new AppError("O perfil não possui histórico de restrições!", 400);
-
-    // Verifica se está suspenso E se os 7 dias já passaram
-    if (
-      findUserRestrictionHistory.new_ban_status === UserBanStatus.SUSPENDED &&
-      findUserRestrictionHistory.ended_at &&
-      new Date() >= findUserRestrictionHistory.ended_at
-    ) {
-      // Desativa a suspensão anterior
-      await userRepository.updateUserRestrictionHistory(
-        findUserRestrictionHistory.id,
-        new Date()
-      );
-
-      // Cria novo histórico com status ACTIVE
-      await userRepository.createUserRestrictionHistory(
-        profile.id,
-        UserBanStatus.ACTIVE,
-        null
-      );
-
-      return true; // Indica que foi reativado
-    }
-
-    return false; // Não foi reativado
-  } catch (error) {
-    // Loga o erro mas não bloqueia o middleware
-    console.error("Erro ao reativar usuário:", error);
-    return false;
-  }
-};
-
-// ============================================
-// MIDDLEWARE DE VERIFICAÇÃO DE BAN
-// ============================================
-export const verificationUserBanStatusMiddleware = async (
-  req: Request,
-  res: Response,
-  next: NextFunction,
-) => {
-  try {
-    const token = req.cookies.refreshToken;
-
-    if (!token) return next();
-
-    const decoded = jwt.verify(
-      token,
-      ENV.JWT_REFRESH_SECRET
-    ) as JwtPayload;
-
-    const userId = Number(decoded.sub);
-
-    // PRIMEIRO tenta reativar
-    await reactivateIfExpired(userId);
-
-    // DEPOIS lê o estado atualizado
-    const restriction =
-      await userRepository.getCurrentUserRestrictionHistory(userId);
-
-    if (!restriction) {
-      return next(new AppError("Restrição não encontrada", 403));
-    }
-
-    if (restriction.new_ban_status === "BANNED") {
-      return next(new AppError("Usuário banido!", 403));
-    }
-
-    if (restriction.new_ban_status === "SUSPENDED") {
-      return next(new AppError("Usuário suspenso!", 403));
-    }
-
-    next();
-  } catch (error) {
-    if (error instanceof jwt.JsonWebTokenError) {
-      return next(new AppError("Token inválido!", 401));
-    }
-
-    if (error instanceof jwt.TokenExpiredError) {
-      return next(new AppError("Sessão expirada!", 401));
-    }
-
-    return next(error);
-  }
-};
-
-// Exporta a função para uso em outros locais se necessário
-export { reactivateIfExpired };
