@@ -16,16 +16,24 @@ const allowedOrigins = [
   "https://backend-kubico-production.up.railway.app", 
 ];
 
+const isDev = process.env.NODE_ENV !== 'production';
+
 app.use(
   cors({
     origin: (origin, callback) => {
       if (!origin) return callback(null, true);
       
-      if (allowedOrigins.includes(origin)) {
-        callback(null, true);
-      } else {
-        callback(null, false); 
+      // Em dev, permite localhost em qualquer porta
+      if (isDev && origin.includes('localhost')) {
+        return callback(null, true);
       }
+      
+      // Em produção, valida a lista
+      if (allowedOrigins.includes(origin)) {
+        return callback(null, true);
+      }
+      
+      callback(null, false);
     },
     credentials: true,
     allowedHeaders: ["Content-Type", "Authorization"],
