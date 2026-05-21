@@ -67,10 +67,9 @@ export const propertyListingRepository = {
     });
   },
 
-  findListingByProfileIdAndPropertyId: async (profileId: number, propertyId: number): Promise<propertyListing | null> => {
+  findListingByProfileIdAndPropertyId: async ( propertyId: number): Promise<propertyListing | null> => {
     return prisma.propertyListing.findFirst({
       where: {
-        profile_id: profileId,
         property_id: propertyId,
         delisted_at: null,
       },

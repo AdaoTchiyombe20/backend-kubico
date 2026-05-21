@@ -21,7 +21,7 @@ export const negociationEventService = {
 
         if(!findProperty.is_negotiable) throw new AppError("Propriedade não é negociável!");
         
-        const findListingProperty = await propertyListingRepository.findListingByProfileIdAndPropertyId(profile_id, property_id);
+        const findListingProperty = await propertyListingRepository.findListingByProfileIdAndPropertyId(profile_id);
         if(!findListingProperty) throw new AppError("Propriedade não encontrada!");
 
         const negociationEvent = await negociationRepository.createNegociationEvent(findClient.id, findProperty.id_owner, findListingProperty.id, offer_price);
