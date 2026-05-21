@@ -18,11 +18,10 @@ export const userRepository = {
       }
     })
   },
-  updateUserBanStatus: async(id:number, status:UserBanStatus, ended_at: Date | null): Promise<users> => {
+  updateUserBanStatus: async(id:number,ended_at: Date): Promise<users> => {
     return prisma.users.update({
       where: {id},
       data: {
-        banned: status,
         end_ban_at: ended_at
       }
     })

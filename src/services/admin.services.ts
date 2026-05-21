@@ -195,8 +195,10 @@ export const adminService = {
       if(!findUser) throw new AppError("Usuario não encontrado!", 404)
 
         const findUserRestrictionHistory = await userRepository.getCurrentUserRestrictionHistory(findUser.id)
+
         if(!findUserRestrictionHistory)
             throw new AppError("O perfil não possui histórico de restrições!", 400)
+        
       if(findUserRestrictionHistory.new_ban_status === 'BANNED') throw new AppError("O perfil já está banido!", 400)
       const profile = await userRepository.createUserRestrictionHistory(id, 'BANNED', null);
       return { 
