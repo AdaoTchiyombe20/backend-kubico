@@ -4,15 +4,15 @@ import { AppError } from "../errors/App.Errors.js";
 import "dotenv/config";
 import { ENV } from "../config/env.js";
 import { refreshTokenUser } from "../repositories/auth/refreshToken.repositories.js";
-import { UserBanStatus} from "@prisma/client";
+import { UserBanStatus } from "@prisma/client";
 import type { JwtPayload } from "jsonwebtoken";
-import { ca } from "zod/locales";
 import { userRepository } from "../repositories/auth/user.repositories.js";
 
 interface TokenPayload {
   sub: string;
-  ban_status: string,
+  ban_status: string;
 }
+
 interface AccessTokenPayload {
   sub: string;
   role: string;
@@ -173,24 +173,90 @@ export function authorizeRoleAcessTokenMiddleware(allowedRole: string[]) {
   };
 }
 
-export const verificationUserBanStatusMiddleware = async (req: Request, res: Response, next: NextFunction) => {
-  try{
+// ============================================
+// FUNÇÃO PARA REATIVAR USUÁRIO SE SUSPENSÃO EXPIROU
+// ============================================
+const reactivateIfExpired = async (id: number) => {
+  try {
+    if (isNaN(id)) throw new AppError("ID inválido!", 400);
+    if (!id) throw new AppError("ID não fornecido!", 400);
+
+    const profile = await userRepository.findById(id);
+    if (!profile) throw new AppError("Usuario não encontrado!", 404);
+
+    const findUserRestrictionHistory = await userRepository.getCurrentUserRestrictionHistory(profile.id);
+    if (!findUserRestrictionHistory) throw new AppError("O perfil não possui histórico de restrições!", 400);
+
+    // Verifica se está suspenso E se os 7 dias já passaram
+    if (
+      findUserRestrictionHistory.new_ban_status === UserBanStatus.SUSPENDED &&
+      findUserRestrictionHistory.ended_at &&
+      new Date() >= findUserRestrictionHistory.ended_at
+    ) {
+      // Desativa a suspensão anterior
+      await userRepository.updateUserRestrictionHistory(
+        findUserRestrictionHistory.id,
+        new Date()
+      );
+
+      // Cria novo histórico com status ACTIVE
+      await userRepository.createUserRestrictionHistory(
+        profile.id,
+        UserBanStatus.ACTIVE,
+        null
+      );
+
+      return true; // Indica que foi reativado
+    }
+
+    return false; // Não foi reativado
+  } catch (error) {
+    // Loga o erro mas não bloqueia o middleware
+    console.error("Erro ao reativar usuário:", error);
+    return false;
+  }
+};
+
+// ============================================
+// MIDDLEWARE DE VERIFICAÇÃO DE BAN
+// ============================================
+export const verificationUserBanStatusMiddleware = async (
+  req: Request,
+  res: Response,
+  next: NextFunction,
+) => {
+  try {
     const token = req.cookies.refreshToken;
 
     if (!token) return next();
 
     const decoded = jwt.verify(token, ENV.JWT_REFRESH_SECRET) as TokenPayload;
+    const userId = Number(decoded.sub);
 
-    if(decoded.ban_status === "BANNED"){
+    // Tenta reativar se a suspensão expirou
+    const wasReactivated = await reactivateIfExpired(userId);
+
+    // Se foi reativado, busca novamente o histórico atualizado
+    if (wasReactivated) {
+      const updatedRestrictionHistory = await userRepository.getCurrentUserRestrictionHistory(userId);
+      
+      if (updatedRestrictionHistory?.new_ban_status === "ACTIVE") {
+        return next(); // Usuário reativado com sucesso
+      }
+    }
+
+    // Verifica o status atual do usuário
+    if (decoded.ban_status === "BANNED") {
       return next(new AppError("Usuário banido!", 403));
     }
-    if(decoded.ban_status === "SUSPENDED"){
+
+    if (decoded.ban_status === "SUSPENDED") {
       return next(new AppError("Usuário suspenso!", 403));
     }
-    next();
 
-  }catch(error){
-     if (error instanceof jwt.JsonWebTokenError) {
+    next();
+  } catch (error) {
+    if (error instanceof jwt.JsonWebTokenError) {
       return next(new AppError("Token inválido!", 401));
     }
     if (error instanceof jwt.TokenExpiredError) {
@@ -198,23 +264,7 @@ export const verificationUserBanStatusMiddleware = async (req: Request, res: Res
     }
     return next(error);
   }
-}
-
-const reactivateIfExpired =  async (id: number) => {
-  if(isNaN(id)) throw new AppError("ID inválido!", 400)
-  if(!id) throw new AppError("ID não fornecido!", 400)
-
-  const profile = await userRepository.findById(id);
-  if (!profile) throw new AppError("Usuario não encontrado!", 404);
-  const findUserRestrictionHistory = await userRepository.getCurrentUserRestrictionHistory(profile.id);
-  if(!findUserRestrictionHistory) throw new AppError("O perfil não possui histórico de restrições!", 400)
-
-  if (
-    findUserRestrictionHistory.new_ban_status === UserBanStatus.SUSPENDED &&
-    findUserRestrictionHistory.ended_at &&
-    Date.now() - findUserRestrictionHistory.ended_at.getTime() >= 7 * 24 * 60 * 60 * 1000
-  ) {
-    await userRepository.updateUserRestrictionHistory(findUserRestrictionHistory.id, new Date());
-    await userRepository.createUserRestrictionHistory(profile.id, UserBanStatus.ACTIVE, null);
-  }
 };
+
+// Exporta a função para uso em outros locais se necessário
+export { reactivateIfExpired };

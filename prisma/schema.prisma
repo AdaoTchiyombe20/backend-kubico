@@ -315,7 +315,7 @@ model negotiation {
 
   property_listing propertyListing @relation(fields: [property_listing_id], references: [id], onDelete: Cascade)
   client profile_roles @relation(name: "NegotiationClient", fields: [client_id], references: [id], onDelete: Cascade)
-  owner profile_roles @relation(name: "NegotiationOwner", fields: [owner_id], references: [id])
+  owner profile_roles @relation(name: "NegotiationOwner", fields: [owner_id], references: [id], onDelete: Cascade)
   negotiationEvents negotiationEvent[]
 }
 

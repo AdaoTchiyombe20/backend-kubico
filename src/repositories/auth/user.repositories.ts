@@ -43,29 +43,33 @@ updateStatus: async(id:number, status:boolean,last_access: any): Promise<void> =
     }
     })
   },
-   createUserRestrictionHistory: async (user_id: number, new_ban_status: UserBanStatus, ended_at: Date | null) => {
-    await prisma.userRestrictionsHistory.updateMany({
-      where: { user_id, is_active: true },
-      data: { is_active: false }
-    });
-
-    return await prisma.userRestrictionsHistory.create({
-      data: {
-        user_id,
-        new_ban_status,
-        ended_at
-      }
-    })
-  },
-  updateUserRestrictionHistory: async (id: number, ended_at: Date) => {
-    return await prisma.userRestrictionsHistory.update({
-      where: { id },
-      data: {
-        is_active: false,
-        ended_at
-      }
-    })
-  },
+createUserRestrictionHistory: async (user_id: number, new_ban_status: UserBanStatus, ended_at: Date | null) => {
+  // Desativa o histórico anterior se existir
+  await prisma.userRestrictionsHistory.updateMany({
+    where: { user_id, is_active: true },
+    data: { is_active: false, ended_at: new Date() }
+  });
+ 
+  // Cria novo histórico de restrição
+  return await prisma.userRestrictionsHistory.create({
+    data: {
+      user_id,
+      new_ban_status,
+      ended_at,
+      is_active: true
+    }
+  })
+},
+ 
+updateUserRestrictionHistory: async (id: number, ended_at: Date) => {
+  return await prisma.userRestrictionsHistory.update({
+    where: { id },
+    data: {
+      is_active: false,
+      ended_at
+    }
+  })
+},
   getCurrentUserRestrictionHistory: async (user_id: number) => {
     return await prisma.userRestrictionsHistory.findFirst({
       where: { user_id, is_active: true },
