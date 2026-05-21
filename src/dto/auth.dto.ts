@@ -10,6 +10,8 @@ export const login = z.object({
     password: string()
 })
 
+
+
 export const refreshTokenSchema = z.object({
   refreshToken: z.string().min(1, 'Refresh token é obrigatório'),
   userId: z.coerce.number().refine(Number.isInteger, {
