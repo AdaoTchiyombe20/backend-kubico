@@ -11,6 +11,7 @@ interface TokenPayload {
 }
 interface AccessTokenPayload {
   sub: string;
+  profileId: string;
   role: string;
   iat: number;
   type: string;
@@ -116,6 +117,7 @@ export const authorizeNormalAccessTokenMiddleware = async (
 
     if (
       !payload.sub ||
+      !payload.profileId ||
       !payload.type ||
       !payload.role ||
       payload.iat === undefined ||
@@ -126,6 +128,7 @@ export const authorizeNormalAccessTokenMiddleware = async (
 
     const accessPayload: AccessTokenPayload = {
       sub: payload.sub as string,
+      profileId: (payload as any).profileId as string,
       role: payload.role,
       iat: payload.iat,
       type: payload.type,
