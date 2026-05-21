@@ -21,7 +21,6 @@ authRouter.post(
     '/signup/:type', 
   loginRateLimiting, 
   UnauthorizeRefreshTokenMiddleware, 
-  verificationUserBanStatusMiddleware,
   authController.signup
 )
 
@@ -30,15 +29,13 @@ authRouter.post(
   '/login', 
   loginRateLimiting,
   UnauthorizeRefreshTokenMiddleware, 
-  verificationUserBanStatusMiddleware,
   authController.login
 )
 
 // Logout - Requer autenticação e verifica ban
 authRouter.get(
-  '/logout', 
-  authorizeRefreshTokenMiddleware, 
-  verificationUserBanStatusMiddleware,
+  '/logout',
+  authorizeRefreshTokenMiddleware,
   authController.logout
 )
 
@@ -74,7 +71,6 @@ authRouter.post(
   '/create-admin', 
   loginRateLimiting, 
   UnauthorizeRefreshTokenMiddleware, 
-  verificationUserBanStatusMiddleware,
   authController.createAdmin
 )
 
@@ -83,7 +79,6 @@ authRouter.post(
   '/login-admin',
   loginRateLimiting,
   UnauthorizeRefreshTokenMiddleware, 
-  verificationUserBanStatusMiddleware,
   authController.loginAdmin
 )
 
