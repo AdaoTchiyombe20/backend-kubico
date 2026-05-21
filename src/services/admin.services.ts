@@ -209,47 +209,47 @@ export const adminService = {
       throw new AppError(`Erro ao banir perfil: ${error}`)
     }
   },
-    suspendProfile: async (id: number) => {
-      try{ 
-        if(!id) throw new AppError("ID não fornecido!", 400)
-        const findUser = await userRepository.findById(id)
-        if(!findUser) throw new AppError("Usuario não encontrado!", 404)
-          const findUserRestrictionHistory = await userRepository.getCurrentUserRestrictionHistory(findUser.id)
-
-        if(findUserRestrictionHistory && findUserRestrictionHistory.new_ban_status === 'SUSPENDED') throw new AppError("O perfil já está suspenso!", 400)
-
-        const profile = await userRepository.createUserRestrictionHistory(id, 'SUSPENDED', new Date(Date.now() + 7 * 24 * 60 * 60 * 1000)); // suspende por 7 dias;
-        return {
-          message: "O perfil foi suspenso e ficara inativo por 7 dias!",
-          profile
-        }
-      }catch(error){
-        throw new AppError(`Erro ao suspender perfil: ${error}`)
-      }
-    },
-    unBanProfile: async (id: number) => {
-      try{ 
-        if(!id) throw new AppError("ID não fornecido!", 400)
-        const findUser = await userRepository.findById(id)
-        if(!findUser) throw new AppError("Usuario não encontrado!", 404)
-        
+  suspendProfile: async (id: number) => {
+    try{ 
+      if(!id) throw new AppError("ID não fornecido!", 400)
+      const findUser = await userRepository.findById(id)
+      if(!findUser) throw new AppError("Usuario não encontrado!", 404)
         const findUserRestrictionHistory = await userRepository.getCurrentUserRestrictionHistory(findUser.id)
 
-        if(findUserRestrictionHistory && findUserRestrictionHistory.new_ban_status === 'ACTIVE') throw new AppError("O perfil já está ativo!", 400)
-        
-          if(!findUserRestrictionHistory)
-            throw new AppError("O perfil não possui histórico de restrições!", 400)
+      if(findUserRestrictionHistory && findUserRestrictionHistory.new_ban_status === 'SUSPENDED') throw new AppError("O perfil já está suspenso!", 400)
 
-        if(findUserRestrictionHistory.new_ban_status === 'ACTIVE') throw new AppError("O perfil já está ativo!", 400)
-        const profile = await userRepository.createUserRestrictionHistory(id, 'ACTIVE', null);
-        return {
-        message: "O perfil foi ativado com sucesso!",
-          profile
-        }
-      }catch(error){
-        throw new AppError(`Erro ao desbanir perfil: ${error}`)
+      const profile = await userRepository.createUserRestrictionHistory(id, 'SUSPENDED', new Date(Date.now() + 7 * 24 * 60 * 60 * 1000)); // suspende por 7 dias;
+      return {
+        message: "O perfil foi suspenso e ficara inativo por 7 dias!",
+        profile
       }
-    },
+    }catch(error){
+      throw new AppError(`Erro ao suspender perfil: ${error}`)
+    }
+  },
+  unBanProfile: async (id: number) => {
+    try{ 
+      if(!id) throw new AppError("ID não fornecido!", 400)
+      const findUser = await userRepository.findById(id)
+      if(!findUser) throw new AppError("Usuario não encontrado!", 404)
+      
+      const findUserRestrictionHistory = await userRepository.getCurrentUserRestrictionHistory(findUser.id)
+
+      if(findUserRestrictionHistory && findUserRestrictionHistory.new_ban_status === 'ACTIVE') throw new AppError("O perfil já está ativo!", 400)
+      
+        if(!findUserRestrictionHistory)
+          throw new AppError("O perfil não possui histórico de restrições!", 400)
+
+      if(findUserRestrictionHistory.new_ban_status === 'ACTIVE') throw new AppError("O perfil já está ativo!", 400)
+      const profile = await userRepository.createUserRestrictionHistory(id, 'ACTIVE', null);
+      return {
+      message: "O perfil foi ativado com sucesso!",
+        profile
+      }
+    }catch(error){
+      throw new AppError(`Erro ao desbanir perfil: ${error}`)
+    }
+  },
   findVerifications: async () => {},
   approveProfiles: async () => {},
   rejectProfiles: async () => {},

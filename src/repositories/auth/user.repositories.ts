@@ -18,14 +18,6 @@ export const userRepository = {
       }
     })
   },
-  updateUserBanStatus: async(id:number,ended_at: Date): Promise<users> => {
-    return prisma.users.update({
-      where: {id},
-      data: {
-        end_ban_at: ended_at
-      }
-    })
-  },
   findById: async (id: number): Promise<users | null> => {
     return prisma.users.findUnique({
       where: { id },

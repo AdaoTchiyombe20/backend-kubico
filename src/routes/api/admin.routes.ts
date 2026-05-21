@@ -6,9 +6,9 @@ const adminRoute = Router()
 //admin managements of profiles
 adminRoute.get( "/profiles", adminController.findAll);
 adminRoute.get("/profiles/:id", adminController.findById);
-adminRoute.get("/profiles/:id/ban", adminController.banProfile);
-adminRoute.get("/profiles/:id/suspend", adminController.suspendProfile);
-adminRoute.get("/profiles/:id/unBan", adminController.unBanProfile);
+adminRoute.post("/profiles/:id/ban", adminController.banProfile);
+adminRoute.post("/profiles/:id/suspend", adminController.suspendProfile);
+adminRoute.post("/profiles/:id/unBan", adminController.unBanProfile);
 adminRoute.get('/profiles/verifications', adminController.findVerifications)
 adminRoute.put('/profiles/verifications/:id/approve', adminController.approveProfiles)
 adminRoute.put('/profiles/verifications/:id/reject', adminController.rejectProfiles)
