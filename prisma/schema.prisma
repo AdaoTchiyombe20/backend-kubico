@@ -271,7 +271,7 @@ model propertyCompartments {
 
 model propertyListing {
   id          Int       @id @default(autoincrement())
-  property_id Int
+  property_id Int      
   listed_at   DateTime  @default(now())
   delisted_at DateTime?
   status      ListingStatus
