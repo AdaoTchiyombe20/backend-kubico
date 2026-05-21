@@ -214,7 +214,7 @@ const reactivateIfExpired =  async (id: number) => {
     findUserRestrictionHistory.ended_at &&
     Date.now() - findUserRestrictionHistory.ended_at.getTime() >= 7 * 24 * 60 * 60 * 1000
   ) {
-    await userRepository.updateUserBanStatus(profile.id, new Date());
+    await userRepository.updateUserRestrictionHistory(findUserRestrictionHistory.id, new Date());
     await userRepository.createUserRestrictionHistory(profile.id, UserBanStatus.ACTIVE, null);
   }
 };

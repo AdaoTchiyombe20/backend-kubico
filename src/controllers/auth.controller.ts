@@ -69,7 +69,7 @@ export const authController = {
               res.set('Authorization', `Bearer ${user.accessToken}`);
               
               setCookie(res, "refreshToken", user.refreshToken)
-
+              
               res.status(201).json({
                 success: true,
                 user: user.user,
