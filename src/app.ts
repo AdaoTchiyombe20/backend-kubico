@@ -15,17 +15,17 @@ const allowedOrigins = [
   "http://localhost:4000",
   "https://backend-kubico-production.up.railway.app", 
 ];
-app.use((req, res, next) => {
-  console.log('🔍 Headers recebidos:', req.headers);
-  console.log('🔍 Cookies recebidos:', req.cookies);
-  next();
-});
 
 app.use(
   cors({
     origin: (origin, callback) => {
-      console.log('🔍 Origin:', origin);
-      callback(null, true);
+      if (!origin) return callback(null, true);
+      
+      if (allowedOrigins.includes(origin)) {
+        callback(null, true);
+      } else {
+        callback(null, false); 
+      }
     },
     credentials: true,
     allowedHeaders: ["Content-Type", "Authorization"],
@@ -34,13 +34,12 @@ app.use(
   })
 );
 
-app.use(cookieParser());
-
 app.set('trust proxy', 1)
 app.use(globalRateLimiting)
-app.use(express.json());
 
 app.use("/docs", swaggerRoutes);
+app.use(cookieParser());
+app.use(express.json());
 app.use("/api", router);
 app.use(errorHandler);
 

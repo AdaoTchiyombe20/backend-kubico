@@ -14,11 +14,15 @@ export function setCookie(
   options: CookieOptions = {}
 ): void {
   const defaultOptions: CookieOptions = {
-    httpOnly: false,
-    secure: process.env.NODE_ENV === 'production',
+    httpOnly: true,
+    secure: false,  // ✅ Está false em dev?
     sameSite: 'lax',
     maxAge: 7 * 24 * 60 * 60 * 1000, 
   };
 
-  res.cookie(name, value, { ...defaultOptions, ...options });
+  const finalOptions = { ...defaultOptions, ...options };
+  
+  console.log('🍪 Setando cookie:', { name, secure: finalOptions.secure, sameSite: finalOptions.sameSite });
+  
+  res.cookie(name, value, finalOptions);
 }
