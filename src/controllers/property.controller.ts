@@ -27,7 +27,7 @@ export const propertyController = {
 
   findUserProperties: async (req: Request, res: Response, next: NextFunction) => {
     try {
-      const profileId = req.accessUser?.sub;
+      const profileId = req.accessUser?.profileId;
       const limit = req.query.limit || 20;
       const lastPropertyId = req.query.cursor || 0;
       if (!profileId) throw new AppError("Perfil não encontrado!", 404);
@@ -48,7 +48,7 @@ export const propertyController = {
 
   publishProperty: async (req: Request, res: Response, next: NextFunction) => {
     try {
-      const profileId = req.accessUser?.sub;
+      const profileId = req.accessUser?.profileId;
       const propertyId = Number(req.params.id);
 
       if (isNaN(propertyId) || propertyId <= 0) {
@@ -67,7 +67,7 @@ export const propertyController = {
 
   unPublishProperty: async (req: Request, res: Response, next: NextFunction) => {
     try {
-      const profileId = req.accessUser?.sub;
+      const profileId = req.accessUser?.profileId;
       const propertyId = Number(req.params.id);
 
       if (isNaN(propertyId) || propertyId <= 0) {
@@ -87,7 +87,7 @@ export const propertyController = {
   createProperty: async (req: Request, res: Response, next: NextFunction) => {
     try {
       req.setTimeout(120_000);
-      const profileId = req.accessUser?.sub;
+      const profileId = req.accessUser?.profileId;
       if (!profileId) throw new AppError("Perfil não encontrado!", 404);
 
       const files = req.files as { [fieldName: string]: Express.Multer.File[] };
@@ -172,7 +172,7 @@ export const propertyController = {
 },
   updatePropertyInfo: async (req: Request, res: Response, next: NextFunction) => {
     try {
-      const profileId = req.accessUser?.sub;
+      const profileId = req.accessUser?.profileId;
       const propertyId = Number(req.params.id);
 
       if (isNaN(propertyId) || propertyId <= 0) {
@@ -196,7 +196,7 @@ export const propertyController = {
 
   updatePropertyMedia: async (req: Request, res: Response, next: NextFunction) => {
     try {
-      const profileId = req.accessUser?.sub;
+      const profileId = req.accessUser?.profileId;
       const propertyId = Number(req.params.id);
 
       if (isNaN(propertyId) || propertyId <= 0) {
@@ -228,7 +228,7 @@ export const propertyController = {
 
   deletePropertyMedia: async (req: Request, res: Response, next: NextFunction) => {
     try {
-      const profileId = req.accessUser?.sub;
+      const profileId = req.accessUser?.profileId;
       const propertyId = Number(req.params.id);
 
       if (isNaN(propertyId) || propertyId <= 0) {
@@ -252,7 +252,7 @@ export const propertyController = {
 
   addPropertyMedia: async (req: Request, res: Response, next: NextFunction) => {
     try {
-      const profileId = req.accessUser?.sub;
+      const profileId = req.accessUser?.profileId;
       const propertyId = Number(req.params.id);
 
       if (isNaN(propertyId) || propertyId <= 0) {
@@ -282,7 +282,7 @@ export const propertyController = {
 
   deleteProperty: async (req: Request, res: Response, next: NextFunction) => {
     try {
-      const profileId = req.accessUser?.sub;
+      const profileId = req.accessUser?.profileId;
       const propertyId = Number(req.params.id);
 
       if (isNaN(propertyId) || propertyId <= 0) {
@@ -300,7 +300,7 @@ export const propertyController = {
   },
   addToFavorites: async (req: Request, res: Response, next: NextFunction) => {
     try{ 
-      const profileId = req.accessUser?.sub;
+      const profileId = req.accessUser?.profileId ;
       const property_id = Number(req.params.id);
 
       if (isNaN(property_id) || property_id <= 0) {
@@ -322,7 +322,7 @@ export const propertyController = {
   },
   removeFromFavorites: async (req: Request, res: Response, next: NextFunction) => {
     try{ 
-      const profileId = req.accessUser?.sub;
+      const profileId = req.accessUser?.profileId;
       const property_id = Number(req.params.id);
 
       if (isNaN(property_id) || property_id <= 0) {
@@ -340,7 +340,7 @@ export const propertyController = {
   },
   getUserFavorites: async (req: Request, res: Response, next: NextFunction) => {
     try {
-      const profileId = req.accessUser?.sub;
+      const profileId = req.accessUser?.profileId;
       const limit = req.query.limit || 20;
       const lastFavoriteId = req.query.cursor || 0;
       if (!profileId) throw new AppError("Perfil não encontrado!", 404);

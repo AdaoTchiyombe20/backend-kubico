@@ -53,15 +53,15 @@ export const authServices = {
       );
 
       const accessToken = jwt.sign(
-        {
-          sub: profile.id,
-          role: "OWNER",
-          iat: Math.floor(Date.now() / 1000),
-          type: profile.type,
-        },
-        ENV.JWT_SECRET,
-        { expiresIn: "15m" },
-      );
+          {
+            sub: String(user.id),
+            profileId: profile.id,
+            role: 'CLIENT',
+            type: profile.type,
+          },
+          ENV.JWT_SECRET,
+          { expiresIn: "15m" }
+        );
 
       const verifyEmailToken = jwt.sign(
         {
@@ -118,11 +118,18 @@ export const authServices = {
       const profile = await profileRepository.findByUserId(user.id);
 
       if (!profile) throw new AppError("Usuário não encontrado!", 404);
-        const userRestrictionHistory = await userRepository.getCurrentUserRestrictionHistory(user.id);
-
-        if(!userRestrictionHistory ){
-          throw new AppError("Usuário banido!", 403);
-        }
+      const userRestrictionHistory = await userRepository.getCurrentUserRestrictionHistory(user.id);
+      if(!userRestrictionHistory) {
+        throw new AppError("Histórico de restrição do usuário não encontrado", 404);
+      }
+      if ( userRestrictionHistory.new_ban_status === "BANNED") {
+        throw new AppError("Usuário banido!", 403);
+      }
+      if (
+        userRestrictionHistory.new_ban_status === "SUSPENDED"
+      ) {
+        throw new AppError("Usuário suspenso!", 403);
+      }
 
       const refreshToken = jwt.sign(
         {
@@ -135,13 +142,13 @@ export const authServices = {
 
       const accessToken = jwt.sign(
         {
-          sub: profile.id,
+          sub: String(user.id),
+          profileId: profile.id,
           role: "CLIENT",
-          iat: Math.floor(Date.now() / 1000),
           type: profile.type,
         },
         ENV.JWT_SECRET,
-        { expiresIn: "15m" },
+        { expiresIn: "15m" }
       );
 
       const expiresAt = new Date();
@@ -257,14 +264,14 @@ export const authServices = {
 
       const accessToken = jwt.sign(
         {
-          sub: user.id,
+          sub: String(user.id),
+          profileId: profile.id,
           role: roleName,
-          iat: Math.floor(Date.now() / 1000),
           type: profile.type,
         },
         ENV.JWT_SECRET,
-        { expiresIn: "15m" },
-      );
+        { expiresIn: "15m" }
+      );;
 
       const expiresAt = new Date();
       expiresAt.setDate(expiresAt.getDate() + 7);

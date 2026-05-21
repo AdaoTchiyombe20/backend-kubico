@@ -10,11 +10,11 @@ import { userRepository } from "../repositories/auth/user.repositories.js";
 
 interface TokenPayload {
   sub: string;
-  ban_status: string;
 }
 
 interface AccessTokenPayload {
   sub: string;
+  profileId: string;
   role: string;
   iat: number;
   type: string;
@@ -33,31 +33,52 @@ declare global {
 export const authorizeRefreshTokenMiddleware = async (
   req: Request,
   res: Response,
-  next: NextFunction,
+  next: NextFunction
 ) => {
   try {
-    let token = req.cookies.refreshToken;
+    const token = req.cookies.refreshToken;
 
     if (!token) {
-      return next(new AppError("Refresh Token não fornecido!", 401));
+      return next(
+        new AppError(
+          "Refresh Token não fornecido!",
+          401
+        )
+      );
     }
 
-    const decoded = jwt.verify(token, ENV.JWT_REFRESH_SECRET) as TokenPayload;
+    const decoded = jwt.verify(
+      token,
+      ENV.JWT_REFRESH_SECRET
+    ) as JwtPayload;
 
-    req.refreshUser = decoded;
+    if (!decoded.sub) {
+      return next(
+        new AppError("Token inválido!", 401)
+      );
+    }
+
+    req.refreshUser = {
+      sub: String(decoded.sub),
+    };
 
     next();
   } catch (error) {
     if (error instanceof jwt.JsonWebTokenError) {
-      return next(new AppError("Token inválido!", 401));
+      return next(
+        new AppError("Token inválido!", 401)
+      );
     }
+
     if (error instanceof jwt.TokenExpiredError) {
-      return next(new AppError("Sessão expirada!", 401));
+      return next(
+        new AppError("Sessão expirada!", 401)
+      );
     }
-    return next(error);
+
+    next(error);
   }
 };
-
 export const UnauthorizeRefreshTokenMiddleware = async (
   req: Request,
   res: Response,
@@ -68,7 +89,27 @@ export const UnauthorizeRefreshTokenMiddleware = async (
 
     if (!token) return next();
 
-    const decoded = jwt.verify(token, ENV.JWT_REFRESH_SECRET) as TokenPayload;
+    const decoded = jwt.verify(
+  token,
+  ENV.JWT_REFRESH_SECRET
+) as JwtPayload;
+
+const userId = Number(decoded.sub);
+
+const restriction =
+  await userRepository.getCurrentUserRestrictionHistory(userId);
+
+if (!restriction) {
+  return next(new AppError("Restrição não encontrada", 403));
+}
+
+if (restriction.new_ban_status === "BANNED") {
+  return next(new AppError("Usuário banido!", 403));
+}
+
+if (restriction.new_ban_status === "SUSPENDED") {
+  return next(new AppError("Usuário suspenso!", 403));
+}
 
     const tokenExists = await refreshTokenUser.findRefreshToken(token);
 
@@ -130,6 +171,7 @@ export const authorizeNormalAccessTokenMiddleware = async (
 
     const accessPayload: AccessTokenPayload = {
       sub: payload.sub as string,
+      profileId: (payload as any).profileId as string,
       role: payload.role,
       iat: payload.iat,
       type: payload.type,
@@ -230,27 +272,29 @@ export const verificationUserBanStatusMiddleware = async (
 
     if (!token) return next();
 
-    const decoded = jwt.verify(token, ENV.JWT_REFRESH_SECRET) as TokenPayload;
+    const decoded = jwt.verify(
+      token,
+      ENV.JWT_REFRESH_SECRET
+    ) as JwtPayload;
+
     const userId = Number(decoded.sub);
 
-    // Tenta reativar se a suspensão expirou
-    const wasReactivated = await reactivateIfExpired(userId);
+    // PRIMEIRO tenta reativar
+    await reactivateIfExpired(userId);
 
-    // Se foi reativado, busca novamente o histórico atualizado
-    if (wasReactivated) {
-      const updatedRestrictionHistory = await userRepository.getCurrentUserRestrictionHistory(userId);
-      
-      if (updatedRestrictionHistory?.new_ban_status === "ACTIVE") {
-        return next(); // Usuário reativado com sucesso
-      }
+    // DEPOIS lê o estado atualizado
+    const restriction =
+      await userRepository.getCurrentUserRestrictionHistory(userId);
+
+    if (!restriction) {
+      return next(new AppError("Restrição não encontrada", 403));
     }
 
-    // Verifica o status atual do usuário
-    if (decoded.ban_status === "BANNED") {
+    if (restriction.new_ban_status === "BANNED") {
       return next(new AppError("Usuário banido!", 403));
     }
 
-    if (decoded.ban_status === "SUSPENDED") {
+    if (restriction.new_ban_status === "SUSPENDED") {
       return next(new AppError("Usuário suspenso!", 403));
     }
 
@@ -259,9 +303,11 @@ export const verificationUserBanStatusMiddleware = async (
     if (error instanceof jwt.JsonWebTokenError) {
       return next(new AppError("Token inválido!", 401));
     }
+
     if (error instanceof jwt.TokenExpiredError) {
       return next(new AppError("Sessão expirada!", 401));
     }
+
     return next(error);
   }
 };

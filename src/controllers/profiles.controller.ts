@@ -12,7 +12,7 @@ type MulterFiles = { [fieldname: string]: Express.Multer.File[] } | Express.Mult
 export const profileController = {
   createOwnerIndividual: async (req: Request, res: Response, next: NextFunction) => {
     try {
-      const id = req.accessUser!.sub;
+      const id = req.accessUser!.profileId;
       const data: CreateIndividualOwnerDTO = createIndividualOwner.parse(req.body);
      //full_name, birth_date, phone, bi, nif, bank_account 
       await profileService.createOwnerIndividual(Number(id), {
@@ -31,7 +31,7 @@ export const profileController = {
 
   createOwnerCompany: async (req: Request, res: Response, next: NextFunction) => {
     try {
-      const id = req.accessUser!.sub;
+      const id = req.accessUser!.profileId;
       const data: CreateOwnerCompanyDTO = createOwnerCompanyComplete.parse(req.body);
 
       await profileService.createOwnerCompany(Number(id), {
