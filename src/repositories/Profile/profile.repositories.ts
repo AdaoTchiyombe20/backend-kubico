@@ -20,8 +20,28 @@ export const profileRepository = {
             where: {id}
         })
     },
-    findAll: async():Promise<profiles[] | []> => {
-        return prisma.profiles.findMany()|| []
+    findAll: async(limit: number, lastPropertyId: number):Promise<profiles[] | []> => {
+        return prisma.profiles.findMany({
+             where: {
+                    ...(lastPropertyId > 0 && { id: { gt: lastPropertyId } }),
+                  },
+            include: {
+                user: {
+                    select: {
+                        id: true,
+                        email: true,
+                        status: true,
+                        email_verified: true,
+                        last_access: true,
+                        date_register: true   
+                    }
+                },
+                person_profile: true,
+                company_profile: true
+            },
+            orderBy: { id: "asc" },
+            take: limit + 1
+        }) || []
     },
     deleteProfile: async(user_id: number):Promise<profiles|null> => {
         return prisma.profiles.delete({

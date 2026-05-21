@@ -21,10 +21,24 @@ model users {
 
   refreshTokens  refresh_tokens[]
   emailVerified  emailVerification[]
+  restrictionsHistory userRestrictionsHistory[]
   profile        profiles?
   admin          admins?
 
   @@index([email])
+}
+
+model userRestrictionsHistory {
+  id Int @id @default(autoincrement())
+  user_id Int
+  is_active Boolean @default(true)
+  new_ban_status UserBanStatus
+  changed_at DateTime @default(now())
+  ended_at DateTime?
+
+  user users @relation(fields: [user_id], references: [id], onDelete: Cascade)
+
+  @@index([user_id, changed_at])
 }
 
 model roles {
@@ -56,7 +70,7 @@ model person_profiles {
   full_name  String
   birth_date DateTime
 
-  profile profiles @relation(fields: [profile_id], references: [id])
+  profile profiles @relation(fields: [profile_id], references: [id], onDelete: Cascade)
 }
 
 model company_profiles {
@@ -64,7 +78,7 @@ model company_profiles {
   profile_id       Int      @unique
   legal_name       String
 
-  profile profiles @relation(fields: [profile_id], references: [id])
+  profile profiles @relation(fields: [profile_id], references: [id], onDelete: Cascade)
 }
 
 model profile_data {
@@ -118,7 +132,7 @@ model admins {
   deleted_at       DateTime?
 
   profile_role   profile_roles   @relation(name: "AdminProfile", fields: [profile_role_id], references: [id], onDelete: Cascade)
-  user           users           @relation(fields: [user_id], references: [id])
+  user           users           @relation(fields: [user_id], references: [id], onDelete: Cascade)
 }
 
 model refresh_tokens {
@@ -169,6 +183,7 @@ model properties {
   owner profile_roles @relation(fields: [id_owner],references: [id], onDelete: Cascade)
 
   property_localization propertyLocalization?
+  property_restrictions_history propertyRestrictionsHistory[]
   property_compartments propertyCompartments[]
   property_medias propertyMedia[]
   property_listing propertyListing[]
@@ -180,6 +195,18 @@ model properties {
   @@index([status_property]) // Queries por status
   @@index([created_at]) // Ordenação por data
   @@index([deleted_at]) // Soft deletes
+}
+
+model propertyRestrictionsHistory {
+  id Int @id @default(autoincrement())
+  property_id Int
+  new_ban_status ListingRestrictionStatus
+  changed_at DateTime @default(now())
+  ended_at DateTime?
+
+  property properties @relation(fields: [property_id], references: [id], onDelete: Cascade)
+
+  @@index([property_id, changed_at])
 }
 
 model propertyHistory {
@@ -452,4 +479,16 @@ enum CompartmentsTypes {
   SPA
   PISCINA
   TERRAÇO
+}
+
+enum UserBanStatus { 
+  ACTIVE   
+  SUSPENDED
+  BANNED  
+} 
+
+enum ListingRestrictionStatus {
+  UNBANNED   
+  SUSPENDED    
+  BANNED  
 }

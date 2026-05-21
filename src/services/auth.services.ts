@@ -27,6 +27,12 @@ export const authServices = {
         password: passwordHash,
       });
 
+      const userRestrictionHistory = await userRepository.createUserRestrictionHistory(
+        user.id,
+        "ACTIVE",
+        null
+      );
+
       const profile = await profileRepository.createProfile(
         user.id,
         typeOfUser,
@@ -40,6 +46,7 @@ export const authServices = {
       const refreshToken = jwt.sign(
         {
           sub: user.id,
+          ban_status: userRestrictionHistory.new_ban_status,
         },
         ENV.JWT_REFRESH_SECRET,
         { expiresIn: "7d" },
@@ -111,10 +118,16 @@ export const authServices = {
       const profile = await profileRepository.findByUserId(user.id);
 
       if (!profile) throw new AppError("Usuário não encontrado!", 404);
+        const userRestrictionHistory = await userRepository.getCurrentUserRestrictionHistory(user.id);
+
+        if(!userRestrictionHistory ){
+          throw new AppError("Usuário banido!", 403);
+        }
 
       const refreshToken = jwt.sign(
         {
           sub: user.id,
+          ban_status: userRestrictionHistory.new_ban_status,
         },
         ENV.JWT_REFRESH_SECRET,
         { expiresIn: "7d" },

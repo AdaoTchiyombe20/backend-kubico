@@ -4,10 +4,14 @@ import { AppError } from "../errors/App.Errors.js";
 import "dotenv/config";
 import { ENV } from "../config/env.js";
 import { refreshTokenUser } from "../repositories/auth/refreshToken.repositories.js";
+import { UserBanStatus} from "@prisma/client";
 import type { JwtPayload } from "jsonwebtoken";
+import { ca } from "zod/locales";
+import { userRepository } from "../repositories/auth/user.repositories.js";
 
 interface TokenPayload {
   sub: string;
+  ban_status: string,
 }
 interface AccessTokenPayload {
   sub: string;
@@ -48,7 +52,7 @@ export const authorizeRefreshTokenMiddleware = async (
       return next(new AppError("Token inválido!", 401));
     }
     if (error instanceof jwt.TokenExpiredError) {
-      return next(new AppError("Token expirado!", 401));
+      return next(new AppError("Sessão expirada!", 401));
     }
     return next(error);
   }
@@ -139,7 +143,7 @@ export const authorizeNormalAccessTokenMiddleware = async (
       return next(new AppError("Token inválido!", 401));
     }
     if (error instanceof jwt.TokenExpiredError) {
-      return next(new AppError("Token expirado!", 401));
+      return next(new AppError("Sessão expirada!", 401));
     }
     return next(error);
   }
@@ -168,3 +172,48 @@ export function authorizeRoleAcessTokenMiddleware(allowedRole: string[]) {
     }
   };
 }
+
+export const verificationUserBanStatusMiddleware = async (req: Request, res: Response, next: NextFunction) => {
+  try{
+    const token = req.cookies.refreshToken;
+
+    if (!token) return next();
+
+    const decoded = jwt.verify(token, ENV.JWT_REFRESH_SECRET) as TokenPayload;
+
+    if(decoded.ban_status === "BANNED"){
+      return next(new AppError("Usuário banido!", 403));
+    }
+    if(decoded.ban_status === "SUSPENDED"){
+      return next(new AppError("Usuário suspenso!", 403));
+    }
+    next();
+
+  }catch(error){
+     if (error instanceof jwt.JsonWebTokenError) {
+      return next(new AppError("Token inválido!", 401));
+    }
+    if (error instanceof jwt.TokenExpiredError) {
+      return next(new AppError("Sessão expirada!", 401));
+    }
+    return next(error);
+  }
+}
+
+const reactivateIfExpired =  async (id: number) => {
+  if(isNaN(id)) throw new AppError("ID inválido!", 400)
+  if(!id) throw new AppError("ID não fornecido!", 400)
+
+  const profile = await userRepository.findById(id);
+  if (!profile) throw new AppError("Usuario não encontrado!", 404);
+  const findUserRestrictionHistory = await userRepository.getCurrentUserRestrictionHistory(profile.id);
+  if(!findUserRestrictionHistory) throw new AppError("O perfil não possui histórico de restrições!", 400)
+
+  if (
+    findUserRestrictionHistory.new_ban_status === UserBanStatus.SUSPENDED &&
+    findUserRestrictionHistory.ended_at &&
+    Date.now() - findUserRestrictionHistory.ended_at.getTime() >= 7 * 24 * 60 * 60 * 1000
+  ) {
+    await userRepository.createUserRestrictionHistory(profile.id, UserBanStatus.ACTIVE, null);
+  }
+};
