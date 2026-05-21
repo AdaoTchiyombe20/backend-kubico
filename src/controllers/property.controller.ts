@@ -307,8 +307,9 @@ export const propertyController = {
         throw new AppError("ID inválido!", 400);
       }
 
-      if (!profileId) throw new AppError("Perfil não encontrado!", 404);
       console.log("Profile ID:", profileId);
+      if (!profileId) throw new AppError("Perfil não encontrado!", 404);
+      
       if (!property_id) throw new AppError("ID da propriedade é obrigatório!", 400);
       console.log("Property ID:", property_id);
 

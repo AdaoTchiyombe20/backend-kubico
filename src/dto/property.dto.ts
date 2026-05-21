@@ -42,7 +42,15 @@ export const createPropertySchema = z.object({
                             .positive("O preço deve ser um valor positivo")
                             .max(2_147_483_647, "O preço não pode ultrapassar o limite de inteiro")
                         ),
-  is_negotiable:  z.boolean().default(false),
+  is_negotiable: z.preprocess(
+                      (val) => {
+                        if (typeof val === "string") {
+                          return val.toLowerCase() === "true";
+                        }
+                        return val;
+                      },
+                      z.boolean().default(false)
+                    ),
   type_purchase:   z.string().transform(v => v.toUpperCase()).pipe(
                       z.nativeEnum(Property_purchase, { message: "Tipo de compra inválido" })
                     ),
@@ -89,7 +97,15 @@ export const updatePropertyInfo = z.object({
                             .positive("O preço deve ser um valor positivo")
                             .max(2_147_483_647, "O preço não pode ultrapassar o limite de inteiro")
                         ).optional(),
-  is_negotiable:  z.boolean().optional(),
+  is_negotiable:  z.preprocess(
+      (val) => {
+        if (typeof val === "string") {
+          return val.toLowerCase() === "true";
+        }
+        return val;
+      },
+      z.boolean().default(false)
+    ).optional(),
   type_purchase:   z.string().transform(v => v.toUpperCase()).pipe(
                       z.nativeEnum(Property_purchase, { message: "Tipo de compra inválido" })
                     ).optional(),

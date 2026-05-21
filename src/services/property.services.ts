@@ -245,9 +245,7 @@ export const propertyService = {
     try {
       uploadResults = await uploadFilesToCloudinary(files, "properties");
     } finally {
-      // Deletar ficheiros temporários IMEDIATAMENTE após upload
-      // Isto garante que mesmo se algo falhar depois, os temps já foram limpos
-      await deleteTempFiles(files);
+      console.log("Upload results:", uploadResults);
     }
 
     // Se houve erros no upload, limpar Cloudinary e falhar
@@ -604,22 +602,27 @@ export const propertyService = {
 
     return media;
   },
-  addToFavorites: async (ownerId: number, propertyId: number) => {
-    const findOwner = await profileRole.findProfileRoleByRole(ownerId, 2);
-    console.log("findOwner:", findOwner);
-    if (!findOwner) throw new AppError("Owner não encontrado!", 404);
-    const findProperty = await propertyRepository.findUniquePropertyById(propertyId);
-    console.log("findProperty:", findProperty);
-    if (!findProperty) throw new AppError("Imóvel não encontrado!", 404);
+ addToFavorites: async (ownerId: number, propertyId: number) => {
+  const findOwner = await profileRole.findProfileRoleByRole(ownerId, 2);
+  console.log("findOwner:", findOwner);
 
-    if(findProperty.id_owner === findOwner.id) throw new AppError("Não é possível favoritar seu próprio imóvel!", 400);
-    console.log("Antes de adicionar aos favoritos passou");
+  const findProperty = await propertyRepository.findUniquePropertyById(propertyId);
+  console.log("findProperty:", findProperty);
 
-    await favPropertyRepository.addFavorite(ownerId, propertyId);
-    console.log("Depois de adicionar aos favoritos passou");
-    return { message: "Imóvel adicionado aos favoritos!" };
+  if (!findProperty) throw new AppError("Imóvel não encontrado!", 404);
 
-  },
+  // Só compara se findOwner existir
+  if (findOwner && findProperty.id_owner === findOwner.id) {
+    throw new AppError("Não é possível favoritar seu próprio imóvel!", 400);
+  }
+
+  console.log("Antes de adicionar aos favoritos passou");
+
+  await favPropertyRepository.addFavorite(ownerId, propertyId);
+  console.log("Depois de adicionar aos favoritos passou");
+
+  return { message: "Imóvel adicionado aos favoritos!" };
+},
   removeFromFavorites: async (ownerId: number, propertyId: number) => {
     const findOwner = await profileRole.findProfileRoleByRole(ownerId, 2);
     if (!findOwner) throw new AppError("Owner não encontrado!", 404);

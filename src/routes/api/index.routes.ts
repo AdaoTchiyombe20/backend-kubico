@@ -22,7 +22,7 @@ router.use("/auth", authRouter)
 router.use("/profile", authorizeNormalAccessTokenMiddleware, verifyProfile)
 router.use("/admin", withRole("admin"), adminRoute) 
 router.use("/assume-roles",withRole("client", "owner"), assumeRole);
-router.use("/properties", withRole("admin","owner"), propertyRoute)
+router.use("/properties", propertyRoute)
 router.use("/FavoritesProperties", withRole("admin","client"), propertyRoute)
 
 export { router };
