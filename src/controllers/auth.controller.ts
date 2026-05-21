@@ -85,7 +85,8 @@ export const authController = {
         const data: AuthLoginDTO = login.parse(req.body) 
         const {email, password} = data
         const user = await authServices.login({email, password})
-
+        
+        console.log('Login bem-sucedido:', { email, accessToken: user.accessToken, refreshToken: user.refreshToken });
         res.set('Access-Control-Expose-Headers', 'Authorization');
         res.set('Authorization', `Bearer ${user.accessToken}`);
         
