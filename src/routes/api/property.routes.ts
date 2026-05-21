@@ -2,7 +2,7 @@ import { Router } from "express";
 import { propertyController } from "../../controllers/property.controller.js";
 import { multerUploads } from "../../middlewares/multer.middleware.js";
 import { authorizeNormalAccessTokenMiddleware, authorizeRoleAcessTokenMiddleware } from "../../middlewares/auth.middleware.js";
-
+import { cleanupMulterFiles } from "../../middlewares/multer.middleware.js";
 const { uploadImagesAndVideo, uploadImg, uploadVideo } = multerUploads;
 
 const withRole = (...roles: string[]) => [
@@ -15,22 +15,23 @@ const propertyRoute = Router();
 
 // ✅ FAVORITOS (mais específico - colocar PRIMEIRO)
 propertyRoute.get("/favorites", withRole("owner"), propertyController.getUserFavorites);
-propertyRoute.post("/favorites/:id", withRole("owner"), propertyController.addToFavorites);
+propertyRoute.post("/favorites/:id", withRole("client"), propertyController.addToFavorites);
 propertyRoute.delete("/favorites/:id", withRole("owner"), propertyController.removeFromFavorites);
 
 // PUBLICAÇÃO de imóveis (específicas também)
 propertyRoute.get("/listings/search", propertyController.searchListings);
 propertyRoute.get("/listings", propertyController.findAllListings);
+propertyRoute.get("/listings/:id", propertyController.findListingById);
 propertyRoute.post("/publish/:id", withRole("owner"), propertyController.publishProperty);
 propertyRoute.post("/unpublish/:id", withRole("owner"), propertyController.unPublishProperty);
 
 // CRUD de imóveis (genérico - colocar POR ÚLTIMO)
 propertyRoute.get("/", withRole("admin"), propertyController.findAll);
 propertyRoute.get("/owner", withRole("owner"), propertyController.findUserProperties);
-propertyRoute.post("/", uploadImagesAndVideo.fields([
+propertyRoute.post("/",withRole("owner"), uploadImagesAndVideo.fields([
   { name: "images", maxCount: 5 },
   { name: "video", maxCount: 1 },
-]), propertyController.createProperty);
+]), cleanupMulterFiles, propertyController.createProperty);
 propertyRoute.patch("/:id/info", withRole("owner"), propertyController.updatePropertyInfo);
 propertyRoute.patch("/:id/media/:mediaId",withRole("owner"), uploadImagesAndVideo.single("file"), propertyController.updatePropertyMedia);
 propertyRoute.post("/:id/media", withRole("owner"), uploadImagesAndVideo.single("file"), propertyController.addPropertyMedia);

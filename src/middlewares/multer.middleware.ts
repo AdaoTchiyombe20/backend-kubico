@@ -1,10 +1,16 @@
 import multer from "multer";
-import type { Request } from "express";
+import type {
+  Request,
+  Response,
+  NextFunction,
+  RequestHandler,
+} from "express";
 import { AppError } from "../errors/App.Errors.js";
 import fs from "fs";
 import fsPromises from "fs/promises";
 import path from "path";
 import crypto from "crypto";
+import { deleteTempFiles } from "../utils/cloudinary.utils.js";
 
 // ─── Garantir diretório temporário ───────────────────────────────────────────
 /* fs.mkdirSync("uploads/tmp", { recursive: true }); */
@@ -117,4 +123,41 @@ export const multerUploads = {
     limits: { fileSize: LIMITS.video },
     fileFilter: imageOrVideoFilter,
   }),
+};
+
+
+export const cleanupMulterFiles = (
+  req: Request,
+  res: Response,
+  next: NextFunction
+) => {
+  let cleaned = false;
+
+  const cleanup = async () => {
+    if (cleaned) return;
+    cleaned = true;
+
+    try {
+      const files = req.files as
+        | { [field: string]: Express.Multer.File[] }
+        | undefined;
+
+      if (files) {
+        await deleteTempFiles(files);
+      }
+
+      if (req.file) {
+        await deleteTempFiles({
+          file: [req.file],
+        });
+      }
+    } catch (error) {
+      console.error("Erro ao limpar ficheiros temp:", error);
+    }
+  };
+
+  (res as any).once("finish", cleanup);
+  (res as any).once("close", cleanup);
+
+  next();
 };
