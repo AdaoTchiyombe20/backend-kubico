@@ -14,7 +14,7 @@ const withRole = (...roles: string[]) => [
 const propertyRoute = Router();
 
 // ✅ FAVORITOS (mais específico - colocar PRIMEIRO)
-propertyRoute.get("/favorites", withRole("owner"), propertyController.getUserFavorites);
+propertyRoute.get("/favorites", withRole("owner, client"), propertyController.getUserFavorites);
 propertyRoute.post("/favorites/:id", withRole("client"), propertyController.addToFavorites);
 propertyRoute.delete("/favorites/:id", withRole("owner"), propertyController.removeFromFavorites);
 
