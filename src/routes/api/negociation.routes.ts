@@ -1,5 +1,11 @@
 import { Router } from "express";
 import { negociationEventController } from "../../controllers/negociationEvent.controller.js";
+import { authorizeNormalAccessTokenMiddleware, authorizeRoleAcessTokenMiddleware  } from "../../middlewares/auth.middleware.js";
+
+const withRole = (...roles: string[]) => [
+  authorizeNormalAccessTokenMiddleware,
+  authorizeRoleAcessTokenMiddleware(roles),
+];
 
 const negociationRouter = Router();
 
@@ -12,8 +18,10 @@ const negociationRouter = Router();
  * Iniciar uma negociação (criar proposta)
  * Body: { property_id, offer_price, message? }
  */
+
 negociationRouter.post(
     "/init",
+withRole("client"),
     negociationEventController.initNegociationEvent
 );
 
@@ -24,6 +32,7 @@ negociationRouter.post(
  */
 negociationRouter.post(
     "/accept",
+    withRole("owner"),
     negociationEventController.acceptNegociation
 );
 
@@ -34,6 +43,7 @@ negociationRouter.post(
  */
 negociationRouter.post(
     "/reject",
+    withRole("owner"),
     negociationEventController.rejectNegociation
 );
 
@@ -44,6 +54,7 @@ negociationRouter.post(
  */
 negociationRouter.post(
     "/counter-offer",
+    withRole("owner"),
     negociationEventController.sendCounterOffer
 );
 
@@ -54,6 +65,7 @@ negociationRouter.post(
  */
 negociationRouter.post(
     "/cancel",
+    withRole("client"),
     negociationEventController.cancelNegociation
 );
 
@@ -64,6 +76,7 @@ negociationRouter.post(
  */
 negociationRouter.get(
     "/:negociation_id/history",
+    withRole("client", "owner"),
     negociationEventController.getNegociationHistory
 );
 
@@ -73,6 +86,7 @@ negociationRouter.get(
  */
 negociationRouter.get(
     "/",
+    withRole("client", "owner"),
     negociationEventController.getUserNegotiations
 );
 
@@ -82,6 +96,7 @@ negociationRouter.get(
  */
 negociationRouter.get(
     "/pending",
+    withRole("owner"),
     negociationEventController.getPendingNegotiations
 );
 

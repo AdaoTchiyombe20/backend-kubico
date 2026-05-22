@@ -221,7 +221,7 @@ export const negociationEventService = {
 
         // Gerar descrição automática
         const eventDescription = generateNegociationEventDescription({
-            eventType: "CANCELLATION", // Você pode adicionar um novo tipo se quiser
+            eventType: "COUNTER_OFFER", // Você pode adicionar um novo tipo se quiser
             clientName: "Cliente",
             ownerName: "Proprietário",
             proposedPrice: Number(negociation.proposed_price),

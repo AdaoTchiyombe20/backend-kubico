@@ -2,7 +2,7 @@
 // TIPOS
 // ============================================
 
-type NegociationEventType = "PROPOSAL" | "ACCEPTANCE" | "REJECTION" | "CANCELLATION" | "OTHER";
+type NegociationEventType = "PROPOSAL" | "ACCEPTANCE" | "REJECTION" | "CANCELLATION" | "COUNTER_OFFER" | "OTHER";
 
 interface GenerateDescriptionContext {
     eventType: NegociationEventType;
@@ -22,6 +22,7 @@ const EVENT_DESCRIPTIONS_MAP: Record<NegociationEventType, string> = {
     PROPOSAL: "Proposta de compra enviada",
     ACCEPTANCE: "Proposta aceita",
     REJECTION: "Proposta rejeitada",
+    COUNTER_OFFER: "Contraproposta enviada",
     CANCELLATION: "Negociação cancelada",
     OTHER: "Evento de negociação",
 };
@@ -50,6 +51,15 @@ export function generateNegociationEventDescription(context: GenerateDescription
             })}`;
             if (message) {
                 description += `. Mensagem: "${message}"`;
+            }
+            break;
+        case "COUNTER_OFFER":
+            description = `${ownerName} fez uma contraproposta de AOA ${counterPrice?.toLocaleString("pt-AO", {
+                maximumFractionDigits: 2,
+            })}`;
+
+            if (message) {
+                description += `. Observações: "${message}"`;
             }
             break;
 
