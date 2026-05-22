@@ -70,9 +70,17 @@ export const negociationRepository = {
             },
             include: {
                 property_listing: {
-                    select: { id: true, 
-                        properties: {
-                            select: { id: true, title: true },
+                    select: { 
+                        id: true,
+                        status: true,
+                        listed_at: true,
+                        // ✅ CORRIGIDO: usar 'property' (singular) em vez de 'properties'
+                        property: {
+                            select: { 
+                                id: true, 
+                                title: true,
+                                price: true 
+                            },
                         }
                      },
                 },
@@ -97,10 +105,35 @@ export const negociationRepository = {
             },
             include: {
                 client: {
-                    select: { id: true, name: true },
+                    // ✅ CORRIGIDO: client é um profile_roles que não tem campo 'name'
+                    // Se precisar do nome, navegar pela relação 'profile' -> 'person_profiles' ou 'company_profiles'
+                    select: { 
+                        id: true, 
+                        profile_id: true,
+                        profile: {
+                            select: {
+                                person_profile: {
+                                    select: { full_name: true }
+                                },
+                                company_profile: {
+                                    select: { legal_name: true }
+                                }
+                            }
+                        }
+                    },
                 },
                 property_listing: {
-                    select: { id: true, title: true, price: true },
+                    // ✅ CORRIGIDO: title e price estão em 'property', não em 'propertyListing'
+                    select: { 
+                        id: true,
+                        status: true,
+                        property: {
+                            select: { 
+                                title: true, 
+                                price: true 
+                            }
+                        }
+                    },
                 },
                 negociationEvents: {
                     orderBy: { event_date: "desc" },

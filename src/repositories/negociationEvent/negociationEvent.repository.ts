@@ -40,8 +40,13 @@ export const negociationEventRepository = {
         return await prisma.negociationEvent.findMany({
             where: { negociation_id },
             include: {
+                // ✅ CORRIGIDO: usar 'profile_roles' (com include, não select) ou acessar via relação
                 profile_roles: {
-                    select: { id: true, name: true },
+                    select: { 
+                        id: true, 
+                        profile_id: true,
+                        // profile_roles não tem campo 'name'
+                    },
                 },
             },
             orderBy: { event_date: "asc" },
@@ -107,8 +112,13 @@ export const negociationEventRepository = {
                         property_listing: {
                             select: {
                                 id: true,
-                                properties: {
-                                    select: {id: true, title: true },
+                                status: true,
+                                // ✅ CORRIGIDO: usar 'property' (singular) em vez de 'properties'
+                                property: {
+                                    select: {
+                                        id: true, 
+                                        title: true 
+                                    },
                                 },
                             },
                         },
@@ -127,8 +137,12 @@ export const negociationEventRepository = {
         return await prisma.negociationEvent.findMany({
             where: { negociation_id },
             include: {
+                // ✅ CORRIGIDO: profile_roles não tem campo 'name'
                 profile_roles: {
-                    select: { id: true, name: true },
+                    select: { 
+                        id: true, 
+                        profile_id: true,
+                    },
                 },
             },
             orderBy: { event_date: "desc" },
