@@ -43,7 +43,7 @@ export const authorizeRefreshTokenMiddleware = async (
 
     req.refreshUser = decoded;
 
-    next();
+    return next();
   } catch (error) {
     if (error instanceof jwt.JsonWebTokenError) {
       return next(new AppError("Token inválido!", 401));
@@ -136,7 +136,7 @@ export const authorizeNormalAccessTokenMiddleware = async (
     };
 
     req.accessUser = accessPayload;
-    next();
+    return next();
   } catch (error) {
     if (error instanceof jwt.JsonWebTokenError) {
       return next(new AppError("Token inválido!", 401));
@@ -165,7 +165,7 @@ export function authorizeRoleAcessTokenMiddleware(allowedRole: string[]) {
 
       if (!hasPermission) return next(new AppError("Acesso negado", 403));
 
-      next();
+      return next();
     } catch (err) {
       next(err);
     }

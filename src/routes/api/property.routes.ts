@@ -27,7 +27,7 @@ propertyRoute.post("/unpublish/:id", withRole("owner"), propertyController.unPub
 
 // CRUD de imóveis (genérico - colocar POR ÚLTIMO)
 propertyRoute.get("/", withRole("admin"), propertyController.findAll);
-propertyRoute.get("/owner", withRole("owner"), propertyController.findUserProperties);
+propertyRoute.get("/owner", withRole("owner", "client"), propertyController.findUserProperties);
 propertyRoute.post("/",withRole("owner"), uploadImagesAndVideo.fields([
   { name: "images", maxCount: 5 },
   { name: "video", maxCount: 1 },
