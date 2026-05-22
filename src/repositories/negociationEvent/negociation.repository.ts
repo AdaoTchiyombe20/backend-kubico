@@ -33,12 +33,6 @@ export const negociationRepository = {
         return await prisma.negociation.findUnique({
             where: { id },
             include: {
-                client: {
-                    select: { id: true, name: true },
-                },
-                owner: {
-                    select: { id: true, name: true },
-                },
                 negociationEvents: {
                     orderBy: { event_date: "asc" },
                 },
@@ -75,14 +69,12 @@ export const negociationRepository = {
                 ],
             },
             include: {
-                client: {
-                    select: { id: true, name: true },
-                },
-                owner: {
-                    select: { id: true, name: true },
-                },
                 property_listing: {
-                    select: { id: true, title: true, price: true },
+                    select: { id: true, 
+                        properties: {
+                            select: { id: true, title: true },
+                        }
+                     },
                 },
                 negociationEvents: {
                     orderBy: { event_date: "desc" },
