@@ -311,6 +311,12 @@ model negociation {
   accepted_value Decimal?
   status NegociationStatus @default(PENDING)
   created_at DateTime @default(now())
+  message String?
+
+  @@index([property_listing_id])
+  @@index([client_id])
+  @@index([owner_id, client_id])
+  @@index([property_listing_id, client_id])
 
 
   property_listing propertyListing @relation(fields: [property_listing_id], references: [id], onDelete: Cascade)
@@ -330,6 +336,8 @@ model negociationEvent {
   negociation negociation @relation(fields: [negociation_id], references: [id], onDelete: Cascade)
   profile_roles profile_roles @relation(fields: [profile_role_id], references: [id], onDelete: Cascade)
 }
+
+
 
 
 
