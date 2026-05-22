@@ -6,6 +6,7 @@ import {
   createIndividualOwner,
 } from "../dto/profile.dto.js";
 import { profileService } from "../services/profile.services.js";
+import { convertBRDateToISO } from "../utils/dateConverter.utils.js";
 
 type MulterFiles = { [fieldname: string]: Express.Multer.File[] } | Express.Multer.File[] | undefined;
 
@@ -17,7 +18,7 @@ export const profileController = {
      //full_name, birth_date, phone, bi, nif, bank_account 
       await profileService.createOwnerIndividual(Number(id), {
         full_name: data.ownerName,
-        birth_date:new Date(data.dateOfBirth),
+        birth_date:convertBRDateToISO(data.dateOfBirth),
         phone: data.phone,
         bi: data.bi,
         bank_account: data.bankAccount,

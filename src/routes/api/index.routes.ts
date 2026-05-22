@@ -5,6 +5,7 @@ import { authorizeNormalAccessTokenMiddleware } from "../../middlewares/auth.mid
 import { adminRoute } from "./admin.routes.js";
 import { verifyProfile } from "./verifyProfile.routes.js";
 import { assumeRole } from "./assumeRole.routes.js";
+import { negociationRouter } from "./negociation.routes.js"
 import { authorizeRoleAcessTokenMiddleware } from "../../middlewares/auth.middleware.js";
 import { propertyRoute } from "./property.routes.js";
 
@@ -24,5 +25,6 @@ router.use("/admin", withRole("admin"), adminRoute)
 router.use("/assume-roles",withRole("client", "owner"), assumeRole);
 router.use("/properties", propertyRoute)
 router.use("/FavoritesProperties", withRole("admin","client"), propertyRoute)
+router.use("/negotiations", withRole("client", "owner"), negociationRouter)
 
 export { router };

@@ -13,11 +13,9 @@ export const createClientCompanyComplete = z.object({
 export const createOwnerCompanyComplete = z.object({
   nameOfCompany: z.string().min(3, "Mínimo 3 caracteres"),
   phone: z
-    .string()
-    .length(9, "9 caracteres")
-    .regex(/^[0-9]+$/, "Apenas números"),
+    .string(),
   nif: z.string().length(6, "6 caracteres"),
-  bankAccount: z.string().length(21, "21 caracteres"),
+  bankAccount: z.string().length(31, "31 caracteres"),
 });
 
 export const createIndividualClient = z.object({
@@ -40,7 +38,14 @@ export const createIndividualClient = z.object({
     bi: z.string().length(14, "14 caracteres"),
     bankAccount: z.string().length(31, "31 caracteres"),
     dateOfBirth: z
-      .string(),
+                .string().refine(
+                    (date) => {
+                      // Valida o formato DD-MM-YYYY
+                      const regex = /^\d{2}-\d{2}-\d{4}$/;
+                      return regex.test(date);
+                    },
+                    { message: "Data deve estar no formato DD-MM-YYYY" }
+                  ),
 });
 
 export type CreateClientCompanyDTO = z.infer<typeof createClientCompanyComplete>;
