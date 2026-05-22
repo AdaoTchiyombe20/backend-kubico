@@ -290,16 +290,16 @@ model propertyListing {
 model favorites {
   id Int @id @default(autoincrement())
   owner_id Int
-  property_id Int
+  listed_property_id Int
   created_at DateTime @default(now())
 
   profile_roles profile_roles @relation(fields: [owner_id], references: [id], onDelete: Cascade)
-  properties properties @relation(fields: [property_id], references: [id], onDelete: Cascade)
+  properties properties @relation(fields: [listed_property_id], references: [id], onDelete: Cascade)
 
   @@index([owner_id]) 
-  @@index([property_id]) 
-  @@index([owner_id, property_id]) 
-  @@unique([owner_id, property_id]) 
+  @@index([listed_property_id]) 
+  @@index([owner_id, listed_property_id]) 
+  @@unique([owner_id, listed_property_id]) 
 }
 
 model negociation {

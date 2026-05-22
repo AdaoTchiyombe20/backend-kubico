@@ -616,9 +616,12 @@ export const propertyService = {
     throw new AppError("Não é possível favoritar seu próprio imóvel!", 400);
   }
 
+  const findListedProperty = await propertyListingRepository.findActiveListing(propertyId);
+  if(!findListedProperty) throw new AppError("Imóvel precisa estar publicado para ser adicionado aos favoritos!", 400);
+
   console.log("Antes de adicionar aos favoritos passou");
 
-  await favPropertyRepository.addFavorite(ownerId, propertyId);
+  await favPropertyRepository.addFavorite(ownerId, findListedProperty.id);
   console.log("Depois de adicionar aos favoritos passou");
 
   return { message: "Imóvel adicionado aos favoritos!" };
