@@ -2,20 +2,20 @@ import type { favorites } from "@prisma/client";
 import { prisma } from "../../../lib/prisma.js";
 
 export const favPropertyRepository = {
-    addFavorite: async (userId: number, property_id: number):Promise<void> => {
+    addFavorite: async (userId: number, listed_property_id: number):Promise<void> => {
      await prisma.favorites.create({
             data: {
                 owner_id: userId,
-                property_id,
+                listed_property_id,
             },
         }); 
     },
-    removeFavorite: async (userId: number, property_id: number):Promise<void> => {
+    removeFavorite: async (userId: number, listed_property_id: number):Promise<void> => {
         await prisma.favorites.delete({
             where: {
-                owner_id_property_id: {
+                owner_id_listed_property_id: {
                     owner_id: userId,
-                    property_id,
+                    listed_property_id,
                 }
             }
         })
