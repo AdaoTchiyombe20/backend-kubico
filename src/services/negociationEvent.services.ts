@@ -8,8 +8,6 @@ import type {
 import { AppError } from "../errors/App.Errors.js";
 import { negociationRepository } from "../repositories/negociationEvent/negociation.repository.js";
 import { negociationEventRepository } from "../repositories/negociationEvent/negociationEvent.repository.js";
-import { companyProfileRepository } from "../repositories/Profile/companyProfile.repositories.js";
-import { person_profilesRepository } from "../repositories/Profile/personProfiles.repositories.js";
 import { profileRepository } from "../repositories/Profile/profile.repositories.js";
 import { profileRole } from "../repositories/Profile/profileRole.repositories.js";
 import { propertyRepository } from "../repositories/property/properties.repositories.js";
