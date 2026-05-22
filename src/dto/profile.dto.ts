@@ -36,15 +36,11 @@ export const createIndividualClient = z.object({
   export const createIndividualOwner = z.object({
     ownerName: z.string().min(3, "Mínimo 3 caracteres"),
     phone: z
-    .string()
-    .length(9, "9 caracteres")
-    .regex(/^[0-9]+$/, "Apenas números"),
+    .string(),
     bi: z.string().length(14, "14 caracteres"),
-    bankAccount: z.string().length(21, "21 caracteres"),
+    bankAccount: z.string().length(31, "31 caracteres"),
     dateOfBirth: z
-      .string()
-      .refine((date) => !isNaN(Date.parse(date)), "Data inválida")
-      .transform((date) => new Date(date)),
+      .string(),
 });
 
 export type CreateClientCompanyDTO = z.infer<typeof createClientCompanyComplete>;
