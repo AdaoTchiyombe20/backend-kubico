@@ -352,7 +352,7 @@ export const propertyService = {
       }
     });
 
-    return uploaded;
+    return {property, uploaded};
   },
 
   deleteProperty: async (profileId: number, propertyId: number) => {

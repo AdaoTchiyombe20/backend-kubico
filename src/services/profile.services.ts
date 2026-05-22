@@ -91,7 +91,7 @@ export const profileService = {
       await profileMediaRepository.insertMedia(profile_id, "PHONE",          phone);
       await profileMediaRepository.insertMedia(profile_id, "CONTA_BANCARIA", bank_account);
       await profileRole.updateAllProfileRolesStatus(profile_id, false);
-      await profileRole.insertValues(profile_id, 2, "PENDING");
+      await profileRole.insertValues(profile_id, 2, "APPROVED");
 
     } catch (error) {
       throw error instanceof AppError ? error : new AppError(`Erro: ${error}`, 500);

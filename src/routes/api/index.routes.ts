@@ -1,12 +1,11 @@
 import { Router } from "express";
 import { userRouter } from "./user.routes.js";
 import { authRouter } from "./auth.routes.js";
-import { authorizeNormalAccessTokenMiddleware } from "../../middlewares/auth.middleware.js";
+import { authorizeNormalAccessTokenMiddleware, authorizeRoleAcessTokenMiddleware  } from "../../middlewares/auth.middleware.js";
 import { adminRoute } from "./admin.routes.js";
 import { verifyProfile } from "./verifyProfile.routes.js";
 import { assumeRole } from "./assumeRole.routes.js";
 import { negociationRouter } from "./negociation.routes.js"
-import { authorizeRoleAcessTokenMiddleware } from "../../middlewares/auth.middleware.js";
 import { propertyRoute } from "./property.routes.js";
 
 const router = Router();
@@ -25,6 +24,6 @@ router.use("/admin", withRole("admin"), adminRoute)
 router.use("/assume-roles",withRole("client", "owner"), assumeRole);
 router.use("/properties", propertyRoute)
 router.use("/FavoritesProperties", withRole("admin","client"), propertyRoute)
-router.use("/negotiations", withRole("client", "owner"), negociationRouter)
+router.use("/negotiations", negociationRouter)
 
 export { router };
