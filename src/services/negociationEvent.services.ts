@@ -34,15 +34,11 @@ export const negociationEventService = {
         }
 
         const findListingProperty = await propertyListingRepository.findListingByProfileIdAndPropertyId(
-            profile_id
+            findProperty.id,
         );
         if (!findListingProperty) {
             throw new AppError("Anúncio da propriedade não encontrado!", 404);
         }
-
-        // Encontrar o proprietário (profile_roles com role 1 = owner)
-        const findClient = await profileRole.findProfileRoleByRole(findProperty.id_owner, 1);
-        if (!findClient) throw new AppError("Proprietário não encontrado!", 404);
 
         // Verificar se já existe negociação pendente
         const existingNegociation = await negociationRepository.findNegociationByClientAndProperty(
@@ -59,7 +55,7 @@ export const negociationEventService = {
         // Criar negociação
         const negociation = await negociationRepository.createNegociation(
             profile_id,
-            findClient.id,
+            findProperty.id_owner,
             findListingProperty.id,
             offer_price,
             message ?? null
@@ -102,8 +98,11 @@ export const negociationEventService = {
         const negociation = await negociationRepository.findNegociationById(negociation_id);
         if (!negociation) throw new AppError("Negociação não encontrada!", 404);
 
+        const findOwner = await profileRole.findProfileRoleByRole(profile_id, 2);
+        if (!findOwner) throw new AppError("Apenas o proprietário pode aceitar a proposta!", 403);
+
         // Verificar se é o proprietário
-        if (negociation.owner_id !== profile_id) {
+        if (negociation.owner_id !== findOwner.id) {
             throw new AppError("Apenas o proprietário pode aceitar a proposta!", 403);
         }
 
@@ -156,8 +155,10 @@ export const negociationEventService = {
         const negociation = await negociationRepository.findNegociationById(negociation_id);
         if (!negociation) throw new AppError("Negociação não encontrada!", 404);
 
+        const findOwner = await profileRole.findProfileRoleByRole(profile_id, 2);
+        if (!findOwner) throw new AppError("Apenas o proprietário pode rejeitar a proposta!", 403);
         // Verificar se é o proprietário
-        if (negociation.owner_id !== profile_id) {
+        if (negociation.owner_id !== findOwner.id) {
             throw new AppError("Apenas o proprietário pode rejeitar a proposta!", 403);
         }
 
@@ -209,8 +210,11 @@ export const negociationEventService = {
         const negociation = await negociationRepository.findNegociationById(negociation_id);
         if (!negociation) throw new AppError("Negociação não encontrada!", 404);
 
+        const findOwner = await profileRole.findProfileRoleByRole(profile_id, 2);
+        if (!findOwner) throw new AppError("Apenas o proprietário pode enviar contraproposta!", 403);
+
         // Verificar se é o proprietário
-        if (negociation.owner_id !== profile_id) {
+        if (negociation.owner_id !== findOwner.id) {
             throw new AppError("Apenas o proprietário pode enviar contraproposta!", 403);
         }
 
@@ -233,7 +237,7 @@ export const negociationEventService = {
         const event = await negociationEventRepository.createNegociationEvent(
             profile_id,
             negociation_id,
-            "CANCELLATION", // Adicionar tipo de evento COUNTER_OFFER se necessário
+            "COUNTER_OFFER", 
             eventDescription
         );
 
@@ -260,9 +264,12 @@ export const negociationEventService = {
         const negociation = await negociationRepository.findNegociationById(negociation_id);
         if (!negociation) throw new AppError("Negociação não encontrada!", 404);
 
+        const findClient = await profileRole.findProfileRoleByRole(profile_id, 1);
+        if( !findClient) throw new AppError("Apenas o cliente pode cancelar a negociação!", 403);
+
         // Verificar se é parte da negociação
         const isParty =
-            negociation.client_id === profile_id || negociation.owner_id === profile_id;
+            negociation.client_id === findClient?.id;
         if (!isParty) {
             throw new AppError("Você não tem permissão para cancelar esta negociação!", 403);
         }
@@ -274,10 +281,6 @@ export const negociationEventService = {
 
         // Cancelar negociação
         const updatedNegociation = await negociationRepository.cancelNegociation(negociation_id);
-
-        // Buscar dados do cliente e proprietário
-        const clientProfile = await profileRepository.findById(negociation.client_id);
-        const ownerProfile = await profileRepository.findById(negociation.owner_id);
 
         // Gerar descrição automática
         const eventDescription = generateNegociationEventDescription({
@@ -311,9 +314,12 @@ export const negociationEventService = {
         const negociation = await negociationRepository.findNegociationById(negociation_id);
         if (!negociation) throw new AppError("Negociação não encontrada!", 404);
 
+        const findClient = await profileRole.findProfileRoleByRole(profile_id, 1);
+        const findOwner = await profileRole.findProfileRoleByRole(profile_id, 2);
+
         // Verificar se é parte da negociação
         const isParty =
-            negociation.client_id === profile_id || negociation.owner_id === profile_id;
+            negociation.client_id === findClient?.id || negociation.owner_id === findOwner?.id;
         if (!isParty) {
             throw new AppError(
                 "Você não tem permissão para visualizar esta negociação!",
@@ -329,6 +335,7 @@ export const negociationEventService = {
             proposed_price: negociation.proposed_price,
             accepted_value: negociation.accepted_value,
             created_at: negociation.created_at,
+            total: events.length,
             events,
         };
     },
@@ -341,7 +348,11 @@ export const negociationEventService = {
         const findUser = await profileRepository.findById(profile_id);
         if (!findUser) throw new AppError("Perfil não encontrado!", 404);
 
-        const negotiations = await negociationRepository.findUserNegotiations(profile_id);
+        const findProfile = await profileRole.findProfileRoleByRole(profile_id, 1)?? await profileRole.findProfileRoleByRole(profile_id, 2);
+
+        if (!findProfile) throw new AppError("Perfil de cliente ou proprietário não encontrado!", 404);
+
+        const negotiations = await negociationRepository.findUserNegotiations(findProfile.id);
 
         return {
             total: negotiations.length,
@@ -357,8 +368,11 @@ export const negociationEventService = {
         const findUser = await profileRepository.findById(profile_id);
         if (!findUser) throw new AppError("Perfil não encontrado!", 404);
 
+        const findOwner = await profileRole.findProfileRoleByRole(profile_id, 2);
+        if (!findOwner) throw new AppError("Apenas proprietários podem acessar negociações pendentes!", 403);
+
         const negotiations =
-            await negociationRepository.findPendingNegotiationsByOwner(profile_id);
+            await negociationRepository.findPendingNegotiationsByOwner(findOwner.id);
 
         return {
             total: negotiations.length,
