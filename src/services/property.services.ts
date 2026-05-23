@@ -14,7 +14,7 @@ import { AppError } from "../errors/App.Errors.js";
 import { deleteTempFile } from "../middlewares/multer.middleware.js";
 import { profileRole } from "../repositories/Profile/profileRole.repositories.js";
 import { historyPropertyRepository } from "../repositories/property/historyProperty.respositories.js";
-import { propertyRepository, propertyRepository } from "../repositories/property/properties.repositories.js";
+import { propertyRepository } from "../repositories/property/properties.repositories.js";
 import { propertyCompartmentsRepository } from "../repositories/property/propertyCompartments.repositories.js";
 import { propertyLocalizationRepository } from "../repositories/property/propertyLocalization.repositories.js";
 import { propertyMediaRepository } from "../repositories/property/propertyMedia.repositories.js";
