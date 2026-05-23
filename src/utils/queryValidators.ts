@@ -14,6 +14,32 @@ export class QueryValidator {
     return param as string | undefined;
   }
 
+  static ensureBoolean(param: any, fieldName: string): boolean | undefined {
+  if (Array.isArray(param)) {
+    throw new AppError(
+      `${fieldName} deve ser um boolean único, não um array`,
+      400
+    );
+  }
+
+  if (param === undefined) return undefined;
+
+  if (typeof param !== "string") {
+    throw new AppError(`${fieldName} deve ser uma string boolean`, 400);
+  }
+
+  const normalized = param.toLowerCase();
+
+  if (normalized !== "true" && normalized !== "false") {
+    throw new AppError(
+      `${fieldName} deve ser true ou false`,
+      400
+    );
+  }
+
+  return normalized === "true";
+}
+
   static ensurePositiveNumber(param: any, fieldName: string): number | undefined {
     if (Array.isArray(param)) {
       throw new AppError(

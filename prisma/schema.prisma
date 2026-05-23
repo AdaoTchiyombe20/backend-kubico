@@ -118,6 +118,8 @@ model profile_roles {
   negociationEvents negociationEvent[]
   favorites favorites[]
 
+  paymentsClient payments[] @relation("PaymentClient")
+  paymentsOwner payments[] @relation("PaymentOwner")
   client negociation[] @relation(name: "NegociationClient")
   owner negociation[] @relation(name: "NegociationOwner")
 }
@@ -278,6 +280,7 @@ model propertyListing {
 
   property    properties   @relation(fields: [property_id], references: [id], onDelete: Cascade)
   negotiation negociation[]
+  payments payments[]
 
   // ✅ Índices críticos para busca
   @@index([property_id])
@@ -323,7 +326,7 @@ model negociation {
   client profile_roles @relation(name: "NegociationClient", fields: [client_id], references: [id], onDelete: Cascade)
   owner profile_roles @relation(name: "NegociationOwner", fields: [owner_id], references: [id], onDelete: Cascade)
   negociationEvents negociationEvent[]
-  //payments payments?
+  payments payments?
 }
 
 model negociationEvent {
@@ -338,7 +341,7 @@ model negociationEvent {
   profile_roles profile_roles @relation(fields: [profile_role_id], references: [id], onDelete: Cascade)
 }
 
-/* model payments {
+model payments {
   id Int @id @default(autoincrement())
 
   property_listing_id Int
@@ -369,14 +372,13 @@ model negociationEvent {
   property_listing propertyListing @relation(fields: [property_listing_id], references: [id])
   client profile_roles @relation("PaymentClient", fields: [client_id], references: [id])
   owner profile_roles @relation("PaymentOwner", fields: [owner_id], references: [id])
-
-   negociation negociation? @relation(fields: [negociation_id],references: [id])
+  negociation negociation? @relation(fields: [negociation_id],references: [id])
 
   @@index([client_id])
   @@index([owner_id])
   @@index([property_listing_id])
   @@index([status])
-} */
+}
 
 // ============================================================================
 // ENUMS

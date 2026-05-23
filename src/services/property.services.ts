@@ -173,6 +173,7 @@ export const propertyService = {
         municipality: filters.municipality?.trim(),
         min_price: filters.min_price !== undefined ? Number(filters.min_price) : undefined,
         max_price: filters.max_price !== undefined ? Number(filters.max_price) : undefined,
+        is_negotiable: filters.is_negotiable,
       };
 
       // Validation

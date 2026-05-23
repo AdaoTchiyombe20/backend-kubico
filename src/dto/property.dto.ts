@@ -16,6 +16,19 @@ export const rawSearchFiltersSchema = z.object({
   municipality: z.string().optional(),
   min_price: z.string().optional(),
   max_price: z.string().optional(),
+  is_negotiable: z.preprocess(
+    (val) => {
+      if (typeof val === "string") {
+        const normalized = val.toLowerCase();
+
+        if (normalized === "true") return true;
+        if (normalized === "false") return false;
+      }
+
+      return val;
+    },
+    z.boolean().optional()
+  ),
 });
 
 export const parsedSearchFiltersSchema = z.object({
@@ -25,6 +38,7 @@ export const parsedSearchFiltersSchema = z.object({
   municipality: z.string().optional(),
   min_price: z.number().optional(),
   max_price: z.number().optional(),
+  is_negotiable: z.boolean().optional(),
 });
 
 
