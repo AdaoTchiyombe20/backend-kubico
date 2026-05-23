@@ -14,7 +14,7 @@ import { AppError } from "../errors/App.Errors.js";
 import { deleteTempFile } from "../middlewares/multer.middleware.js";
 import { profileRole } from "../repositories/Profile/profileRole.repositories.js";
 import { historyPropertyRepository } from "../repositories/property/historyProperty.respositories.js";
-import { propertyRepository } from "../repositories/property/properties.repositories.js";
+import { propertyRepository, propertyRepository } from "../repositories/property/properties.repositories.js";
 import { propertyCompartmentsRepository } from "../repositories/property/propertyCompartments.repositories.js";
 import { propertyLocalizationRepository } from "../repositories/property/propertyLocalization.repositories.js";
 import { propertyMediaRepository } from "../repositories/property/propertyMedia.repositories.js";
@@ -144,9 +144,11 @@ export const propertyService = {
     }
   },
 
-  findListingById: async (listingId: number) => {
+  findListingById: async (property_id: number) => {
     try {
-      const listing = await propertyListingRepository.findListingById(listingId);
+      const listingId = await propertyRepository.findUniquePropertyById(property_id);
+      if(!listingId) throw new AppError("Imóvel não encontrado!", 404);
+      const listing = await propertyListingRepository.findListingById(listingId.id);
       if (!listing) throw new AppError("Listagem não encontrada!", 404);
       return listing;
     } catch (error) {
