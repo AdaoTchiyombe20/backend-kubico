@@ -22,7 +22,7 @@ import { propertyListingRepository } from "../repositories/property/propertyList
 import type { RawSearchFilters, ParsedSearchFilters } from "../dto/property.dto.js";
 import pLimit from "p-limit";
 
-// ✅ IMPORT dos utilitários de Cloudinary (centralizados)
+
 import {
   uploadFilesToCloudinary,
   cleanupCloudinaryFiles,
@@ -146,9 +146,9 @@ export const propertyService = {
 
   findListingById: async (property_id: number) => {
     try {
-      const listingId = await propertyRepository.findUniquePropertyById(property_id);
-      if(!listingId) throw new AppError("Imóvel não encontrado!", 404);
-      const listing = await propertyListingRepository.findListingById(listingId.id);
+      const verifyProperty = await propertyRepository.findUniquePropertyById(property_id);
+      if(!verifyProperty) throw new AppError("Imóvel não encontrado!", 404);
+      const listing = await propertyListingRepository.findActiveListing(verifyProperty.id);
       if (!listing) throw new AppError("Listagem não encontrada!", 404);
       return listing;
     } catch (error) {

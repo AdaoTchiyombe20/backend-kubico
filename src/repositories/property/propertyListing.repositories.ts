@@ -50,7 +50,7 @@ export const propertyListingRepository = {
   },
 
   findListingById: async (listingId: number): Promise<propertyListing | null> => {
-    return prisma.propertyListing.findFirst({
+    return await prisma.propertyListing.findFirst({
       where: {
         id: listingId,
         delisted_at: null,
@@ -68,7 +68,7 @@ export const propertyListingRepository = {
   },
 
   findListingByProfileIdAndPropertyId: async ( propertyId: number): Promise<propertyListing | null> => {
-    return prisma.propertyListing.findFirst({
+    return await prisma.propertyListing.findFirst({
       where: {
         property_id: propertyId,
         delisted_at: null,
