@@ -486,6 +486,7 @@ enum NegociationStatus {
 
 enum NegociationEventType {
   PROPOSAL
+  COUNTER_OFFER
   ACCEPTANCE
   REJECTION
   CANCELLATION
