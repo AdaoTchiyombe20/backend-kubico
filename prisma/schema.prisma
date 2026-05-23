@@ -323,6 +323,7 @@ model negociation {
   client profile_roles @relation(name: "NegociationClient", fields: [client_id], references: [id], onDelete: Cascade)
   owner profile_roles @relation(name: "NegociationOwner", fields: [owner_id], references: [id], onDelete: Cascade)
   negociationEvents negociationEvent[]
+  //payments payments?
 }
 
 model negociationEvent {
@@ -337,9 +338,45 @@ model negociationEvent {
   profile_roles profile_roles @relation(fields: [profile_role_id], references: [id], onDelete: Cascade)
 }
 
+/* model payments {
+  id Int @id @default(autoincrement())
 
+  property_listing_id Int
+  client_id Int
+  owner_id Int
 
+  negociation_id Int? @unique
 
+  payment_type PaymentType
+
+  amount Decimal
+  platform_fee Decimal?
+
+  status PaymentStatus @default(PENDING)
+
+  property_title String
+  property_price Decimal
+
+  paid_at DateTime?
+  released_at DateTime?
+  cancelled_at DateTime?
+
+  created_at DateTime @default(now())
+  updated_at DateTime @updatedAt
+
+  transaction_reference String? @unique
+
+  property_listing propertyListing @relation(fields: [property_listing_id], references: [id])
+  client profile_roles @relation("PaymentClient", fields: [client_id], references: [id])
+  owner profile_roles @relation("PaymentOwner", fields: [owner_id], references: [id])
+
+   negociation negociation? @relation(fields: [negociation_id],references: [id])
+
+  @@index([client_id])
+  @@index([owner_id])
+  @@index([property_listing_id])
+  @@index([status])
+} */
 
 // ============================================================================
 // ENUMS
@@ -499,4 +536,17 @@ enum ListingRestrictionStatus {
   UNBANNED   
   SUSPENDED    
   BANNED  
+}
+
+enum PaymentType {
+  DIRECT_PURCHASE
+  NEGOCIATED_PURCHASE
+}
+
+enum PaymentStatus {
+  PENDING
+  HELD
+  RELEASED
+  CANCELLED
+  REFUNDED
 }
