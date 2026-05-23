@@ -105,49 +105,33 @@ export const propertyListingRepository = {
         status: ListingStatus.DISPONIVEL,
         ...(cursor > 0 && { id: { gt: cursor } }),
         property: {
-          ...(filters.type_of_property && {
-            type_of_property: filters.type_of_property,
-          }),
+            ...(filters.type_of_property && {
+              type_of_property: filters.type_of_property,
+            }),
 
-          ...(filters.type_purchase && {
-            type_property_purchase: filters.type_purchase,
-          }),
+            ...(filters.type_purchase && {
+              type_property_purchase: filters.type_purchase,
+            }),
 
-          ...(filters.min_price !== undefined ||
-          filters.max_price !== undefined
-            ? {
-                price: {
-                  ...(filters.min_price !== undefined && {
-                    gte: filters.min_price,
-                  }),
+            ...(filters.is_negotiable !== undefined && {
+              is_negotiable: filters.is_negotiable,
+            }),
 
-                  ...(filters.max_price !== undefined && {
-                    lte: filters.max_price,
-                  }),
-                },
-              }
-            : {}),
+            ...(filters.min_price !== undefined ||
+            filters.max_price !== undefined
+              ? {
+                  price: {
+                    ...(filters.min_price !== undefined && {
+                      gte: filters.min_price,
+                    }),
 
-          ...((filters.neighborhood || filters.municipality) && {
-            property_localization: {
-              is: {
-                ...(filters.neighborhood && {
-                  neighborhood: {
-                    contains: filters.neighborhood,
-                    mode: "insensitive",
+                    ...(filters.max_price !== undefined && {
+                      lte: filters.max_price,
+                    }),
                   },
-                }),
-
-                ...(filters.municipality && {
-                  municipality: {
-                    contains: filters.municipality,
-                    mode: "insensitive",
-                  },
-                }),
-              },
-            },
-          }),
-        },
+                }
+              : {}),
+          },
       },
       include: {
         property: {

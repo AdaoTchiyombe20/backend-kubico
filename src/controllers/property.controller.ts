@@ -145,7 +145,7 @@ export const propertyController = {
 
   searchListings: async (req: Request, res: Response, next: NextFunction) => {
   try {
-    const { type_purchase, type_of_property, neighborhood, municipality, min_price, max_price } = req.query;
+    const { type_purchase, type_of_property, neighborhood, municipality, min_price, max_price, is_negotiable } = req.query;
     
     const filters: RawSearchFilters = {
       type_purchase: QueryValidator.ensureSingleString(type_purchase, 'type_purchase'),
@@ -154,6 +154,7 @@ export const propertyController = {
       municipality: QueryValidator.ensureSingleString(municipality, 'municipality'),
       min_price: QueryValidator.ensureSingleString(min_price, 'min_price'),
       max_price: QueryValidator.ensureSingleString(max_price, 'max_price'),
+      is_negotiable: QueryValidator.ensureBoolean(is_negotiable,'is_negotiable'),
     };
 
     const limit = QueryValidator.ensurePositiveNumber(req.query.limit, 'limit') || 20;
