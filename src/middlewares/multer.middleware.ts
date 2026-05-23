@@ -157,6 +157,7 @@ export const cleanupMulterFiles = (
   };
 
   (res as any).once("finish", cleanup);
+  //(res as any).once("close", cleanup);
 
   next();
 };
