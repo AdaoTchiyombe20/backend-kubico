@@ -18,6 +18,15 @@ export const propertyListingRepository = {
         property_id,
         delisted_at: null,
       },
+      include: {
+        property: {
+          include: {
+            property_medias: true,
+            property_localization: true,
+            property_compartments: true,
+          },
+        },
+      },
     });
   },
 
