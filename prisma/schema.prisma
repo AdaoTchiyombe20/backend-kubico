@@ -323,7 +323,7 @@ model negociation {
   client profile_roles @relation(name: "NegociationClient", fields: [client_id], references: [id], onDelete: Cascade)
   owner profile_roles @relation(name: "NegociationOwner", fields: [owner_id], references: [id], onDelete: Cascade)
   negociationEvents negociationEvent[]
-  payments payments?
+  //payments payments?
 }
 
 model negociationEvent {
@@ -338,7 +338,7 @@ model negociationEvent {
   profile_roles profile_roles @relation(fields: [profile_role_id], references: [id], onDelete: Cascade)
 }
 
-model payments {
+/* model payments {
   id Int @id @default(autoincrement())
 
   property_listing_id Int
@@ -376,7 +376,7 @@ model payments {
   @@index([owner_id])
   @@index([property_listing_id])
   @@index([status])
-}
+} */
 
 // ============================================================================
 // ENUMS
