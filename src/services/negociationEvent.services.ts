@@ -365,6 +365,46 @@ export const negociationEventService = {
         };
     },
 
+    async getSentProposals(profile_id: number, property_id: number) {
+        const findUser = await profileRepository.findById(profile_id);
+        if (!findUser) throw new AppError("Perfil não encontrado!", 404);
+
+        const findListingProperty = await propertyListingRepository.findListingById(property_id)
+        if(!findListingProperty)
+            throw new AppError("Propriedade nao encontrada!",404)
+
+        const findProfile = await profileRole.findProfileRoleByRole(profile_id, 1)
+
+        if(!findProfile) 
+            throw new AppError("Perfil de cliente não encontrado!", 404);
+
+        const negotiations = await negociationRepository.findSentNegotiations(findProfile.id, property_id);
+
+        return {
+            total: negotiations.length,
+            data: negotiations,
+        };
+    },
+    async getReceivedProposals(profile_id: number, property_id: number) {
+        const findUser = await profileRepository.findById(profile_id);
+        if (!findUser) throw new AppError("Perfil não encontrado!", 404);
+
+        const findProperty = await  propertyListingRepository.findListingById(property_id)
+        if(!findProperty)
+            throw new AppError("propriedade nao publicada", 404)
+
+        const findProfile = await profileRole.findProfileRoleByRole(profile_id, 1)?? await profileRole.findProfileRoleByRole(profile_id, 2);
+
+        if (!findProfile) throw new AppError("Perfil de cliente ou proprietário não encontrado!", 404);
+
+        const negotiations = await negociationRepository.findReceivedNegotiations(findProfile.id, property_id);
+
+        return {
+            total: negotiations.length,
+            data: negotiations,
+        };
+    },
+
     // ============================================
     // 8. LISTAR NEGOCIAÇÕES PENDENTES (Proprietário)
     // ============================================

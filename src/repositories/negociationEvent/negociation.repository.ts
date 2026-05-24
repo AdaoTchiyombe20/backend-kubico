@@ -65,10 +65,67 @@ export const negociationRepository = {
     findUserNegotiations: async (profile_role_id: number): Promise<negociation[]> => {
         return await prisma.negociation.findMany({
             where: {
-                OR: [
-                    { client_id: profile_role_id },
-                    { owner_id: profile_role_id },
-                ],
+                    OR:[
+                        {owner_id: profile_role_id },
+                        {client_id: profile_role_id }
+                    ]
+            },
+            include: {
+                property_listing: {
+                    select: { 
+                        id: true,
+                        status: true,
+                        listed_at: true,
+                        property: {
+                            select: { 
+                                id: true, 
+                                title: true,
+                                price: true 
+                            },
+                        }
+                     },
+                },
+                negociationEvents: {
+                    orderBy: { event_date: "desc" },
+                    take: 1,
+                },
+            },
+            orderBy: { created_at: "desc" },
+        });
+    },
+    findSentNegotiations: async (profile_role_id: number, property_id: number): Promise<negociation[]> => {
+        return await prisma.negociation.findMany({
+            where: {
+                    client_id: profile_role_id,
+                    property_listing_id: property_id
+            },
+            include: {
+                property_listing: {
+                    select: { 
+                        id: true,
+                        status: true,
+                        listed_at: true,
+                        property: {
+                            select: { 
+                                id: true, 
+                                title: true,
+                                price: true 
+                            },
+                        }
+                     },
+                },
+                negociationEvents: {
+                    orderBy: { event_date: "desc" },
+                    take: 1,
+                },
+            },
+            orderBy: { created_at: "desc" },
+        });
+    },
+    findReceivedNegotiations: async (profile_role_id: number, property_listing: number): Promise<negociation[]> => {
+        return await prisma.negociation.findMany({
+            where: {
+                owner_id: profile_role_id 
             },
             include: {
                 property_listing: {

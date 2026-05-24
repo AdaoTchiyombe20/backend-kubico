@@ -184,6 +184,40 @@ export const negociationEventController = {
             next(err);
         }
     },
+    async getSentProposals(req: Request, res: Response, next: NextFunction) {
+        try {
+            const profile_id = Number(req.accessUser?.profileId);
+           
+            if (!profile_id) throw new AppError("Perfil não encontrado!", 401);
+            if (isNaN(profile_id)) throw new AppError("ID do perfil inválido!", 400);
+
+            const result = await negociationEventService.getUserNegotiations(profile_id);
+
+            res.status(200).json({
+                success: true,
+                data: result,
+            });
+        } catch (err) {
+            next(err);
+        }
+    },
+    async getReceivedProposals(req: Request, res: Response, next: NextFunction) {
+        try {
+            const profile_id = Number(req.accessUser?.profileId);
+           
+            if (!profile_id) throw new AppError("Perfil não encontrado!", 401);
+            if (isNaN(profile_id)) throw new AppError("ID do perfil inválido!", 400);
+
+            const result = await negociationEventService.getUserNegotiations(profile_id);
+
+            res.status(200).json({
+                success: true,
+                data: result,
+            });
+        } catch (err) {
+            next(err);
+        }
+    },
 
     // ============================================
     // 8. LISTAR NEGOCIAÇÕES PENDENTES
