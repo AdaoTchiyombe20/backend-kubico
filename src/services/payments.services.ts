@@ -8,6 +8,8 @@ import { propertyListingRepository } from "../repositories/property/propertyList
 import { PaymentsRepository } from "../repositories/payment/payments..repository.js";
 
 
+const discountProperties = 5
+
 export const paymentsService = {
     processPayment: async (paymentData: PaymentDto) => {
         try{
@@ -38,7 +40,7 @@ export const paymentsService = {
             if(paymentType === "NEGOCIATED_PURCHASE"){
                  findNegociation = await negociationRepository.findNegociationByClientAndProperty(verifyClient.id,getListenProperty.id)
 
-                /*  const createPayment= await CreatePayments(listed_property_id, client_id, ) */
+                /*  const createPayment= await CreatePayments(listed_property_id, client_id,) */
 
 
             }
