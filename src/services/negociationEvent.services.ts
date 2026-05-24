@@ -29,8 +29,7 @@ export const negociationEventService = {
         const findProperty = await propertyRepository.findUniquePropertyById(property_id);
         if (!findProperty) throw new AppError("Propriedade não encontrada!", 404);
 
-        if(findProperty.type_property_purchase === 'FOR_RENT'){
-            if(!months)
+        if(findProperty.type_property_purchase === 'FOR_RENT' && !months) {
                 throw new AppError('Para arrendar um imovel precisa inserir a quantidade (em meses) a pagar', 400)
         }
             
