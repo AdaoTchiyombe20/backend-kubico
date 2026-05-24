@@ -11,6 +11,7 @@ export const negociationRepository = {
         owner_id: number,
         property_listing_id: number,
         proposed_price: number,
+        months: number | null,
         message: string | null
     ): Promise<negociation> => {
         return await prisma.negociation.create({
@@ -20,6 +21,7 @@ export const negociationRepository = {
                 property_listing_id,
                 status: "PENDING",
                 proposed_price,
+                months,
                 message,
             },
         });

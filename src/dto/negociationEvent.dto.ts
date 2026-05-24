@@ -21,6 +21,7 @@ export const NegociationEventDto = z.object({
                 .positive("A proposta deve ser um valor positivo")
                 .max(2_147_483_647, "A proposta não pode ultrapassar o limite de inteiro")
         ),
+    months: z.number().positive().optional(),
     message: z.string().min(2).max(255).optional()
 });
 

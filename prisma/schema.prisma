@@ -178,6 +178,7 @@ model properties {
   is_negotiable Boolean @default(false)
   price Int
   total_area Int?
+  months Int?
   created_at DateTime @default(now())
   updated_at DateTime @updatedAt
   deleted_at DateTime? // ✅ NOVO: soft delete
@@ -551,5 +552,4 @@ enum PaymentStatus {
   HELD
   RELEASED
   CANCELLED
-  REFUNDED
 }

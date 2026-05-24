@@ -20,7 +20,7 @@ export const negociationEventService = {
     // ============================================
 
     async initNegociationEvent(profile_id: number, data: NegociationEventDtoType) {
-        const { property_id, offer_price, message } = data;
+        const { property_id, offer_price, message, months } = data;
     
         // Validações
         const findUser = await profileRepository.findById(profile_id);
@@ -29,6 +29,11 @@ export const negociationEventService = {
         const findProperty = await propertyRepository.findUniquePropertyById(property_id);
         if (!findProperty) throw new AppError("Propriedade não encontrada!", 404);
 
+        if(findProperty.type_property_purchase === 'FOR_RENT'){
+            if(!months)
+                throw new AppError('Para arrendar um imovel precisa inserir a quantidade (em meses) a pagar', 400)
+        }
+            
         if (!findProperty.is_negotiable) {
             throw new AppError("Propriedade não é negociável!", 400);
         }
@@ -58,6 +63,7 @@ export const negociationEventService = {
             findProperty.id_owner,
             findListingProperty.id,
             offer_price,
+            months ?? null,
             message ?? null
         );
 
