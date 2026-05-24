@@ -313,6 +313,7 @@ model negociation {
   owner_id  Int 
   proposed_price Decimal
   accepted_value Decimal?
+  months        Int?
   status NegociationStatus @default(PENDING)
   created_at DateTime @default(now())
   message String?
