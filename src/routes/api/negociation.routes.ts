@@ -90,6 +90,18 @@ negociationRouter.get(
     negociationEventController.getUserNegotiations
 );
 
+
+negociationRouter.get(
+    "/sentProposals",
+    withRole("client"),
+    negociationEventController.getUserNegotiations
+);
+negociationRouter.get(
+    "/receivedProposals",
+    withRole("owner"),
+    negociationEventController.getUserNegotiations
+);
+
 /**
  * GET /api/negotiations/pending
  * Listar negociações pendentes (para proprietários)
