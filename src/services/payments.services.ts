@@ -15,13 +15,12 @@ import { PaymentsRepository } from "../repositories/payment/payments..repository
 import { platformPricingRepository } from "../repositories/admin/plataform.pricing.js";
 
 export const paymentsService = {
-  processPayment: async (
+  processPayment: async (client_id:number,
     paymentData: PaymentDto
   ) => {
     try {
       const {
         listed_property_id,
-        client_id,
         paymentType,
       } = paymentData;
 
