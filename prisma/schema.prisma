@@ -135,6 +135,7 @@ model admins {
 
   profile_role   profile_roles   @relation(name: "AdminProfile", fields: [profile_role_id], references: [id], onDelete: Cascade)
   user           users           @relation(fields: [user_id], references: [id], onDelete: Cascade)
+  platform_pricing  platform_pricing[]
 }
 
 model refresh_tokens {
@@ -176,12 +177,12 @@ model properties {
   description String
   status_property PropertyStatus
   is_negotiable Boolean @default(false)
-  price Int
+  price Decimal
   total_area Int?
   months Int?
   created_at DateTime @default(now())
   updated_at DateTime @updatedAt
-  deleted_at DateTime? // ✅ NOVO: soft delete
+  deleted_at DateTime? 
 
   owner profile_roles @relation(fields: [id_owner],references: [id], onDelete: Cascade)
 
@@ -282,6 +283,7 @@ model propertyListing {
   property    properties   @relation(fields: [property_id], references: [id], onDelete: Cascade)
   negotiation negociation[]
   payments payments[]
+  featured_properties featured_properties[]
 
   // ✅ Índices críticos para busca
   @@index([property_id])
@@ -368,7 +370,7 @@ model payments {
 
   released_by Int?
   created_at DateTime @default(now())
-  updated_at DateTime @updatedAt
+  updated_at DateTime?
 
   transaction_reference String @unique @default(uuid())
 
@@ -381,6 +383,39 @@ model payments {
   @@index([owner_id])
   @@index([property_listing_id])
   @@index([status])
+}
+
+model platform_pricing {
+  id Int @id @default(autoincrement())
+
+  type PricingType
+
+  name PricingNameDescription
+
+  amount Decimal
+
+  pricing_model PricingModel
+
+  is_active Boolean @default(true)
+
+  created_by Int
+
+  created_at DateTime @default(now())
+  updated_at DateTime?
+
+  admin admins @relation(fields: [created_by], references: [id])
+
+  @@index([type, is_active])
+}
+
+model featured_properties { 
+  id Int @id @unique() @default(autoincrement())
+  property_listing_id Int 
+  status Featured_Property_Status
+  started_at DateTime
+  ended_at DateTime?
+
+  propertyListing propertyListing @relation(fields: [property_listing_id], references: [id], onDelete: Cascade)
 }
 
 // ============================================================================
@@ -554,4 +589,26 @@ enum PaymentStatus {
   HELD
   RELEASED
   CANCELLED
+}
+
+enum PricingType {
+  PROPERTY_SALE
+  PROPERTY_RENT
+  FEATURED_PROPERTY
+}
+
+enum PricingModel {
+  PERCENTAGE
+  FIXED
+}
+
+enum PricingNameDescription {
+  COMISSÃO_DE_VENDA
+  TAXA_DE_ALUGUEL
+  DESTAQUE_DE_IMÓVEL
+}
+
+enum Featured_Property_Status {
+  ACTIVE
+  EXPIRED
 }

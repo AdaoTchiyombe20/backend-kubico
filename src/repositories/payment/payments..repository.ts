@@ -18,5 +18,14 @@ export const PaymentsRepository = {
                 property_price
              }
         })
+    }, 
+    findActivePayment: async(listed_property_id: number, client_id: number): Promise<payments | null> => {
+        return await prisma.payments.findFirst({
+            where: {
+                property_listing_id: listed_property_id,
+                client_id,
+                status: "PENDING"
+            }
+        })
     }
 }
