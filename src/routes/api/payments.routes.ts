@@ -9,6 +9,6 @@ const withRole = (...roles: string[]) => [
   authorizeRoleAcessTokenMiddleware(roles),
 ];
 
-paymentRoute.post('/payment', withRole('client'), paymentsController.propertyPayment )
+paymentRoute.post('/', withRole('client'), paymentsController.propertyPayment )
 
 export {paymentRoute}
