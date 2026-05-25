@@ -39,7 +39,7 @@ export const platformPricingRepository = {
         },
         data: {
           is_active: false,
-          updated_by: admin_id
+          updated_at: new Date()
         }
       })
 
