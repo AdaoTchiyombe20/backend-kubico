@@ -7,6 +7,7 @@ import { verifyProfile } from "./verifyProfile.routes.js";
 import { assumeRole } from "./assumeRole.routes.js";
 import { negociationRouter } from "./negociation.routes.js"
 import { propertyRoute } from "./property.routes.js";
+import { paymentRoute } from "./payments.routes.js";
 
 const router = Router();
 
@@ -25,5 +26,6 @@ router.use("/assume-roles",withRole("client", "owner"), assumeRole);
 router.use("/properties", propertyRoute)
 router.use("/FavoritesProperties", withRole("admin","client"), propertyRoute)
 router.use("/negotiations", negociationRouter)
+router.use("/payments", paymentRoute)
 
 export { router };
