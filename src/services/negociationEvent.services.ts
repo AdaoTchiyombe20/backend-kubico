@@ -374,7 +374,6 @@ export const negociationEventService = {
             throw new AppError("Propriedade nao encontrada!",404)
 
         const findProfile = await profileRole.findProfileRoleByRole(profile_id, 1)
-
         if(!findProfile) 
             throw new AppError("Perfil de cliente não encontrado!", 404);
 
@@ -393,7 +392,7 @@ export const negociationEventService = {
         if(!findProperty)
             throw new AppError("propriedade nao publicada", 404)
 
-        const findProfile = await profileRole.findProfileRoleByRole(profile_id, 1)?? await profileRole.findProfileRoleByRole(profile_id, 2);
+        const findProfile = await profileRole.findProfileRoleByRole(profile_id, 2);
 
         if (!findProfile) throw new AppError("Perfil de cliente ou proprietário não encontrado!", 404);
 
