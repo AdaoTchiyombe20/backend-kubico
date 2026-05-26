@@ -1,5 +1,5 @@
 import { prisma } from "../../../lib/prisma.js";
-import { ListingStatus, Property_purchase, TypeProperties, type propertyListing } from "@prisma/client";
+import { ListingStatus, type propertyListing } from "@prisma/client";
 import type { ParsedSearchFilters  } from "../../dto/property.dto.js"; 
 
 export const propertyListingRepository = {
@@ -53,7 +53,7 @@ export const propertyListingRepository = {
           },
         },
       },
-      orderBy: { id: "asc" },
+      orderBy: { id: "desc" },
       take: limit + 1,
     });
   },

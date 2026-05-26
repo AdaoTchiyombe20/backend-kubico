@@ -2,25 +2,20 @@ import { Router } from "express";
 import { adminController } from "../../controllers/admin.controller.js";
 
 const adminRoute = Router()
+ 
+adminRoute.get('/users', adminController.findUsers)
+adminRoute.get('/users/:id', adminController.findUserById)
 
-//admin managements of profiles
-adminRoute.get( "/profiles", adminController.findAll);
-adminRoute.get("/profiles/:id", adminController.findById);
-adminRoute.post("/profiles/:id/ban", adminController.banProfile);
-adminRoute.post("/profiles/:id/suspend", adminController.suspendProfile);
-adminRoute.post("/profiles/:id/unBan", adminController.unBanProfile);
-adminRoute.get('/profiles/verifications', adminController.findVerifications)
-adminRoute.put('/profiles/verifications/:id/approve', adminController.approveProfiles)
-adminRoute.put('/profiles/verifications/:id/reject', adminController.rejectProfiles)
+adminRoute.get("/payments", adminController.findAllPayments)
+adminRoute.get("/payments/received", adminController.findAllReceivedPayments)
+adminRoute.get("/payments/released", adminController.findAllReleasedPayments)
+adminRoute.patch("/payments/:id/release", adminController.releasePayment)
+adminRoute.get("/payments/:id", adminController.findPaymentById)
 
-//admin managements of Properties
-adminRoute.get('/properties/peding', adminController.getPeddingProperties)
-adminRoute.put('/properties/:id/approve', adminController.approveProperties)
-adminRoute.put('/properties/:id/reject', adminController.rejectProperties)
 
-// admin managements of plans
-adminRoute.post('/plans', adminController.createPlan)
-adminRoute.put('/plans/:id', adminController.editPlan)
-adminRoute.delete('/plans/:id', adminController.deletePlan)
+adminRoute.get("/negotiations", adminController.findAllNegociations)
+adminRoute.get("/negotiations/:id", adminController.findNegociation)
+
+adminRoute.get("/properties", adminController.findAllProperties)
 
 export {adminRoute}

@@ -11,9 +11,20 @@ export const profileRepository = {
         })
     }, 
     findByUserId: async (user_id: number): Promise<profiles | null> => {
-        return prisma.profiles.findUnique({
-            where: {user_id}
-        })
+        return prisma.profiles.findFirst({
+            where: {
+                user_id,
+                OR: [
+                { company_profile: { isNot: null } },
+                { person_profile: { isNot: null } }
+                ]
+            },
+            include: {
+                user: true,
+                company_profile: true,
+                person_profile: true,
+            }
+            })
     },
     findById: async (id: number): Promise<profiles | null> => {
         return prisma.profiles.findUnique({
