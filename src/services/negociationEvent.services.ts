@@ -26,6 +26,15 @@ export const negociationEventService = {
         const findUser = await profileRepository.findById(profile_id);
         if (!findUser) throw new AppError("Perfil não encontrado!", 404);
 
+        const findClient = await profileRole.findProfileRoleByRole(profile_id, 1);
+
+        if (!findClient) {
+            throw new AppError(
+                "Perfil de cliente não encontrado!",
+                404
+            );
+}
+
         const findProperty = await propertyRepository.findUniquePropertyById(property_id);
         if (!findProperty) throw new AppError("Propriedade não encontrada!", 404);
 
@@ -58,7 +67,7 @@ export const negociationEventService = {
 
         // Criar negociação
         const negociation = await negociationRepository.createNegociation(
-            profile_id,
+            findClient.id,
             findProperty.id_owner,
             findListingProperty.id,
             offer_price,
@@ -77,7 +86,7 @@ export const negociationEventService = {
 
         // Criar evento de negociação
         await negociationEventRepository.createNegociationEvent(
-            profile_id,
+            findClient.id,
             negociation.id,
             "PROPOSAL",
             eventDescription
@@ -103,7 +112,7 @@ export const negociationEventService = {
         const negociation = await negociationRepository.findNegociationById(negociation_id);
         if (!negociation) throw new AppError("Negociação não encontrada!", 404);
 
-        const findOwner = await profileRole.findProfileRoleByRole(profile_id, 2);
+        const findOwner = await profileRole.findProfileRoleByRole(profile_id, 1);
         if (!findOwner) throw new AppError("Apenas o proprietário pode aceitar a proposta!", 403);
 
         // Verificar se é o proprietário
