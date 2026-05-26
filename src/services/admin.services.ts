@@ -1,16 +1,169 @@
-import "dotenv/config";
-import { ENV } from "../config/env.js";
-import { profileRepository } from "../repositories/Profile/profile.repositories.js";
 import { AppError } from "../errors/App.Errors.js";
-import { userRepository } from "../repositories/auth/user.repositories.js";
-import { comparePassword, hashPassword } from "../utils/hash.js";
-import { profileRole } from "../repositories/Profile/profileRole.repositories.js";
-import { authRepositories } from "../repositories/auth/auth.repositories.js";
-import { adminRepository } from "../repositories/admin/admin.respositories.js";
+import { negociationAdminRepository, propertyAdminRepository, paymentAdminRepository, adminRepository } from "../repositories/admin/admin.respositories.js";
+import type { PaymentFiltersDTO, NegociationFiltersDTO, PropertyFiltersDTO } from "../dto/admin.dto.js";
 import type { AccessLevel } from "@prisma/client";
-import { sendVerificationEmail } from "./mail.services.js";
 import jwt from "jsonwebtoken";
+import { ENV } from "../config/env.js";
+import { authRepositories } from "../repositories/auth/auth.repositories.js";
 import { refreshTokenUser } from "../repositories/auth/refreshToken.repositories.js";
+import { userRepository } from "../repositories/auth/user.repositories.js";
+import { profileRepository } from "../repositories/Profile/profile.repositories.js";
+import { profileRole } from "../repositories/Profile/profileRole.repositories.js";
+import { hashPassword, comparePassword } from "../utils/hash.js";
+import { sendVerificationEmail } from "./mail.services.js";
+
+export const adminPaymentService = {
+  // ============================================
+  // PAYMENTS SERVICE
+  // ============================================
+
+  findAllPayments: async (limit: number, cursor: number) => {
+    try {
+      const payments = await paymentAdminRepository.findAllPayments(limit, cursor);
+      const hasNextPage = payments.length > limit;
+      const paginated = hasNextPage ? payments.slice(0, -1) : payments;
+
+      return {
+        payments: paginated,
+        cursor: hasNextPage ? paginated[paginated.length - 1]?.id : null,
+        hasNextPage,
+      };
+    } catch (error) {
+      if (error instanceof AppError) throw error;
+      throw new AppError(
+        `Erro ao buscar pagamentos: ${error instanceof Error ? error.message : String(error)}`,
+        500
+      );
+    }
+  },
+
+  findPaymentById: async (id: number) => {
+    try {
+      const payment = await paymentAdminRepository.findPaymentById(id);
+
+      if (!payment) {
+        throw new AppError("Pagamento não encontrado!", 404);
+      }
+
+      return payment;
+    } catch (error) {
+      if (error instanceof AppError) throw error;
+      throw new AppError(
+        `Erro ao buscar pagamento: ${error instanceof Error ? error.message : String(error)}`,
+        500
+      );
+    }
+  },
+
+  findPaymentsByStatus: async (filters: PaymentFiltersDTO) => {
+    try {
+      if (!filters.status) {
+        throw new AppError("Status de pagamento é obrigatório!", 400);
+      }
+
+      const payments = await paymentAdminRepository.findPaymentsByStatus(
+        filters.status,
+        filters.limit,
+        filters.cursor
+      );
+
+      const hasNextPage = payments.length > filters.limit;
+      const paginated = hasNextPage ? payments.slice(0, -1) : payments;
+
+      return {
+        payments: paginated,
+        cursor: hasNextPage ? paginated[paginated.length - 1]?.id : null,
+        hasNextPage,
+      };
+    } catch (error) {
+      if (error instanceof AppError) throw error;
+      throw new AppError(
+        `Erro ao filtrar pagamentos: ${error instanceof Error ? error.message : String(error)}`,
+        500
+      );
+    }
+  },
+
+  findReceivedPayments: async (owner_id: number, limit: number, cursor: number) => {
+    try {
+      const payments = await paymentAdminRepository.findReceivedPayments(
+        owner_id,
+        limit,
+        cursor
+      );
+
+      const hasNextPage = payments.length > limit;
+      const paginated = hasNextPage ? payments.slice(0, -1) : payments;
+
+      return {
+        payments: paginated,
+        cursor: hasNextPage ? paginated[paginated.length - 1]?.id : null,
+        hasNextPage,
+      };
+    } catch (error) {
+      if (error instanceof AppError) throw error;
+      throw new AppError(
+        `Erro ao buscar pagamentos recebidos: ${error instanceof Error ? error.message : String(error)}`,
+        500
+      );
+    }
+  },
+
+  findReleasedPayments: async (limit: number, cursor: number) => {
+    try {
+      const payments = await paymentAdminRepository.findReleasedPayments(limit, cursor);
+
+      const hasNextPage = payments.length > limit;
+      const paginated = hasNextPage ? payments.slice(0, -1) : payments;
+
+      return {
+        payments: paginated,
+        cursor: hasNextPage ? paginated[paginated.length - 1]?.id : null,
+        hasNextPage,
+      };
+    } catch (error) {
+      if (error instanceof AppError) throw error;
+      throw new AppError(
+        `Erro ao buscar pagamentos liberados: ${error instanceof Error ? error.message : String(error)}`,
+        500
+      );
+    }
+  },
+
+  releasePayment: async (payment_id: number, released_by: number) => {
+    try {
+      const payment = await paymentAdminRepository.findPaymentById(payment_id);
+
+      if (!payment) {
+        throw new AppError("Pagamento não encontrado!", 404);
+      }
+
+      if (payment.status === "RELEASED") {
+        throw new AppError("Este pagamento já foi liberado!", 400);
+      }
+
+      if (payment.status === "CANCELLED") {
+        throw new AppError("Não é possível liberar um pagamento cancelado!", 400);
+      }
+
+      const releasedPayment = await paymentAdminRepository.releasePayment(
+        payment_id,
+        released_by
+      );
+
+      return {
+        message: "Pagamento liberado com sucesso!",
+        payment: releasedPayment,
+      };
+    } catch (error) {
+      if (error instanceof AppError) throw error;
+      throw new AppError(
+        `Erro ao liberar pagamento: ${error instanceof Error ? error.message : String(error)}`,
+        500
+      );
+    }
+  },
+};
 
 export const adminService = {
   //auth
@@ -163,122 +316,197 @@ export const adminService = {
       throw new AppError(`Erro ao procurar por admin: ${error}`)
     }
   },
-  //Profiles
-  findProfiles: async (limit: number, lastPropertyId: number) => {
+}
+
+export const adminNegociationService = {
+  // ============================================
+  // NEGOCIATION SERVICE
+  // ============================================
+
+  findAllNegociations: async (filters: NegociationFiltersDTO) => {
     try {
-          const listings = await profileRepository.findAll(limit, lastPropertyId);
-          const hasNextPage = listings.length > limit;
-          const paginated = hasNextPage ? listings.slice(0, -1) : listings;
-          return {
-            properties: paginated,
-            cursor: hasNextPage ? paginated[paginated.length - 1]!.id : null,
-          };
-        } catch (error) {
-          if (error instanceof AppError) throw error;
-          throw new AppError(
-            "Erro ao buscar listagens: " + (error instanceof Error ? error.message : String(error)),
-            500
-          );
-        }
+      let negociations;
+
+      if (filters.status) {
+        negociations = await negociationAdminRepository.findNegociationsByStatus(
+          filters.status,
+          filters.limit,
+          filters.cursor
+        );
+      } else {
+        negociations = await negociationAdminRepository.findAllNegociations(
+          filters.limit,
+          filters.cursor
+        );
+      }
+
+      const hasNextPage = negociations.length > filters.limit;
+      const paginated = hasNextPage ? negociations.slice(0, -1) : negociations;
+
+      return {
+        negociations: paginated,
+        cursor: hasNextPage ? paginated[paginated.length - 1]?.id : null,
+        hasNextPage,
+      };
+    } catch (error) {
+      if (error instanceof AppError) throw error;
+      throw new AppError(
+        `Erro ao buscar negociações: ${error instanceof Error ? error.message : String(error)}`,
+        500
+      );
+    }
   },
-  findProfileById: async (id: number) => {
-    const profile = await profileRepository.findById(id);
 
-    if (!profile) throw new AppError("Perfil Inexistente!!!", 400);
+  findNegociationById: async (id: number) => {
+    try {
+      const negociation = await negociationAdminRepository.findNegociationById(id);
 
-    return profile;
+      if (!negociation) {
+        throw new AppError("Negociação não encontrada!", 404);
+      }
+
+      return negociation;
+    } catch (error) {
+      if (error instanceof AppError) throw error;
+      throw new AppError(
+        `Erro ao buscar negociação: ${error instanceof Error ? error.message : String(error)}`,
+        500
+      );
+    }
   },
-banProfile: async (id: number) => {
-  try {
-    if (!id) throw new AppError("ID não fornecido!", 400)
-    
-    const findUser = await userRepository.findById(id)
-    if (!findUser) throw new AppError("Usuario não encontrado!", 404)
- 
-    const findUserRestrictionHistory = await userRepository.getCurrentUserRestrictionHistory(findUser.id)
- 
-    // Verifica se já está banido
-    if (findUserRestrictionHistory?.new_ban_status === 'BANNED') {
-      throw new AppError("O perfil já está banido!", 400)
-    }
-    
-    const profile = await userRepository.createUserRestrictionHistory(id, 'BANNED', null)
-    
-    return { 
-      message: "Perfil banido com sucesso!",
-      profile
-    }
-  } catch (error) {
-    throw new AppError(`Erro ao banir perfil: ${error}`)
-  }
-},
- 
-suspendProfile: async (id: number) => {
-  try {
-    if (!id) throw new AppError("ID não fornecido!", 400)
-    
-    const findUser = await userRepository.findById(id)
-    if (!findUser) throw new AppError("Usuario não encontrado!", 404)
- 
-    const findUserRestrictionHistory = await userRepository.getCurrentUserRestrictionHistory(findUser.id)
- 
-    // Verifica se já está suspenso
-    if (findUserRestrictionHistory?.new_ban_status === 'SUSPENDED') {
-      throw new AppError("O perfil já está suspenso!", 400)
-    }
- 
-    // Suspensão por 7 dias
-    const suspendUntil = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000)
-    const profile = await userRepository.createUserRestrictionHistory(id, 'SUSPENDED', suspendUntil)
-    
-    return {
-      message: "O perfil foi suspenso e ficará inativo por 7 dias!",
-      profile
-    }
-  } catch (error) {
-    throw new AppError(`Erro ao suspender perfil: ${error}`)
-  }
-},
- 
-unBanProfile: async (id: number) => {
-  try {
-    if (!id) throw new AppError("ID não fornecido!", 400)
-    
-    const findUser = await userRepository.findById(id)
-    if (!findUser) throw new AppError("Usuario não encontrado!", 404)
- 
-    const findUserRestrictionHistory = await userRepository.getCurrentUserRestrictionHistory(findUser.id)
- 
-    // Se não tem histórico ou já está ativo, retorna erro
-    if (!findUserRestrictionHistory) {
-      throw new AppError("O perfil não possui histórico de restrições!", 400)
-    }
- 
-    if (findUserRestrictionHistory.new_ban_status === 'ACTIVE') {
-      throw new AppError("O perfil já está ativo!", 400)
-    }
- 
-    const profile = await userRepository.createUserRestrictionHistory(id, 'ACTIVE', null)
-    
-    return {
-      message: "O perfil foi ativado com sucesso!",
-      profile
-    }
-  } catch (error) {
-    throw new AppError(`Erro ao desbanir perfil: ${error}`)
-  }
-},
-  findVerifications: async () => {},
-  approveProfiles: async () => {},
-  rejectProfiles: async () => {},
+};
 
-  //Properties
-  getPeddingProperties: async () => {},
-  approveProperties: async () => {},
-  rejectProperties: async () => {},
+export const adminPropertyService = {
+  // ============================================
+  // PROPERTY SERVICE
+  // ============================================
 
-  //Plans
-  createPlan: async () => {},
-  editPlan: async () => {},
-  deletePlan: async () => {},
+  findAllProperties: async (filters: PropertyFiltersDTO) => {
+    try {
+      let properties;
+
+      // Se há filtros, usa busca avançada
+      if (
+        filters.type_of_property ||
+        filters.type_property_purchase ||
+        filters.status_property ||
+        filters.municipality ||
+        filters.neighborhood ||
+        filters.min_price !== undefined ||
+        filters.max_price !== undefined
+      ) {
+        const searchParams: { [key: string]: any } = {};
+        if (filters.type_of_property !== undefined) searchParams.type_of_property = filters.type_of_property;
+        if (filters.type_property_purchase !== undefined) searchParams.type_property_purchase = filters.type_property_purchase;
+        if (filters.status_property !== undefined) searchParams.status_property = filters.status_property;
+        if (filters.municipality !== undefined) searchParams.municipality = filters.municipality;
+        if (filters.neighborhood !== undefined) searchParams.neighborhood = filters.neighborhood;
+        if (filters.min_price !== undefined) searchParams.min_price = filters.min_price;
+        if (filters.max_price !== undefined) searchParams.max_price = filters.max_price;
+
+        properties = await propertyAdminRepository.searchProperties(
+          searchParams,
+          filters.limit,
+          filters.cursor
+        );
+      } else {
+        properties = await propertyAdminRepository.findAllProperties(
+          filters.limit,
+          filters.cursor
+        );
+      }
+
+      const hasNextPage = properties.length > filters.limit;
+      const paginated = hasNextPage ? properties.slice(0, -1) : properties;
+
+      return {
+        properties: paginated,
+        cursor: hasNextPage ? paginated[paginated.length - 1]?.id : null,
+        hasNextPage,
+      };
+    } catch (error) {
+      if (error instanceof AppError) throw error;
+      throw new AppError(
+        `Erro ao buscar propriedades: ${error instanceof Error ? error.message : String(error)}`,
+        500
+      );
+    }
+  },
+
+  findPropertyById: async (id: number) => {
+    try {
+      const property = await propertyAdminRepository.findPropertyById(id);
+
+      if (!property) {
+        throw new AppError("Propriedade não encontrada!", 404);
+      }
+
+      return property;
+    } catch (error) {
+      if (error instanceof AppError) throw error;
+      throw new AppError(
+        `Erro ao buscar propriedade: ${error instanceof Error ? error.message : String(error)}`,
+        500
+      );
+    }
+  },
+
+/*   findPropertiesByStatus: async (
+    status: string,
+    limit: number,
+    cursor: number
+  ) => {
+    try {
+      const properties = await propertyAdminRepository.findPropertiesByStatus(
+        status,
+        limit,
+        cursor
+      );
+
+      const hasNextPage = properties.length > limit;
+      const paginated = hasNextPage ? properties.slice(0, -1) : properties;
+
+      return {
+        properties: paginated,
+        cursor: hasNextPage ? paginated[paginated.length - 1]?.id : null,
+        hasNextPage,
+      };
+    } catch (error) {
+      if (error instanceof AppError) throw error;
+      throw new AppError(
+        `Erro ao filtrar propriedades por status: ${error instanceof Error ? error.message : String(error)}`,
+        500
+      );
+    }
+  },
+ */
+ 
+  findPropertiesByOwner: async (
+    owner_id: number,
+    limit: number,
+    cursor: number
+  ) => {
+    try {
+      const properties = await propertyAdminRepository.findPropertiesByOwner(
+        owner_id,
+        limit,
+        cursor
+      );
+
+      const hasNextPage = properties.length > limit;
+      const paginated = hasNextPage ? properties.slice(0, -1) : properties;
+
+      return {
+        properties: paginated,
+        cursor: hasNextPage ? paginated[paginated.length - 1]?.id : null,
+        hasNextPage,
+      };
+    } catch (error) {
+      if (error instanceof AppError) throw error;
+      throw new AppError(
+        `Erro ao buscar propriedades do proprietário: ${error instanceof Error ? error.message : String(error)}`,
+        500
+      );
+    }
+  },
 };
