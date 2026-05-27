@@ -36,7 +36,7 @@ export const createIndividualClient = z.object({
     phone: z
     .string(),
     bi: z.string().length(14, "14 caracteres"),
-    bankAccount: z.string().length(31, "31 caracteres"),
+    bankAccount: z.string().length(25, "25 caracteres"),
     dateOfBirth: z
                 .string().refine(
                     (date) => {
