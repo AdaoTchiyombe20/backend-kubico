@@ -185,15 +185,6 @@ export const paymentsService = {
         paymentType ===
         "DIRECT_PURCHASE"
       ) {
-        if (
-          property.is_negotiable
-        ) {
-          throw new AppError(
-            "Este imóvel exige negociação",
-            400
-          );
-        }
-
         return createPayment({
           property_listing_id:
             property_listing_id,
