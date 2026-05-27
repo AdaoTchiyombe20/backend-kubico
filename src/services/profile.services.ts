@@ -38,7 +38,6 @@ export const profileService = {
       const existingRole = await profileRole.findProfileRoleByRole(profile_id, 2);
       if (existingRole) throw new AppError("Owner já existe", 400);
 
-      // ✅ phone agora validado aqui também
       await validateUniqueData([
         { type: "BI",             value: bi,           label: "BI"           },
         { type: "PHONE",          value: phone,        label: "Telefone"     },

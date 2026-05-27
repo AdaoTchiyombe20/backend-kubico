@@ -1,5 +1,17 @@
 import z from 'zod'
-import {PaymentStatus,NegociationStatus,PropertyStatus,Property_purchase,TypeProperties,} from "@prisma/client";
+import {
+  ListingStatus,
+  PaymentStatus,
+  PaymentType,
+  NegociationStatus,
+  ProfileRoles,
+  ProfileType,
+  PropertyStatus,
+  Property_purchase,
+  TypeProperties,
+  UserRoleStatus,
+  UserStatus,
+} from "@prisma/client";
 
 export const createAdmin = z.object({
     adminsName: z.string('Only string').min(3,'Min 3 characteres'),
@@ -25,6 +37,13 @@ export const PaymentFiltersSchema = z.object({
     PaymentStatus.RELEASED,
     PaymentStatus.CANCELLED,
   ]).optional(),
+  payment_type: z.enum([
+    PaymentType.DIRECT_PURCHASE,
+    PaymentType.NEGOCIATED_PURCHASE,
+  ]).optional(),
+  owner_id: z.coerce.number().int().positive().optional(),
+  client_id: z.coerce.number().int().positive().optional(),
+  property_listing_id: z.coerce.number().int().positive().optional(),
   limit: z.coerce.number().int().positive().default(20),
   cursor: z.coerce.number().int().nonnegative().default(0),
 });
@@ -41,6 +60,15 @@ export const NegociationFiltersSchema = z.object({
     NegociationStatus.REJECTED,
     NegociationStatus.CANCELLED,
   ]).optional(),
+  payment_status: z.enum([
+    PaymentStatus.PENDING,
+    PaymentStatus.HELD,
+    PaymentStatus.RELEASED,
+    PaymentStatus.CANCELLED,
+  ]).optional(),
+  owner_id: z.coerce.number().int().positive().optional(),
+  client_id: z.coerce.number().int().positive().optional(),
+  property_listing_id: z.coerce.number().int().positive().optional(),
   limit: z.coerce.number().int().positive().default(20),
   cursor: z.coerce.number().int().nonnegative().default(0),
 });
@@ -82,6 +110,14 @@ export const PropertyFiltersSchema = z.object({
     PropertyStatus.NAO_PUBLICADO,
     PropertyStatus.EM_ANALISE,
   ]).optional(),
+  listing_status: z.enum([
+    ListingStatus.RESERVADO,
+    ListingStatus.VENDIDO,
+    ListingStatus.ALUGADO,
+    ListingStatus.DISPONIVEL,
+  ]).optional(),
+  owner_id: z.coerce.number().int().positive().optional(),
+  is_negotiable: z.coerce.boolean().optional(),
   municipality: z.string().optional(),
   neighborhood: z.string().optional(),
   min_price: z.coerce.number().nonnegative().optional(),
@@ -91,6 +127,33 @@ export const PropertyFiltersSchema = z.object({
 });
 
 export type PropertyFiltersDTO = z.infer<typeof PropertyFiltersSchema>;
+
+export const UserFiltersSchema = z.object({
+  status: z.enum([
+    UserStatus.ACTIVE,
+    UserStatus.SUSPENDED,
+  ]).optional(),
+  role: z.enum([
+    ProfileRoles.CLIENT,
+    ProfileRoles.OWNER,
+    ProfileRoles.ADMIN,
+  ]).optional(),
+  role_status: z.enum([
+    UserRoleStatus.PENDING,
+    UserRoleStatus.APPROVED,
+    UserRoleStatus.REJECTED,
+  ]).optional(),
+  type: z.enum([
+    ProfileType.INDIVIDUAL,
+    ProfileType.COMPANY,
+  ]).optional(),
+  email: z.string().trim().optional(),
+  name: z.string().trim().optional(),
+  limit: z.coerce.number().int().positive().default(20),
+  cursor: z.coerce.number().int().nonnegative().default(0),
+});
+
+export type UserFiltersDTO = z.infer<typeof UserFiltersSchema>;
 
 // ============================================
 // RELEASE PAYMENT DTO

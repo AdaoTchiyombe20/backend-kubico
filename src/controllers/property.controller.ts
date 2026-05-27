@@ -308,11 +308,9 @@ export const propertyController = {
         throw new AppError("ID inválido!", 400);
       }
 
-      console.log("Profile ID:", profileId);
       if (!profileId) throw new AppError("Perfil não encontrado!", 404);
       
       if (!property_id) throw new AppError("ID da propriedade é obrigatório!", 400);
-      console.log("Property ID:", property_id);
 
 
       const result = await propertyService.addToFavorites(Number(profileId), Number(property_id));
@@ -350,6 +348,11 @@ export const propertyController = {
       if (Array.isArray(lastFavoriteId)) throw new AppError("Valor inválido!", 400);
 
       const favorites = await propertyService.getUserFavorites(Number(profileId), Number(limit), Number(lastFavoriteId));
+      res.json({
+        success: true,
+        cursor: favorites.cursor,
+        properties: favorites.properties,
+      });
     } catch (error) {
       next(error);
     }

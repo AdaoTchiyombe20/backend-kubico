@@ -30,7 +30,7 @@ export const authRepositories = {
     });
   },
   findByEmail: async (email: string): Promise<users | null> => {
-    return prisma.users.findUnique({
+    return await prisma.users.findUnique({
       where: { email },
     });
   },

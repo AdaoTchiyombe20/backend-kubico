@@ -8,7 +8,6 @@ import { authRepositories } from "../repositories/auth/auth.repositories.js";
 import { refreshTokenUser } from "../repositories/auth/refreshToken.repositories.js";
 import { profileRole } from "../repositories/Profile/profileRole.repositories.js";
 import { userRepository } from "../repositories/auth/user.repositories.js";
-import { sendVerificationEmail } from "./mail.services.js";
 import { profileRepository } from "../repositories/Profile/profile.repositories.js";
 import type { ProfileType } from "@prisma/client";
 
@@ -63,19 +62,6 @@ export const authServices = {
           { expiresIn: "15m" }
         );
 
-      const verifyEmailToken = jwt.sign(
-        {
-          iss: "kubico-api",
-          sub: user.id,
-          iat: Math.floor(Date.now() / 1000),
-          aud: user.email,
-        },
-        ENV.JWT_SECRET,
-        {
-          expiresIn: "15m",
-        },
-      );
-
       const expiresAt = new Date();
       expiresAt.setDate(expiresAt.getDate() + 7);
 
@@ -84,9 +70,6 @@ export const authServices = {
         userId: user.id,
         expiresAt: expiresAt,
       });
-
-      if (!user.email_verified)
-        await sendVerificationEmail(user.email, verifyEmailToken);
 
       return {
         user,
@@ -113,14 +96,24 @@ export const authServices = {
 
       if (!verfiryUserPassword) throw new AppError("Dados Incorretos!", 401);
 
-      if (!user.email_verified) throw new AppError("Valide o seu email", 400);
+      let profile = await profileRepository.findAuthProfileByUserId(user.id);
 
-      const profile = await profileRepository.findByUserId(user.id);
+      if (!profile) {
+        profile = await profileRepository.createProfile(user.id, "INDIVIDUAL");
+      }
 
-      if (!profile) throw new AppError("Usuário não encontrado!", 404);
-      const userRestrictionHistory = await userRepository.getCurrentUserRestrictionHistory(user.id);
+      let clientRole = await profileRole.findProfileRoleByRole(profile.id, 1);
+      if (!clientRole) {
+        clientRole = await profileRole.insertValues(profile.id, 1, "APPROVED");
+      }
+
+      let userRestrictionHistory = await userRepository.getCurrentUserRestrictionHistory(user.id);
       if(!userRestrictionHistory) {
-        throw new AppError("Histórico de restrição do usuário não encontrado", 404);
+        userRestrictionHistory = await userRepository.createUserRestrictionHistory(
+          user.id,
+          "ACTIVE",
+          null
+        );
       }
       if ( userRestrictionHistory.new_ban_status === "BANNED") {
         throw new AppError("Usuário banido!", 403);
@@ -161,7 +154,9 @@ export const authServices = {
       });
 
       await userRepository.updateStatus(user.id, true, null);
-      await profileRole.updateProfileRoleStatus(profile.id, 1, true);
+      if (!clientRole.is_active) {
+        await profileRole.updateProfileRoleStatus(profile.id, 1, true);
+      }
 
       return {
         user: {
@@ -216,7 +211,7 @@ export const authServices = {
   },
   refresh: async (id: number, refreshTkn: string) => {
     try {
-      const findProfile = await profileRepository.findByUserId(id);
+      const findProfile = await profileRepository.findAuthProfileByUserId(id);
 
       if (!findProfile) throw new AppError("Perfil nao encontrado!", 404);
 
@@ -238,7 +233,7 @@ export const authServices = {
 
       if (!verifyActiveRole) throw new AppError("Nenhuma Role activa!", 404);
 
-      const profile = await profileRepository.findByUserId(user.id);
+      const profile = await profileRepository.findAuthProfileByUserId(user.id);
 
       if (!profile) throw new AppError("Profile nao encontrado!", 400);
 
@@ -294,21 +289,9 @@ export const authServices = {
   sendVerificationEmail: async (id: number) => {
     try {
       const findUser = await userRepository.findById(id);
-      const verifyEmailToken = jwt.sign(
-        {
-          iss: "kubico-api",
-          sub: id,
-          iat: Math.floor(Date.now() / 1000),
-          aud: findUser!.email,
-        },
-        ENV.JWT_SECRET,
-        {
-          expiresIn: "15m",
-        },
-      );
 
       if (!findUser?.email_verified) {
-        await sendVerificationEmail(findUser!.email, verifyEmailToken);
+        return { message: "Envio de email de verificação ignorado." };
       } else {
         throw new AppError("Email ja verificado!", 400);
       }

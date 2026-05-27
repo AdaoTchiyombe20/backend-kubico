@@ -14,9 +14,9 @@ const withRole = (...roles: string[]) => [
 const propertyRoute = Router();
 
 // ✅ FAVORITOS (mais específico - colocar PRIMEIRO)
-propertyRoute.get("/favorites", withRole("owner, client"), propertyController.getUserFavorites);
+propertyRoute.get("/favorites", withRole("client"), propertyController.getUserFavorites);
 propertyRoute.post("/favorites/:id", withRole("client"), propertyController.addToFavorites);
-propertyRoute.delete("/favorites/:id", withRole("owner"), propertyController.removeFromFavorites);
+propertyRoute.delete("/favorites/:id", withRole("client"), propertyController.removeFromFavorites);
 
 // PUBLICAÇÃO de imóveis (específicas também)
 propertyRoute.get("/listings/search", propertyController.searchListings);
@@ -37,6 +37,5 @@ propertyRoute.patch("/:id/media/:mediaId",withRole("owner"), uploadImagesAndVide
 propertyRoute.post("/:id/media", withRole("owner"), uploadImagesAndVideo.single("file"), propertyController.addPropertyMedia);
 propertyRoute.delete("/:id/media/:mediaId", withRole("owner"), propertyController.deletePropertyMedia);
 propertyRoute.delete("/:id", withRole("owner"), propertyController.deleteProperty);
-propertyRoute.get("/listings/:id", withRole("admin"), propertyController.findListingById);
 
 export { propertyRoute };

@@ -37,11 +37,28 @@ export const propertyListingRepository = {
     });
   },
 
+  updateListingStatus: async (
+    listingId: number,
+    status: ListingStatus,
+    delisted_at?: Date | null,
+  ): Promise<propertyListing> => {
+    return prisma.propertyListing.update({
+      where: { id: listingId },
+      data: {
+        status,
+        ...(delisted_at !== undefined ? { delisted_at } : {}),
+      },
+    });
+  },
+
   findAllListings: async (limit: number, cursor: number): Promise<propertyListing[]> => {
     return prisma.propertyListing.findMany({
       where: {
         delisted_at: null,
         status: ListingStatus.DISPONIVEL,
+        property: {
+          status_property: "PUBLICADO",
+        },
         ...(cursor > 0 && { id: { gt: cursor } }),
       },
       include: {
@@ -105,6 +122,7 @@ export const propertyListingRepository = {
         status: ListingStatus.DISPONIVEL,
         ...(cursor > 0 && { id: { gt: cursor } }),
         property: {
+            status_property: "PUBLICADO",
             ...(filters.type_of_property && {
               type_of_property: filters.type_of_property,
             }),
@@ -116,6 +134,25 @@ export const propertyListingRepository = {
             ...(filters.is_negotiable !== undefined && {
               is_negotiable: filters.is_negotiable,
             }),
+
+            ...(filters.neighborhood || filters.municipality
+              ? {
+                  property_localization: {
+                    ...(filters.neighborhood && {
+                      neighborhood: {
+                        contains: filters.neighborhood,
+                        mode: "insensitive",
+                      },
+                    }),
+                    ...(filters.municipality && {
+                      municipality: {
+                        contains: filters.municipality,
+                        mode: "insensitive",
+                      },
+                    }),
+                  },
+                }
+              : {}),
 
             ...(filters.min_price !== undefined ||
             filters.max_price !== undefined

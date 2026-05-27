@@ -1,7 +1,7 @@
 import { AppError } from "../errors/App.Errors.js";
-import { negociationAdminRepository, propertyAdminRepository, paymentAdminRepository, adminRepository } from "../repositories/admin/admin.respositories.js";
-import type { PaymentFiltersDTO, NegociationFiltersDTO, PropertyFiltersDTO } from "../dto/admin.dto.js";
-import type { AccessLevel } from "@prisma/client";
+import { negociationAdminRepository, propertyAdminRepository, paymentAdminRepository, adminRepository, userAdminRepository } from "../repositories/admin/admin.respositories.js";
+import type { PaymentFiltersDTO, NegociationFiltersDTO, PropertyFiltersDTO, UserFiltersDTO } from "../dto/admin.dto.js";
+import { ListingStatus, propertySelingStatus, type AccessLevel } from "@prisma/client";
 import jwt from "jsonwebtoken";
 import { ENV } from "../config/env.js";
 import { authRepositories } from "../repositories/auth/auth.repositories.js";
@@ -10,7 +10,13 @@ import { userRepository } from "../repositories/auth/user.repositories.js";
 import { profileRepository } from "../repositories/Profile/profile.repositories.js";
 import { profileRole } from "../repositories/Profile/profileRole.repositories.js";
 import { hashPassword, comparePassword } from "../utils/hash.js";
-import { sendVerificationEmail } from "./mail.services.js";
+import { propertyListingRepository } from "../repositories/property/propertyListing.repositories.js";
+import { historyPropertyRepository } from "../repositories/property/historyProperty.respositories.js";
+
+const omitUndefined = <T extends Record<string, unknown>>(value: T) =>
+  Object.fromEntries(
+    Object.entries(value).filter(([, entry]) => entry !== undefined)
+  ) as Partial<T>;
 
 export const adminPaymentService = {
   // ============================================
@@ -84,6 +90,37 @@ export const adminPaymentService = {
     }
   },
 
+  findPayments: async (filters: PaymentFiltersDTO) => {
+    try {
+      const payments = await paymentAdminRepository.findPayments(
+        omitUndefined({
+          status: filters.status,
+          payment_type: filters.payment_type,
+          owner_id: filters.owner_id,
+          client_id: filters.client_id,
+          property_listing_id: filters.property_listing_id,
+        }),
+        filters.limit,
+        filters.cursor
+      );
+
+      const hasNextPage = payments.length > filters.limit;
+      const paginated = hasNextPage ? payments.slice(0, -1) : payments;
+
+      return {
+        payments: paginated,
+        cursor: hasNextPage ? paginated[paginated.length - 1]?.id : null,
+        hasNextPage,
+      };
+    } catch (error) {
+      if (error instanceof AppError) throw error;
+      throw new AppError(
+        `Erro ao buscar pagamentos: ${error instanceof Error ? error.message : String(error)}`,
+        500
+      );
+    }
+  },
+
   findReceivedPayments: async (owner_id: number, limit: number, cursor: number) => {
     try {
       const payments = await paymentAdminRepository.findReceivedPayments(
@@ -146,9 +183,36 @@ export const adminPaymentService = {
         throw new AppError("Não é possível liberar um pagamento cancelado!", 400);
       }
 
+      if (payment.status !== "HELD") {
+        throw new AppError("Apenas pagamentos retidos podem ser liberados!", 400);
+      }
+
       const releasedPayment = await paymentAdminRepository.releasePayment(
         payment_id,
         released_by
+      );
+
+      const property = (releasedPayment as any).property_listing.property;
+      const finalListingStatus =
+        property.type_property_purchase === "FOR_RENT"
+          ? ListingStatus.ALUGADO
+          : ListingStatus.VENDIDO;
+      const finalHistoryStatus =
+        property.type_property_purchase === "FOR_RENT"
+          ? propertySelingStatus.ALUGADO
+          : propertySelingStatus.VENDIDO;
+
+      await propertyListingRepository.updateListingStatus(
+        releasedPayment.property_listing_id,
+        finalListingStatus,
+        new Date()
+      );
+
+      await historyPropertyRepository.createHistoryProperty(
+        releasedPayment.owner_id,
+        property.id,
+        propertySelingStatus.RESERVADO,
+        finalHistoryStatus
       );
 
       return {
@@ -200,20 +264,6 @@ export const adminService = {
         accessLevel,
       );
 
-      const emailVerificatioTonken = jwt.sign(
-        {
-          iss: "kubico-api",
-          sub: createuser.id,
-          iat: Math.floor(Date.now() / 1000),
-          aud: email,
-        },
-        ENV.JWT_SECRET,
-        {
-          expiresIn: "15m",
-        },
-      );
-      
-
       const refreshToken = jwt.sign(
               {
                 sub: createuser.id,
@@ -224,8 +274,9 @@ export const adminService = {
       
       const accessToken = jwt.sign(
         {
-          sub: createAdminProfile.id,
-          role: "CLIENT",
+          sub: String(createuser.id),
+          profileId: createAdminProfile.id,
+          role: "ADMIN",
           iat: Math.floor(Date.now() / 1000),
           type: createAdminProfile.type,
         },
@@ -241,9 +292,6 @@ export const adminService = {
         userId: createuser.id,
         expiresAt: expiresAt,
       });
-       if (!createuser.email_verified)
-        await sendVerificationEmail(createuser.email, emailVerificatioTonken);
-
 
       return { accessToken, refreshToken, message: "Admin criado com sucesso!" };
 
@@ -257,9 +305,7 @@ export const adminService = {
 
       if (!findEmail) throw new AppError("User not Found", 404);
 
-      if (!findEmail.email_verified) throw new AppError("Valide o seu email", 400);
-
-      const findProfileById = await profileRepository.findByUserId(
+      const findProfileById = await profileRepository.findAuthProfileByUserId(
         findEmail.id,
       );
 
@@ -273,7 +319,7 @@ export const adminService = {
       if(!verifyAdmin) throw new AppError("Admin not found!", 404)
       if(verifyAdmin?.status !== "APPROVED") throw new AppError("Admin nao aprovado!", 403)
 
-      const verifiyPassword = comparePassword(password, findEmail!.password);
+      const verifiyPassword = await comparePassword(password, findEmail!.password);
 
       if (!verifiyPassword) throw new AppError("Wrong password!", 401);
 
@@ -286,7 +332,8 @@ export const adminService = {
       );
       const accessToken = jwt.sign(
         {
-          sub: findProfileById.id,
+          sub: String(findEmail.id),
+          profileId: findProfileById.id,
           role: "ADMIN",
           iat: Math.floor(Date.now() / 1000),
           type: findProfileById.type,
@@ -325,20 +372,17 @@ export const adminNegociationService = {
 
   findAllNegociations: async (filters: NegociationFiltersDTO) => {
     try {
-      let negociations;
-
-      if (filters.status) {
-        negociations = await negociationAdminRepository.findNegociationsByStatus(
-          filters.status,
-          filters.limit,
-          filters.cursor
-        );
-      } else {
-        negociations = await negociationAdminRepository.findAllNegociations(
-          filters.limit,
-          filters.cursor
-        );
-      }
+      const negociations = await negociationAdminRepository.findNegociations(
+        omitUndefined({
+          status: filters.status,
+          payment_status: filters.payment_status,
+          owner_id: filters.owner_id,
+          client_id: filters.client_id,
+          property_listing_id: filters.property_listing_id,
+        }),
+        filters.limit,
+        filters.cursor
+      );
 
       const hasNextPage = negociations.length > filters.limit;
       const paginated = hasNextPage ? negociations.slice(0, -1) : negociations;
@@ -393,7 +437,10 @@ export const adminPropertyService = {
         filters.municipality ||
         filters.neighborhood ||
         filters.min_price !== undefined ||
-        filters.max_price !== undefined
+        filters.max_price !== undefined ||
+        filters.listing_status ||
+        filters.owner_id !== undefined ||
+        filters.is_negotiable !== undefined
       ) {
         const searchParams: { [key: string]: any } = {};
         if (filters.type_of_property !== undefined) searchParams.type_of_property = filters.type_of_property;
@@ -403,6 +450,9 @@ export const adminPropertyService = {
         if (filters.neighborhood !== undefined) searchParams.neighborhood = filters.neighborhood;
         if (filters.min_price !== undefined) searchParams.min_price = filters.min_price;
         if (filters.max_price !== undefined) searchParams.max_price = filters.max_price;
+        if (filters.listing_status !== undefined) searchParams.listing_status = filters.listing_status;
+        if (filters.owner_id !== undefined) searchParams.owner_id = filters.owner_id;
+        if (filters.is_negotiable !== undefined) searchParams.is_negotiable = filters.is_negotiable;
 
         properties = await propertyAdminRepository.searchProperties(
           searchParams,
@@ -505,6 +555,58 @@ export const adminPropertyService = {
       if (error instanceof AppError) throw error;
       throw new AppError(
         `Erro ao buscar propriedades do proprietário: ${error instanceof Error ? error.message : String(error)}`,
+        500
+      );
+    }
+  },
+};
+
+export const adminUserService = {
+  findUsers: async (filters: UserFiltersDTO) => {
+    try {
+      const users = await userAdminRepository.findUsers(
+        omitUndefined({
+          status: filters.status,
+          role: filters.role,
+          role_status: filters.role_status,
+          type: filters.type,
+          email: filters.email,
+          name: filters.name,
+        }),
+        filters.limit,
+        filters.cursor
+      );
+
+      const hasNextPage = users.length > filters.limit;
+      const paginated = hasNextPage ? users.slice(0, -1) : users;
+
+      return {
+        users: paginated,
+        cursor: hasNextPage ? paginated[paginated.length - 1]?.id : null,
+        hasNextPage,
+      };
+    } catch (error) {
+      if (error instanceof AppError) throw error;
+      throw new AppError(
+        `Erro ao buscar usuarios: ${error instanceof Error ? error.message : String(error)}`,
+        500
+      );
+    }
+  },
+
+  findUserById: async (id: number) => {
+    try {
+      const user = await userAdminRepository.findUserById(id);
+
+      if (!user) {
+        throw new AppError("Perfil inexistente!", 404);
+      }
+
+      return user;
+    } catch (error) {
+      if (error instanceof AppError) throw error;
+      throw new AppError(
+        `Erro ao buscar usuario: ${error instanceof Error ? error.message : String(error)}`,
         500
       );
     }

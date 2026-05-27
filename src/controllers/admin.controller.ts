@@ -1,58 +1,65 @@
 import type { Request, Response, NextFunction } from "express";
+import { ZodError } from "zod";
 import { AppError } from "../errors/App.Errors.js";
 import {
-    adminNegociationService,
+  adminNegociationService,
   adminPaymentService,
   adminPropertyService,
+  adminUserService,
 } from "../services/admin.services.js";
 import {
-  PaymentFiltersSchema,
   NegociationFiltersSchema,
+  PaymentFiltersSchema,
   PropertyFiltersSchema,
-  ReleasePaymentSchema,
+  UserFiltersSchema,
 } from "../dto/admin.dto.js";
-import { jwt, ZodError } from "zod";
-import type { AccessLevel } from "@prisma/client";
-import type { ENV } from "../config/env.js";
-import { adminRepository } from "../repositories/admin/admin.respositories.js";
-import { authRepositories } from "../repositories/auth/auth.repositories.js";
-import type { refreshTokenUser } from "../repositories/auth/refreshToken.repositories.js";
-import { userRepository } from "../repositories/auth/user.repositories.js";
-import { profileRepository } from "../repositories/Profile/profile.repositories.js";
-import { profileRole } from "../repositories/Profile/profileRole.repositories.js";
-import { sendVerificationEmail } from "../services/mail.services.js";
-import { hashPassword, comparePassword } from "../utils/hash.js";
 
+const handleZodError = (err: unknown, next: NextFunction) => {
+  if (err instanceof ZodError) {
+    return next(new AppError("Dados de entrada invalidos!", 400));
+  }
 
-
+  return next(err);
+};
 
 export const adminController = {
-  // ============================================
-  // PAYMENTS ENDPOINTS
-  // ============================================
+  findUsers: async (req: Request, res: Response, next: NextFunction) => {
+    try {
+      const filters = UserFiltersSchema.parse(req.query);
+      const result = await adminUserService.findUsers(filters);
 
-  /**
-   * GET /admin/payments
-   * Lista todos os pagamentos com paginação
-   * Query params: limit, cursor, status (opcional)
-   */
-  findAllPayments: async (
-    req: Request,
-    res: Response,
-    next: NextFunction
-  ) => {
+      res.json({
+        success: true,
+        data: result.users,
+        cursor: result.cursor,
+        hasNextPage: result.hasNextPage,
+      });
+    } catch (err) {
+      handleZodError(err, next);
+    }
+  },
+
+  findUserById: async (req: Request, res: Response, next: NextFunction) => {
+    try {
+      const id = Number(req.params.id);
+      if (isNaN(id)) throw new AppError("ID invalido!", 400);
+
+      const user = await adminUserService.findUserById(id);
+
+      res.json({
+        success: true,
+        message: "Usuario encontrado!",
+        data: user,
+      });
+    } catch (err) {
+      next(err);
+    }
+  },
+
+  findAllPayments: async (req: Request, res: Response, next: NextFunction) => {
     try {
       const filters = PaymentFiltersSchema.parse(req.query);
-
-      let result;
-      if (filters.status) {
-        result = await adminPaymentService.findPaymentsByStatus(filters);
-      } else {
-        result = await adminPaymentService.findAllPayments(
-          filters.limit,
-          filters.cursor
-        );
-      }
+      const result = await adminPaymentService.findPayments(filters);
 
       res.json({
         success: true,
@@ -61,24 +68,37 @@ export const adminController = {
         hasNextPage: result.hasNextPage,
       });
     } catch (err) {
-      if (err instanceof ZodError) {
-        return next(new AppError("Dados de entrada inválidos!", 400));
-      }
-      next(err);
+      handleZodError(err, next);
     }
   },
 
-  /**
-   * GET /admin/payments/:id
-   * Busca um pagamento específico por ID
-   */
+  findAllHeldPayments: async (
+    req: Request,
+    res: Response,
+    next: NextFunction,
+  ) => {
+    try {
+      const filters = PaymentFiltersSchema.parse({
+        ...req.query,
+        status: "HELD",
+      });
+      const result = await adminPaymentService.findPayments(filters);
+
+      res.json({
+        success: true,
+        data: result.payments,
+        cursor: result.cursor,
+        hasNextPage: result.hasNextPage,
+      });
+    } catch (err) {
+      handleZodError(err, next);
+    }
+  },
+
   findPaymentById: async (req: Request, res: Response, next: NextFunction) => {
     try {
       const id = Number(req.params.id);
-
-      if (isNaN(id)) {
-        throw new AppError("ID inválido!", 400);
-      }
+      if (isNaN(id)) throw new AppError("ID invalido!", 400);
 
       const payment = await adminPaymentService.findPaymentById(id);
 
@@ -91,29 +111,21 @@ export const adminController = {
     }
   },
 
-  /**
-   * GET /admin/payments/received/:owner_id
-   * Lista pagamentos recebidos por um proprietário
-   * Query params: limit, cursor
-   */
   findAllReceivedPayments: async (
     req: Request,
     res: Response,
-    next: NextFunction
+    next: NextFunction,
   ) => {
     try {
-      const owner_id = Number(req.params.owner_id);
-      const limit = Number(req.query.limit) || 20;
-      const cursor = Number(req.query.cursor) || 0;
-
-      if (isNaN(owner_id)) {
-        throw new AppError("ID do proprietário inválido!", 400);
+      const filters = PaymentFiltersSchema.parse(req.query);
+      if (!filters.owner_id) {
+        throw new AppError("owner_id e obrigatorio!", 400);
       }
 
       const result = await adminPaymentService.findReceivedPayments(
-        owner_id,
-        limit,
-        cursor
+        filters.owner_id,
+        filters.limit,
+        filters.cursor,
       );
 
       res.json({
@@ -123,32 +135,21 @@ export const adminController = {
         hasNextPage: result.hasNextPage,
       });
     } catch (err) {
-      next(err);
+      handleZodError(err, next);
     }
   },
 
-  /**
-   * GET /admin/payments/released
-   * Lista pagamentos liberados
-   * Query params: limit, cursor
-   */
   findAllReleasedPayments: async (
     req: Request,
     res: Response,
-    next: NextFunction
+    next: NextFunction,
   ) => {
     try {
-      const limit = Number(req.query.limit) || 20;
-      const cursor = Number(req.query.cursor) || 0;
-
-      if (isNaN(limit) || isNaN(cursor)) {
-        throw new AppError("Parâmetros de paginação inválidos!", 400);
-      }
-
-      const result = await adminPaymentService.findReleasedPayments(
-        limit,
-        cursor
-      );
+      const filters = PaymentFiltersSchema.parse({
+        ...req.query,
+        status: "RELEASED",
+      });
+      const result = await adminPaymentService.findPayments(filters);
 
       res.json({
         success: true,
@@ -157,32 +158,21 @@ export const adminController = {
         hasNextPage: result.hasNextPage,
       });
     } catch (err) {
-      next(err);
+      handleZodError(err, next);
     }
   },
 
-  /**
-   * PATCH /admin/payments/:id/release
-   * Libera um pagamento pendente
-   * Body: {}
-   * Header: Authorization: Bearer {accessToken}
-   */
-    releasePayment: async (req: Request, res: Response, next: NextFunction) => {
+  releasePayment: async (req: Request, res: Response, next: NextFunction) => {
     try {
       const payment_id = Number(req.params.id);
       const released_by = req.accessUser?.profileId;
 
-      if (isNaN(payment_id)) {
-        throw new AppError("ID de pagamento inválido!", 400);
-      }
-
-      if (!released_by) {
-        throw new AppError("Usuário não autenticado!", 401);
-      }
+      if (isNaN(payment_id)) throw new AppError("ID de pagamento invalido!", 400);
+      if (!released_by) throw new AppError("Usuario nao autenticado!", 401);
 
       const result = await adminPaymentService.releasePayment(
         payment_id,
-        Number(released_by)
+        Number(released_by),
       );
 
       res.json({
@@ -193,25 +183,15 @@ export const adminController = {
     } catch (err) {
       next(err);
     }
-    },
+  },
 
-  // ============================================
-  // NEGOCIATION ENDPOINTS
-  // ============================================
-
-  /**
-   * GET /admin/negotiations
-   * Lista todas as negociações com paginação
-   * Query params: limit, cursor, status (opcional)
-   */
   findAllNegociations: async (
     req: Request,
     res: Response,
-    next: NextFunction
+    next: NextFunction,
   ) => {
     try {
       const filters = NegociationFiltersSchema.parse(req.query);
-
       const result = await adminNegociationService.findAllNegociations(filters);
 
       res.json({
@@ -221,24 +201,60 @@ export const adminController = {
         hasNextPage: result.hasNextPage,
       });
     } catch (err) {
-      if (err instanceof ZodError) {
-        return next(new AppError("Dados de entrada inválidos!", 400));
-      }
-      next(err);
+      handleZodError(err, next);
     }
   },
 
-  /**
-   * GET /admin/negotiations/:id
-   * Busca uma negociação específica por ID
-   */
+  findPendingNegociations: async (
+    req: Request,
+    res: Response,
+    next: NextFunction,
+  ) => {
+    try {
+      const filters = NegociationFiltersSchema.parse({
+        ...req.query,
+        status: "PENDING",
+      });
+      const result = await adminNegociationService.findAllNegociations(filters);
+
+      res.json({
+        success: true,
+        data: result.negociations,
+        cursor: result.cursor,
+        hasNextPage: result.hasNextPage,
+      });
+    } catch (err) {
+      handleZodError(err, next);
+    }
+  },
+
+  findHeldNegociations: async (
+    req: Request,
+    res: Response,
+    next: NextFunction,
+  ) => {
+    try {
+      const filters = NegociationFiltersSchema.parse({
+        ...req.query,
+        payment_status: "HELD",
+      });
+      const result = await adminNegociationService.findAllNegociations(filters);
+
+      res.json({
+        success: true,
+        data: result.negociations,
+        cursor: result.cursor,
+        hasNextPage: result.hasNextPage,
+      });
+    } catch (err) {
+      handleZodError(err, next);
+    }
+  },
+
   findNegociation: async (req: Request, res: Response, next: NextFunction) => {
     try {
       const id = Number(req.params.id);
-
-      if (isNaN(id)) {
-        throw new AppError("ID inválido!", 400);
-      }
+      if (isNaN(id)) throw new AppError("ID invalido!", 400);
 
       const negociation = await adminNegociationService.findNegociationById(id);
 
@@ -251,32 +267,13 @@ export const adminController = {
     }
   },
 
-  // ============================================
-  // PROPERTIES ENDPOINTS
-  // ============================================
-
-  /**
-   * GET /admin/properties
-   * Lista todas as propriedades com filtros avançados
-   * Query params:
-   *   - limit: number (default 20)
-   *   - cursor: number (default 0)
-   *   - type_of_property: enum (opcional)
-   *   - type_property_purchase: enum (opcional)
-   *   - status_property: enum (opcional)
-   *   - municipality: string (opcional)
-   *   - neighborhood: string (opcional)
-   *   - min_price: number (opcional)
-   *   - max_price: number (opcional)
-   */
-   findAllProperties: async (
+  findAllProperties: async (
     req: Request,
     res: Response,
-    next: NextFunction
+    next: NextFunction,
   ) => {
     try {
       const filters = PropertyFiltersSchema.parse(req.query);
-
       const result = await adminPropertyService.findAllProperties(filters);
 
       res.json({
@@ -286,97 +283,20 @@ export const adminController = {
         hasNextPage: result.hasNextPage,
       });
     } catch (err) {
-      if (err instanceof ZodError) {
-        return next(new AppError("Dados de entrada inválidos!", 400));
-      }
-      next(err);
+      handleZodError(err, next);
     }
   },
 
-  /**
-   * GET /admin/properties/:id
-   * Busca uma propriedade específica por ID
-   */
-  /* findProperty: async (req: Request, res: Response, next: NextFunction) => {
+  findProperty: async (req: Request, res: Response, next: NextFunction) => {
     try {
       const id = Number(req.params.id);
+      if (isNaN(id)) throw new AppError("ID invalido!", 400);
 
-      if (isNaN(id)) {
-        throw new AppError("ID inválido!", 400);
-      }
-
-      const property = await adminPaymentService.(id);
+      const property = await adminPropertyService.findPropertyById(id);
 
       res.json({
         success: true,
         data: property,
-      });
-    } catch (err) {
-      next(err);
-    }
-  }, */
-
-  // ============================================
-  // EXISTING ENDPOINTS (MANTER COMPATIBILIDADE)
-  // ============================================
-
-  /**
-   * GET /admin/users
-   * Lista todos os usuários (já implementado)
-   */
-  findUsers: async (req: Request, res: Response, next: NextFunction) => {
-    try {
-      const limit = req.query.limit || 20;
-      const lastPropertyId = req.query.cursor || 0;
-
-      if (Array.isArray(limit)) throw new AppError("Valor inválido!", 400);
-      if (Array.isArray(lastPropertyId))
-        throw new AppError("Valor inválido!", 400);
-
-      // Usando o profileRepository já existente
-      const { profileRepository } = await import(
-        "../repositories/Profile/profile.repositories.js"
-      );
-      const users = await profileRepository.findAll(
-        Number(limit),
-        Number(lastPropertyId)
-      );
-
-      const hasNextPage = users.length > Number(limit);
-      const paginated = hasNextPage ? users.slice(0, -1) : users;
-
-      res.json({
-        success: true,
-        data: paginated,
-        cursor: hasNextPage ? paginated[paginated.length - 1]?.id : null,
-        hasNextPage,
-      });
-    } catch (err) {
-      next(err);
-    }
-  },
-
-  /**
-   * GET /admin/users/:id
-   * Busca um usuário específico (já implementado)
-   */
-  findUserById: async (req: Request, res: Response, next: NextFunction) => {
-    try {
-      const id = req.params.id as string;
-
-      if (isNaN(Number(id))) throw new AppError("ID inválido!", 400);
-
-      const { profileRepository } = await import(
-        "../repositories/Profile/profile.repositories.js"
-      );
-      const user = await profileRepository.findById(Number(id));
-
-      if (!user) throw new AppError("Perfil inexistente!", 404);
-
-      res.json({
-        success: true,
-        message: "Usuário encontrado!",
-        data: user,
       });
     } catch (err) {
       next(err);

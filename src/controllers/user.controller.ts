@@ -45,6 +45,10 @@ const userController = {
       next(err)
     }
   },
+  findUserById: async( req:Request, res: Response, next: NextFunction)=> {
+    const data: GetUserIdDTO = getUserId.parse(req.refreshUser!.sub)
+    const getUser = await userService.findUserById(data.id) 
+  }
 };
 
 export { userController };

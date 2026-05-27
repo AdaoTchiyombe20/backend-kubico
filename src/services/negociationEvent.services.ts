@@ -54,8 +54,8 @@ export const negociationEventService = {
         }
 
         // Verificar se já existe negociação pendente
-        const existingNegociation = await negociationRepository.findNegociationByClientAndProperty(
-            profile_id,
+        const existingNegociation = await negociationRepository.findPendingNegociationByClientAndProperty(
+            findClient.id,
             findListingProperty.id
         );
         if (existingNegociation) {
@@ -112,7 +112,7 @@ export const negociationEventService = {
         const negociation = await negociationRepository.findNegociationById(negociation_id);
         if (!negociation) throw new AppError("Negociação não encontrada!", 404);
 
-        const findOwner = await profileRole.findProfileRoleByRole(profile_id, 1);
+        const findOwner = await profileRole.findProfileRoleByRole(profile_id, 2);
         if (!findOwner) throw new AppError("Apenas o proprietário pode aceitar a proposta!", 403);
 
         // Verificar se é o proprietário
@@ -143,7 +143,7 @@ export const negociationEventService = {
 
         // Criar evento
         await negociationEventRepository.createNegociationEvent(
-            profile_id,
+            findOwner.id,
             negociation_id,
             "ACCEPTANCE",
             eventDescription
@@ -198,7 +198,7 @@ export const negociationEventService = {
 
         // Criar evento
         await negociationEventRepository.createNegociationEvent(
-            profile_id,
+            findOwner.id,
             negociation_id,
             "REJECTION",
             eventDescription
@@ -249,7 +249,7 @@ export const negociationEventService = {
 
         // Criar evento (sem mudar status)
         const event = await negociationEventRepository.createNegociationEvent(
-            profile_id,
+            findOwner.id,
             negociation_id,
             "COUNTER_OFFER", 
             eventDescription
@@ -307,7 +307,7 @@ export const negociationEventService = {
 
         // Criar evento
         await negociationEventRepository.createNegociationEvent(
-            profile_id,
+            findClient.id,
             negociation_id,
             "CANCELLATION",
             eventDescription
@@ -374,13 +374,15 @@ export const negociationEventService = {
         };
     },
 
-    async getSentProposals(profile_id: number, property_id: number) {
+    async getSentProposals(profile_id: number, property_id?: number) {
         const findUser = await profileRepository.findById(profile_id);
         if (!findUser) throw new AppError("Perfil não encontrado!", 404);
 
-        const findListingProperty = await propertyListingRepository.findListingById(property_id)
-        if(!findListingProperty)
-            throw new AppError("Propriedade nao encontrada!",404)
+        if (property_id) {
+            const findListingProperty = await propertyListingRepository.findListingById(property_id)
+            if(!findListingProperty)
+                throw new AppError("Propriedade nao encontrada!",404)
+        }
 
         const findProfile = await profileRole.findProfileRoleByRole(profile_id, 1)
         if(!findProfile) 
@@ -393,13 +395,15 @@ export const negociationEventService = {
             data: negotiations,
         };
     },
-    async getReceivedProposals(profile_id: number, property_id: number) {
+    async getReceivedProposals(profile_id: number, property_id?: number) {
         const findUser = await profileRepository.findById(profile_id);
         if (!findUser) throw new AppError("Perfil não encontrado!", 404);
 
-        const findProperty = await  propertyListingRepository.findListingById(property_id)
-        if(!findProperty)
-            throw new AppError("propriedade nao publicada", 404)
+        if (property_id) {
+            const findProperty = await  propertyListingRepository.findListingById(property_id)
+            if(!findProperty)
+                throw new AppError("propriedade nao publicada", 404)
+        }
 
         const findProfile = await profileRole.findProfileRoleByRole(profile_id, 2);
 

@@ -82,6 +82,10 @@ export const propertyService = {
     if (!localization)
       throw new AppError("Imóvel precisa de localização para ser publicado!", 400);
 
+    const activeListing = await propertyListingRepository.findActiveListing(propertyId);
+    if (activeListing)
+      throw new AppError("ImÃ³vel jÃ¡ possui uma listagem activa!", 400);
+
     await propertyRepository.updatePropertyStatus(propertyId, "PUBLICADO");
 
     await propertyListingRepository.createListing(propertyId, "DISPONIVEL");
@@ -144,9 +148,12 @@ export const propertyService = {
     }
   },
 
-  findListingById: async (property_id: number) => {
+  findListingById: async (id: number) => {
     try {
-      const verifyProperty = await propertyRepository.findUniquePropertyById(property_id);
+      const listingById = await propertyListingRepository.findListingById(id);
+      if (listingById) return listingById;
+
+      const verifyProperty = await propertyRepository.findUniquePropertyById(id);
       if(!verifyProperty) throw new AppError("Imóvel não encontrado!", 404);
       const listing = await propertyListingRepository.findActiveListing(verifyProperty.id);
       if (!listing) throw new AppError("Listagem não encontrada!", 404);
@@ -245,11 +252,7 @@ export const propertyService = {
     // ✅ PASSO 1: Upload para Cloudinary ANTES de qualquer DB operation
     let uploadResults;
 
-    try {
-      uploadResults = await uploadFilesToCloudinary(files, "properties");
-    } finally {
-      console.log("Upload results:", uploadResults);
-    }
+    uploadResults = await uploadFilesToCloudinary(files, "properties");
 
     // Se houve erros no upload, limpar Cloudinary e falhar
     if (uploadResults.errors.length > 0) {
@@ -605,12 +608,12 @@ export const propertyService = {
 
     return media;
   },
- addToFavorites: async (ownerId: number, propertyId: number) => {
-  const findOwner = await profileRole.findProfileRoleByRole(ownerId, 2);
-  console.log("findOwner:", findOwner);
+ addToFavorites: async (profileId: number, propertyId: number) => {
+  const findClient = await profileRole.findProfileRoleByRole(profileId, 1);
+  if (!findClient) throw new AppError("Cliente nÃ£o encontrado!", 404);
+  const findOwner = await profileRole.findProfileRoleByRole(profileId, 2);
 
   const findProperty = await propertyRepository.findUniquePropertyById(propertyId);
-  console.log("findProperty:", findProperty);
 
   if (!findProperty) throw new AppError("Imóvel não encontrado!", 404);
 
@@ -622,22 +625,21 @@ export const propertyService = {
   const findListedProperty = await propertyListingRepository.findActiveListing(propertyId);
   if(!findListedProperty) throw new AppError("Imóvel precisa estar publicado para ser adicionado aos favoritos!", 400);
 
-  console.log("Antes de adicionar aos favoritos passou");
-
-  await favPropertyRepository.addFavorite(ownerId, findListedProperty.id);
-  console.log("Depois de adicionar aos favoritos passou");
+  await favPropertyRepository.addFavorite(findClient.id, propertyId);
 
   return { message: "Imóvel adicionado aos favoritos!" };
 },
-  removeFromFavorites: async (ownerId: number, propertyId: number) => {
-    const findOwner = await profileRole.findProfileRoleByRole(ownerId, 2);
+  removeFromFavorites: async (profileId: number, propertyId: number) => {
+    const findClient = await profileRole.findProfileRoleByRole(profileId, 1);
+    if (!findClient) throw new AppError("Cliente nÃ£o encontrado!", 404);
+    const findOwner = (await profileRole.findProfileRoleByRole(profileId, 2)) ?? { id: -1 };
     if (!findOwner) throw new AppError("Owner não encontrado!", 404);
     const findProperty = await propertyRepository.findUniquePropertyById(propertyId);
     if (!findProperty) throw new AppError("Imóvel não encontrado!", 404);
 
     if(findProperty.id_owner === findOwner.id) throw new AppError("Não é possível adicionar ou remover dos favoritos seu próprio imóvel!", 400);
 
-    await favPropertyRepository.removeFavorite(ownerId, propertyId);
+    await favPropertyRepository.removeFavorite(findClient.id, propertyId);
 
     return { message: "Imóvel removido dos favoritos!" };
   },
@@ -647,10 +649,10 @@ export const propertyService = {
     if(!cursor)
       cursor = 0;
 
-    const findOwner = await profileRole.findProfileRoleByRole(ownerId, 2);
+    const findOwner = await profileRole.findProfileRoleByRole(ownerId, 1);
     if (!findOwner) throw new AppError("Owner não encontrado!", 404);
 
-    const favorites = await favPropertyRepository.findUserFavorites(ownerId, limit, cursor);
+    const favorites = await favPropertyRepository.findUserFavorites(findOwner.id, limit, cursor);
     const hasNextPage = favorites.length > limit;
     const paginated = hasNextPage ? favorites.slice(0, -1) : favorites;
     return {
