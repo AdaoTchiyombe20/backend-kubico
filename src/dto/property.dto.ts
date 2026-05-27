@@ -11,6 +11,7 @@ const compartmentSchema = z.object({
 
 export const rawSearchFiltersSchema = z.object({
   type_purchase: z.string().optional(),
+  type_property_purchase: z.string().optional(),
   type_of_property: z.string().optional(),
   neighborhood: z.string().optional(),
   municipality: z.string().optional(),
@@ -33,6 +34,7 @@ export const rawSearchFiltersSchema = z.object({
 
 export const parsedSearchFiltersSchema = z.object({
   type_purchase: z.nativeEnum(Property_purchase).optional(),
+  type_property_purchase: z.nativeEnum(Property_purchase).optional(),
   type_of_property: z.nativeEnum(TypeProperties).optional(),
   neighborhood: z.string().optional(),
   municipality: z.string().optional(),

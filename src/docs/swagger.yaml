@@ -727,9 +727,16 @@ paths:
       parameters:
         - name: type_purchase
           in: query
+          description: Aceita tambem o alias `type_property_purchase`.
           schema:
             type: string
-            enum: [FOR_SALE, FOR_RENT]
+            enum: [FOR_SALE, FOR_RENT, venda, arrendamento]
+        - name: type_property_purchase
+          in: query
+          description: Alias de `type_purchase`, util quando o frontend usa o nome do campo no banco.
+          schema:
+            type: string
+            enum: [FOR_SALE, FOR_RENT, venda, arrendamento]
         - name: type_of_property
           in: query
           schema:

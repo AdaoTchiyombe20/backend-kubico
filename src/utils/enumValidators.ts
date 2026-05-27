@@ -4,7 +4,7 @@ import { AppError } from "../errors/App.Errors.js";
 
 export const parseTypeProperties = (value?: string): TypeProperties | undefined => {
   if (!value) return undefined;
-  const upper = value.toUpperCase();
+  const upper = value.trim().toUpperCase();
   if (Object.values(TypeProperties).includes(upper as TypeProperties)) {
     return upper as TypeProperties;
   }
@@ -16,7 +16,23 @@ export const parseTypeProperties = (value?: string): TypeProperties | undefined 
 
 export const parsePropertyPurchase = (value?: string): Property_purchase | undefined => {
   if (!value) return undefined;
-  const upper = value.toUpperCase();
+  const upper = value.trim().toUpperCase();
+
+  const aliases: Record<string, Property_purchase> = {
+    SALE: Property_purchase.FOR_SALE,
+    SELL: Property_purchase.FOR_SALE,
+    VENDA: Property_purchase.FOR_SALE,
+    VENDER: Property_purchase.FOR_SALE,
+    RENT: Property_purchase.FOR_RENT,
+    RENTAL: Property_purchase.FOR_RENT,
+    ARRENDAMENTO: Property_purchase.FOR_RENT,
+    ARRENDAR: Property_purchase.FOR_RENT,
+    ALUGUEL: Property_purchase.FOR_RENT,
+    ALUGAR: Property_purchase.FOR_RENT,
+  };
+
+  if (aliases[upper]) return aliases[upper];
+
   if (Object.values(Property_purchase).includes(upper as Property_purchase)) {
     return upper as Property_purchase;
   }
