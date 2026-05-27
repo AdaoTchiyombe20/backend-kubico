@@ -110,12 +110,17 @@ export const propertyController = {
 
   findAllListings: async (req: Request, res: Response, next: NextFunction) => {
     try {
+      const profileId = req.accessUser?.profileId;
       const limit = req.query.limit || 20;
       const lastPropertyId = req.query.cursor || 0;
       if (Array.isArray(limit)) throw new AppError("Valor inválido!", 400);
       if (Array.isArray(lastPropertyId)) throw new AppError("Valor inválido!", 400);
 
-      const properties = await propertyService.findAllListings(Number(limit), Number(lastPropertyId));
+      const properties = await propertyService.findAllListings(
+        Number(limit),
+        Number(lastPropertyId),
+        profileId ? Number(profileId) : undefined
+      );
 
       res.json({
         success: true,
@@ -145,6 +150,7 @@ export const propertyController = {
 
   searchListings: async (req: Request, res: Response, next: NextFunction) => {
   try {
+    const profileId = req.accessUser?.profileId;
     const { type_purchase, type_of_property, neighborhood, municipality, min_price, max_price, is_negotiable } = req.query;
     
     const filters: RawSearchFilters = {
@@ -160,7 +166,12 @@ export const propertyController = {
     const limit = QueryValidator.ensurePositiveNumber(req.query.limit, 'limit') || 20;
     const lastPropertyId = QueryValidator.ensurePositiveNumber(req.query.cursor, 'cursor') || 0;
 
-    const properties = await propertyService.searchListings(filters, limit, lastPropertyId);
+    const properties = await propertyService.searchListings(
+      filters,
+      limit,
+      lastPropertyId,
+      profileId ? Number(profileId) : undefined
+    );
 
     res.json({
       success: true,

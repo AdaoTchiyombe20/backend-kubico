@@ -36,6 +36,13 @@ import { favPropertyRepository } from "../repositories/property/favProperty.repo
 
 const limiter = pLimit(3);
 
+async function getOwnerRoleId(profileId?: number): Promise<number | undefined> {
+  if (!profileId) return undefined;
+
+  const ownerRole = await profileRole.findProfileRoleByRole(profileId, 2);
+  return ownerRole?.id;
+}
+
 export const propertyService = {
   findAll: async (limit: number, cursor: number) => {
     const properties = await propertyRepository.findAll(limit, cursor);
@@ -130,9 +137,14 @@ export const propertyService = {
     return { message: "Imóvel despublicado com sucesso!" };
   },
 
-  findAllListings: async (limit: number, cursor: number) => {
+  findAllListings: async (limit: number, cursor: number, profileId?: number) => {
     try {
-      const listings = await propertyListingRepository.findAllListings(limit, cursor);
+      const excludedOwnerId = await getOwnerRoleId(profileId);
+      const listings = await propertyListingRepository.findAllListings(
+        limit,
+        cursor,
+        excludedOwnerId
+      );
       const hasNextPage = listings.length > limit;
       const paginated = hasNextPage ? listings.slice(0, -1) : listings;
       return {
@@ -167,7 +179,12 @@ export const propertyService = {
     }
   },
 
-  searchListings: async (filters: RawSearchFilters, limit: number, cursor: number) => {
+  searchListings: async (
+    filters: RawSearchFilters,
+    limit: number,
+    cursor: number,
+    profileId?: number,
+  ) => {
     try {
       const parsedFilters: ParsedSearchFilters = {
         type_of_property: filters.type_of_property
@@ -197,10 +214,12 @@ export const propertyService = {
       )
         throw new AppError("Preço mínimo não pode ser maior que o preço máximo!", 400);
 
+      const excludedOwnerId = await getOwnerRoleId(profileId);
       const listings = await propertyListingRepository.searchListings(
         parsedFilters,
         limit,
-        cursor
+        cursor,
+        excludedOwnerId
       );
       const hasNextPage = listings.length > limit;
       const paginated = hasNextPage ? listings.slice(0, -1) : listings;

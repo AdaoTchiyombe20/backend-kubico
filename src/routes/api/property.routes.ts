@@ -1,7 +1,11 @@
 import { Router } from "express";
 import { propertyController } from "../../controllers/property.controller.js";
 import { multerUploads } from "../../middlewares/multer.middleware.js";
-import { authorizeNormalAccessTokenMiddleware, authorizeRoleAcessTokenMiddleware } from "../../middlewares/auth.middleware.js";
+import {
+  authorizeNormalAccessTokenMiddleware,
+  authorizeRoleAcessTokenMiddleware,
+  optionalAccessTokenMiddleware,
+} from "../../middlewares/auth.middleware.js";
 import { cleanupMulterFiles } from "../../middlewares/multer.middleware.js";
 const { uploadImagesAndVideo, uploadImg, uploadVideo } = multerUploads;
 
@@ -19,8 +23,8 @@ propertyRoute.post("/favorites/:id", withRole("client"), propertyController.addT
 propertyRoute.delete("/favorites/:id", withRole("client"), propertyController.removeFromFavorites);
 
 // PUBLICAÇÃO de imóveis (específicas também)
-propertyRoute.get("/listings/search", propertyController.searchListings);
-propertyRoute.get("/listings", propertyController.findAllListings);
+propertyRoute.get("/listings/search", optionalAccessTokenMiddleware, propertyController.searchListings);
+propertyRoute.get("/listings", optionalAccessTokenMiddleware, propertyController.findAllListings);
 propertyRoute.get("/listings/:id", propertyController.findListingById);
 propertyRoute.post("/publish/:id", withRole("owner"), propertyController.publishProperty);
 propertyRoute.post("/unpublish/:id", withRole("owner"), propertyController.unPublishProperty);
