@@ -191,7 +191,10 @@ export const negociationEventController = {
             if (!profile_id) throw new AppError("Perfil não encontrado!", 401);
             if (isNaN(profile_id)) throw new AppError("ID do perfil inválido!", 400);
             
-            const property_id = Number(req.params.property_id);
+            const property_id = req.params.property_id ? Number(req.params.property_id) : undefined;
+            if (property_id !== undefined && isNaN(property_id)) {
+                throw new AppError("ID da propriedade invalido!", 400);
+            }
 
             const result = await negociationEventService.getSentProposals(
                 profile_id,
@@ -216,9 +219,12 @@ export const negociationEventController = {
 
             
 
-            const property_id = Number(req.params.property_id);
+            const property_id = req.params.property_id ? Number(req.params.property_id) : undefined;
+            if (property_id !== undefined && isNaN(property_id)) {
+                throw new AppError("ID da propriedade invalido!", 400);
+            }
 
-        const result = await negociationEventService.getSentProposals(
+        const result = await negociationEventService.getReceivedProposals(
             profile_id,
             property_id
         );

@@ -117,6 +117,7 @@ model profile_roles {
   property_history propertyHistory[]
   negociationEvents negociationEvent[]
   favorites favorites[]
+  scheduling_visits Scheduling_visits[]
 
   paymentsClient payments[] @relation("PaymentClient")
   paymentsOwner payments[] @relation("PaymentOwner")
@@ -284,6 +285,7 @@ model propertyListing {
   negotiation negociation[]
   payments payments[]
   featured_properties featured_properties[]
+  scheduling_visits Scheduling_visits[]
 
   // ✅ Índices críticos para busca
   @@index([property_id])
@@ -406,6 +408,19 @@ model platform_pricing {
   admin admins @relation(fields: [created_by], references: [id])
 
   @@index([type, is_active])
+}
+
+model Scheduling_visits {
+  id Int @id @default(autoincrement())
+  property_listing_id Int 
+  client_id Int
+  date DateTime
+  hour DateTime
+
+  propertyListing propertyListing @relation(fields: [property_listing_id], references: [id], onDelete: Cascade)
+  profile_roles profile_roles @relation(fields: [client_id], references: [id], onDelete: Cascade)
+
+
 }
 
 model featured_properties { 

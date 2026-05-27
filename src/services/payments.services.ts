@@ -1,5 +1,8 @@
 import {
+  ListingStatus,
+  PaymentStatus,
   PricingType,
+  propertySelingStatus,
   type PaymentType,
 } from "@prisma/client";
 
@@ -13,21 +16,22 @@ import { propertyRepository } from "../repositories/property/properties.reposito
 import { propertyListingRepository } from "../repositories/property/propertyListing.repositories.js";
 import { PaymentsRepository } from "../repositories/payment/payments..repository.js";
 import { platformPricingRepository } from "../repositories/admin/plataform.pricing.js";
+import { historyPropertyRepository } from "../repositories/property/historyProperty.respositories.js";
 
 export const paymentsService = {
-  processPayment: async (client_id:number,
+  processPayment: async (profile_id:number,
     paymentData: PaymentDto
   ) => {
     try {
       const {
-        listed_property_id,
+        property_listing_id,
         paymentType,
       } = paymentData;
 
 
       const listing =
-        await propertyListingRepository.findActiveListing(
-          listed_property_id
+        await propertyListingRepository.findListingById(
+          property_listing_id
         );
 
       if (!listing) {
@@ -60,7 +64,7 @@ export const paymentsService = {
 
       const client =
         await profileRole.findProfileRoleByRole(
-          client_id,
+          profile_id,
           1
         );
 
@@ -74,7 +78,7 @@ export const paymentsService = {
 
       const ownerProfile =
         await profileRole.findProfileRoleByRole(
-          client_id,
+          profile_id,
           2
         );
 
@@ -91,8 +95,8 @@ export const paymentsService = {
 
       const existingPayment =
         await PaymentsRepository.findActivePayment(
-          listed_property_id,
-          client_id
+          property_listing_id,
+          client.id
         );
 
       if (existingPayment) {
@@ -122,7 +126,7 @@ export const paymentsService = {
 
         const negociation =
           await negociationRepository
-            .findNegociationByClientAndProperty(
+            .findAcceptedNegociationByClientAndProperty(
               client.id,
               listing.id
             );
@@ -154,10 +158,11 @@ export const paymentsService = {
           );
         }
 
-        return createPayment({
+          return createPayment({
           property_listing_id:
-            listed_property_id,
-          client_id,
+            property_listing_id,
+          property_id: property.id,
+          client_id: client.id,
           owner_id: property.id_owner,
           negociation_id:
             negociation.id,
@@ -167,7 +172,7 @@ export const paymentsService = {
             Number(
               negociation.accepted_value
             ),
-          discount: pricing,
+          pricing,
           property_title:
             property.title,
           property_price:
@@ -191,8 +196,9 @@ export const paymentsService = {
 
         return createPayment({
           property_listing_id:
-            listed_property_id,
-          client_id,
+            property_listing_id,
+          property_id: property.id,
+          client_id: client.id,
           owner_id:
             property.id_owner,
           negociation_id:
@@ -201,8 +207,7 @@ export const paymentsService = {
             paymentType,
           amount:
             Number(property.price),
-          discount:
-            pricing,
+          pricing,
           property_title:
             property.title,
           property_price:
@@ -228,6 +233,114 @@ export const paymentsService = {
       );
     }
   },
+
+  releaseHeldPayment: async (profile_id: number, payment_id: number) => {
+    const releaser = await profileRole.findProfileRoleByRole(profile_id, 2);
+    if (!releaser) {
+      throw new AppError("Apenas proprietarios podem liberar pagamentos!", 403);
+    }
+
+    const payment = await PaymentsRepository.findPaymentById(payment_id);
+    if (!payment) {
+      throw new AppError("Pagamento nao encontrado!", 404);
+    }
+
+    if (payment.owner_id !== releaser.id) {
+      throw new AppError("Voce nao tem permissao para liberar este pagamento!", 403);
+    }
+
+    if (payment.status !== PaymentStatus.HELD) {
+      throw new AppError("Apenas pagamentos retidos podem ser liberados!", 400);
+    }
+
+    const listing = payment.property_listing;
+    const property = listing.property;
+    const finalListingStatus =
+      property.type_property_purchase === "FOR_RENT"
+        ? ListingStatus.ALUGADO
+        : ListingStatus.VENDIDO;
+    const finalHistoryStatus =
+      property.type_property_purchase === "FOR_RENT"
+        ? propertySelingStatus.ALUGADO
+        : propertySelingStatus.VENDIDO;
+
+    const releasedPayment = await PaymentsRepository.updatePaymentStatus(
+      payment_id,
+      PaymentStatus.RELEASED,
+      {
+        released_at: new Date(),
+        released_by: releaser.id,
+      }
+    );
+
+    await propertyListingRepository.updateListingStatus(
+      listing.id,
+      finalListingStatus,
+      new Date()
+    );
+
+    await historyPropertyRepository.createHistoryProperty(
+      payment.owner_id,
+      property.id,
+      propertySelingStatus.RESERVADO,
+      finalHistoryStatus
+    );
+
+    return {
+      message: "Pagamento liberado com sucesso!",
+      payment: releasedPayment,
+    };
+  },
+
+  cancelHeldPayment: async (profile_id: number, payment_id: number) => {
+    const client = await profileRole.findProfileRoleByRole(profile_id, 1);
+    if (!client) {
+      throw new AppError("Apenas clientes podem cancelar pagamentos!", 403);
+    }
+
+    const payment = await PaymentsRepository.findPaymentById(payment_id);
+    if (!payment) {
+      throw new AppError("Pagamento nao encontrado!", 404);
+    }
+
+    if (payment.client_id !== client.id) {
+      throw new AppError("Voce nao tem permissao para cancelar este pagamento!", 403);
+    }
+
+    if (payment.status === PaymentStatus.RELEASED) {
+      throw new AppError("Nao e possivel cancelar um pagamento ja liberado!", 400);
+    }
+
+    if (payment.status === PaymentStatus.CANCELLED) {
+      throw new AppError("Este pagamento ja foi cancelado!", 400);
+    }
+
+    const cancelledPayment = await PaymentsRepository.updatePaymentStatus(
+      payment_id,
+      PaymentStatus.CANCELLED,
+      {
+        cancelled_at: new Date(),
+      }
+    );
+
+    await propertyListingRepository.updateListingStatus(
+      payment.property_listing_id,
+      ListingStatus.DISPONIVEL,
+      null
+    );
+
+    await historyPropertyRepository.createHistoryProperty(
+      payment.owner_id,
+      payment.property_listing.property.id,
+      propertySelingStatus.RESERVADO,
+      propertySelingStatus.DISPONIVEL
+    );
+
+    return {
+      message: "Pagamento cancelado e valor devolvido na simulacao!",
+      payment: cancelledPayment,
+    };
+  },
 };
 
 
@@ -235,7 +348,7 @@ async function getPropertyPricing(
   purchaseType:
     | "FOR_SALE"
     | "FOR_RENT"
-): Promise<number> {
+): Promise<{ amount: number; model: "PERCENTAGE" | "FIXED" }> {
 
   const pricingType =
     purchaseType === "FOR_RENT"
@@ -248,23 +361,26 @@ async function getPropertyPricing(
         pricingType
       );
 
-  return Number(
-    pricing?.amount ?? 5
-  );
+  return {
+    amount: Number(pricing?.amount ?? 5),
+    model: pricing?.pricing_model ?? "PERCENTAGE",
+  };
 }
 
 async function createPayment({
   property_listing_id,
+  property_id,
   client_id,
   owner_id,
   negociation_id,
   payment_type,
   amount,
-  discount,
+  pricing,
   property_title,
   property_price,
 }: {
   property_listing_id: number;
+  property_id: number;
   client_id: number;
   owner_id: number;
   negociation_id:
@@ -273,13 +389,19 @@ async function createPayment({
   payment_type:
     PaymentType;
   amount: number;
-  discount: number;
+  pricing: { amount: number; model: "PERCENTAGE" | "FIXED" };
   property_title: string;
   property_price: number;
 }) {
 
   const platform_fee =
-    amount * (discount / 100);
+    pricing.model === "FIXED"
+      ? pricing.amount
+      : amount * (pricing.amount / 100);
+
+  if (platform_fee >= amount) {
+    throw new AppError("Taxa da plataforma invalida para este pagamento", 400);
+  }
 
   const released_amount =
     amount - platform_fee;
@@ -300,9 +422,21 @@ async function createPayment({
         property_price
       );
 
+  await propertyListingRepository.updateListingStatus(
+    property_listing_id,
+    ListingStatus.RESERVADO
+  );
+
+  await historyPropertyRepository.createHistoryProperty(
+    owner_id,
+    property_id,
+    propertySelingStatus.DISPONIVEL,
+    propertySelingStatus.RESERVADO
+  );
+
   return {
     message:
-      "Pagamento processado com sucesso",
+      "Pagamento simulado processado e valor retido com sucesso",
     payment,
   };
 }

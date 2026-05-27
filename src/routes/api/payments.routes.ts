@@ -10,5 +10,7 @@ const withRole = (...roles: string[]) => [
 ];
 
 paymentRoute.post('/', withRole('client'), paymentsController.propertyPayment )
+paymentRoute.patch('/:payment_id/release', withRole('owner'), paymentsController.releasePayment )
+paymentRoute.patch('/:payment_id/cancel', withRole('client'), paymentsController.cancelPayment )
 
 export {paymentRoute}

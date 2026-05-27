@@ -6,7 +6,6 @@ import { userRepository } from "../repositories/auth/user.repositories.js";
 import { profileRepository } from "../repositories/Profile/profile.repositories.js";
 import { hashPassword } from "../utils/hash.js";
 import { sendVerificationEmail } from "./mail.services.js";
-import { threadCpuUsage } from "node:process";
 
 export const userService = {
   deleteUser: async (id: number) => {
@@ -39,7 +38,7 @@ export const userService = {
     return await userRepository.findAll();
   },
   findUserById: async (id: number) => {
-    const existingId = await userRepository.findById(id);
+    const existingId = await profileRepository.findById(id);
 
     if (!existingId) throw new AppError("Id inesistente!!!", 400);
 

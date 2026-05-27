@@ -94,12 +94,22 @@ negociationRouter.get(
 negociationRouter.get(
     "/sentProposals",
     withRole("client"),
-    negociationEventController.getUserNegotiations
+    negociationEventController.getSentProposals
+);
+negociationRouter.get(
+    "/sentProposals/:property_id",
+    withRole("client"),
+    negociationEventController.getSentProposals
 );
 negociationRouter.get(
     "/receivedProposals",
     withRole("owner"),
-    negociationEventController.getUserNegotiations
+    negociationEventController.getReceivedProposals
+);
+negociationRouter.get(
+    "/receivedProposals/:property_id",
+    withRole("owner"),
+    negociationEventController.getReceivedProposals
 );
 
 /**

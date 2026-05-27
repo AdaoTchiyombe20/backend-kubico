@@ -26,6 +26,11 @@ export const profileRepository = {
             }
             })
     },
+    findAuthProfileByUserId: async (user_id: number): Promise<profiles | null> => {
+        return prisma.profiles.findUnique({
+            where: { user_id }
+        })
+    },
     findById: async (id: number): Promise<profiles | null> => {
         return prisma.profiles.findUnique({
             where: {id}
