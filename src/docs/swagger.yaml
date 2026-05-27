@@ -1176,6 +1176,14 @@ paths:
           description: Negociacoes pendentes.
 
   /payments:
+    get:
+      tags: [Payments]
+      summary: Listar pagamentos feitos pelo cliente autenticado
+      security:
+        - bearerAuth: []
+      responses:
+        "200":
+          description: Pagamentos encontrados.
     post:
       tags: [Payments]
       summary: Processar pagamento simulado

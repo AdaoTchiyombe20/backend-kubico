@@ -11,6 +11,57 @@ export type PaymentWithListing = Prisma.paymentsGetPayload<{
     };
 }>;
 
+const paymentDetailsInclude = {
+    property_listing: {
+        include: {
+            property: {
+                select: {
+                    id: true,
+                    title: true,
+                    price: true,
+                    type_property_purchase: true,
+                    type_of_property: true,
+                    is_negotiable: true,
+                    property_medias: {
+                        orderBy: { order: "asc" as const },
+                    },
+                    property_localization: true,
+                },
+            },
+        },
+    },
+    owner: {
+        select: {
+            id: true,
+            profile: {
+                select: {
+                    id: true,
+                    type: true,
+                    person_profile: {
+                        select: { full_name: true },
+                    },
+                    company_profile: {
+                        select: { legal_name: true },
+                    },
+                },
+            },
+        },
+    },
+    negociation: {
+        select: {
+            id: true,
+            status: true,
+            proposed_price: true,
+            accepted_value: true,
+            months: true,
+        },
+    },
+} satisfies Prisma.paymentsInclude;
+
+export type PaymentDetails = Prisma.paymentsGetPayload<{
+    include: typeof paymentDetailsInclude;
+}>;
+
 export const PaymentsRepository = {
     createPayments: async(property_listing_id: number, client_id: number, owner_id: number, negociation_id: number | null, payment_type: PaymentType, amount: number, platform_fee: number, released_amount: number, payment_status:PaymentStatus, property_title: string, property_price: number ): Promise<payments> => {
         return await prisma.payments.create({
@@ -52,6 +103,13 @@ export const PaymentsRepository = {
                 },
             },
         })
+    },
+    findPaymentsByClientId: async(client_id: number): Promise<PaymentDetails[]> => {
+        return await prisma.payments.findMany({
+            where: { client_id },
+            include: paymentDetailsInclude,
+            orderBy: { created_at: "desc" },
+        });
     },
     updatePaymentStatus: async(
         payment_id: number,

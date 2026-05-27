@@ -19,6 +19,21 @@ import { platformPricingRepository } from "../repositories/admin/plataform.prici
 import { historyPropertyRepository } from "../repositories/property/historyProperty.respositories.js";
 
 export const paymentsService = {
+  findMadePayments: async (profile_id: number) => {
+    const client = await profileRole.findProfileRoleByRole(profile_id, 1);
+
+    if (!client) {
+      throw new AppError("Cliente nÃ£o encontrado ou sem permissÃ£o", 404);
+    }
+
+    const payments = await PaymentsRepository.findPaymentsByClientId(client.id);
+
+    return {
+      total: payments.length,
+      payments,
+    };
+  },
+
   processPayment: async (profile_id:number,
     paymentData: PaymentDto
   ) => {
