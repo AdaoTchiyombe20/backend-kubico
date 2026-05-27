@@ -151,10 +151,10 @@ export const propertyController = {
   searchListings: async (req: Request, res: Response, next: NextFunction) => {
   try {
     const profileId = req.accessUser?.profileId;
-    const { type_purchase, type_of_property, neighborhood, municipality, min_price, max_price, is_negotiable } = req.query;
+    const { type_purchase, type_property_purchase, type_of_property, neighborhood, municipality, min_price, max_price, is_negotiable } = req.query;
     
     const filters: RawSearchFilters = {
-      type_purchase: QueryValidator.ensureSingleString(type_purchase, 'type_purchase'),
+      type_purchase: QueryValidator.ensureSingleString(type_purchase ?? type_property_purchase, 'type_purchase'),
       type_of_property: QueryValidator.ensureSingleString(type_of_property, 'type_of_property'),
       neighborhood: QueryValidator.ensureSingleString(neighborhood, 'neighborhood'),
       municipality: QueryValidator.ensureSingleString(municipality, 'municipality'),
