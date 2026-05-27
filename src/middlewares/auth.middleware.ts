@@ -148,6 +148,52 @@ export const authorizeNormalAccessTokenMiddleware = async (
   }
 };
 
+export const optionalAccessTokenMiddleware = async (
+  req: Request,
+  res: Response,
+  next: NextFunction,
+) => {
+  try {
+    const headersToken = req.headers.authorization;
+
+    if (!headersToken || !headersToken.startsWith("Bearer ")) return next();
+
+    const accessToken = headersToken.split(" ")[1];
+
+    if (!accessToken) return next();
+
+    const decoded = jwt.verify(accessToken, ENV.JWT_SECRET);
+
+    if (typeof decoded !== "object" || decoded === null) return next();
+
+    const payload = decoded as JwtPayload;
+
+    if (
+      !payload.sub ||
+      !payload.profileId ||
+      !payload.type ||
+      !payload.role ||
+      payload.iat === undefined ||
+      payload.exp === undefined
+    ) {
+      return next();
+    }
+
+    req.accessUser = {
+      sub: payload.sub as string,
+      profileId: (payload as any).profileId as string,
+      role: payload.role,
+      iat: payload.iat,
+      type: payload.type,
+      exp: payload.exp,
+    };
+
+    return next();
+  } catch {
+    return next();
+  }
+};
+
 export function authorizeRoleAcessTokenMiddleware(allowedRole: string[]) {
   return (req: Request, res: Response, next: NextFunction) => {
     try {

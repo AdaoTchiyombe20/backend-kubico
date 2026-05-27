@@ -51,13 +51,20 @@ export const propertyListingRepository = {
     });
   },
 
-  findAllListings: async (limit: number, cursor: number): Promise<propertyListing[]> => {
+  findAllListings: async (
+    limit: number,
+    cursor: number,
+    excludedOwnerId?: number,
+  ): Promise<propertyListing[]> => {
     return prisma.propertyListing.findMany({
       where: {
         delisted_at: null,
         status: ListingStatus.DISPONIVEL,
         property: {
           status_property: "PUBLICADO",
+          ...(excludedOwnerId !== undefined && {
+            id_owner: { not: excludedOwnerId },
+          }),
         },
         ...(cursor > 0 && { id: { gt: cursor } }),
       },
@@ -115,6 +122,7 @@ export const propertyListingRepository = {
     filters: ParsedSearchFilters,
     limit: number,
     cursor: number,
+    excludedOwnerId?: number,
   ): Promise<propertyListing[]> => {
     return prisma.propertyListing.findMany({
       where: {
@@ -123,6 +131,9 @@ export const propertyListingRepository = {
         ...(cursor > 0 && { id: { gt: cursor } }),
         property: {
             status_property: "PUBLICADO",
+            ...(excludedOwnerId !== undefined && {
+              id_owner: { not: excludedOwnerId },
+            }),
             ...(filters.type_of_property && {
               type_of_property: filters.type_of_property,
             }),
