@@ -39,7 +39,7 @@ app.use(
 );
 
 app.set('trust proxy', 1)
-app.use(globalRateLimiting)
+/* app.use(globalRateLimiting) */
 
 app.use("/docs", swaggerRoutes);
 app.use(cookieParser());
