@@ -133,6 +133,19 @@ components:
               type: string
               example: joao@kubico.ao
 
+    UserDetailsResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+          example: true
+        message:
+          type: string
+          example: Utilizador encontrado!
+        user:
+          type: object
+          description: Dados do utilizador autenticado, perfil, documentos, papeis e estado administrativo.
+
     CreateAdminRequest:
       type: object
       required: [adminsName, email, password, accessLevel]
@@ -593,6 +606,10 @@ paths:
       responses:
         "200":
           description: Utilizador encontrado.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/UserDetailsResponse"
     delete:
       tags: [Users]
       summary: Apagar conta autenticada
@@ -602,6 +619,20 @@ paths:
       responses:
         "200":
           description: Conta apagada.
+
+  /users/me:
+    get:
+      tags: [Users]
+      summary: Buscar informacoes detalhadas do utilizador autenticado
+      security:
+        - bearerAuth: []
+      responses:
+        "200":
+          description: Utilizador encontrado.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/UserDetailsResponse"
 
   /users/update-email:
     put:

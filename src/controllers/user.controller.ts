@@ -46,8 +46,18 @@ const userController = {
     }
   },
   findUserById: async( req:Request, res: Response, next: NextFunction)=> {
-    const data: GetUserIdDTO = getUserId.parse(req.refreshUser!.sub)
-    const getUser = await userService.findUserById(data.id) 
+    try {
+      const data: GetUserIdDTO = getUserId.parse({ id: req.accessUser!.sub });
+      const user = await userService.findUserById(data.id);
+
+      res.json({
+        success: true,
+        message: "Utilizador encontrado!",
+        user,
+      });
+    } catch (err) {
+      next(err);
+    }
   }
 };
 
