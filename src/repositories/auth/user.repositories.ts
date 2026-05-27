@@ -23,6 +23,79 @@ export const userRepository = {
       where: { id },
     });
   },
+  findDetailedById: async (id: number) => {
+    return prisma.users.findUnique({
+      where: { id },
+      select: {
+        id: true,
+        email: true,
+        status: true,
+        email_verified: true,
+        last_access: true,
+        date_register: true,
+        restrictionsHistory: {
+          where: { is_active: true },
+          orderBy: { changed_at: "desc" },
+          take: 1,
+          select: {
+            id: true,
+            is_active: true,
+            new_ban_status: true,
+            changed_at: true,
+            ended_at: true,
+          },
+        },
+        profile: {
+          select: {
+            id: true,
+            type: true,
+            deleted_at: true,
+            person_profile: true,
+            company_profile: true,
+            userMidia: {
+              where: {
+                deleted_at: null,
+              },
+              select: {
+                id: true,
+                type: true,
+                document_number: true,
+                is_current: true,
+                is_verified: true,
+                verified_at: true,
+                inserted_in: true,
+              },
+            },
+            user_role: {
+              select: {
+                id: true,
+                status: true,
+                is_active: true,
+                approved_at: true,
+                created_at: true,
+                role: {
+                  select: {
+                    id: true,
+                    role: true,
+                    description: true,
+                  },
+                },
+              },
+            },
+          },
+        },
+        admin: {
+          select: {
+            id: true,
+            adminsName: true,
+            access_level: true,
+            date_register: true,
+            deleted_at: true,
+          },
+        },
+      },
+    });
+  },
   delete: async (id: number): Promise<users> => {
     return prisma.users.delete({
       where: { id },

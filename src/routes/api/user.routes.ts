@@ -28,7 +28,8 @@ userRouter.patch(
   userController.updatePassword
 );
 
-userRouter.get('/', authorizeRefreshTokenMiddleware, userController.findUserById)
+userRouter.get("/", userController.findUserById);
+userRouter.get("/me", userController.findUserById);
 
 
 export { userRouter };

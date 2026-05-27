@@ -38,9 +38,9 @@ export const userService = {
     return await userRepository.findAll();
   },
   findUserById: async (id: number) => {
-    const existingId = await profileRepository.findById(id);
+    const existingId = await userRepository.findDetailedById(id);
 
-    if (!existingId) throw new AppError("Id inesistente!!!", 400);
+    if (!existingId) throw new AppError("Usuario nao encontrado!", 404);
 
     return existingId;
   },
